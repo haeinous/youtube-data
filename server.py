@@ -29,7 +29,7 @@ app.jinja_env.undefined = StrictUndefined
 class Trie:
     """A trie abstract data structure."""
     def __init__(self):
-        self.root = TrieNode(None)
+        self.root = TrieNode('')
 
     def add_word(self, word, freq):
         current = self.root
@@ -577,37 +577,79 @@ def autocomplete_search():
 
 
 def trie_to_dict(node):
-    """Assume node is the root_node of a trie.
+    """Assume node is the root node of a trie.
     Return a nested dictionary to be converted to JSON.
+    
+    >>> tag_trie = Trie()
+    >>> trie_to_dict(tag_trie.root)
+    {'': {'freq': 0, 'children': {}}}
+
+    >>> tag_trie.add_word('a', 1)
+    >>> trie_to_dict(tag_trie.root)
+    {'': {'freq': 0, 'children': {'a': {'freq': 1, 'children': {}}}}}   
+    
+    >>> tag_trie.add_word('b', 1)
+    >>> trie_to_dict(tag_trie.root)
+    {'': {'freq': 0, 'children': {'a': {'freq': 1, 'children': {}}, 'b': {'freq': 1, 'children': {}}}}}   
+
+    >>> tag_trie.add_word('an', 2)
+    >>> trie_to_dict(tag_trie.root)
+    {'': {'freq': 0, 'children': {'a': {'freq': 1, 'children': {'n': {'freq': 2, 'children': {}}}}, 'b': {'freq': 1, 'children': {}}}}}   
+
+    >>> tag_trie.add_word('and', 3)
+    >>> tag_trie.add_word('be', 2)
+    >>> tag_trie.add_word('bee', 3)
+    >>> tag_trie.add_word('being', 5)
+    >>> trie_to_dict(tag_trie.root)
+    {'': {'freq': 0, 'children': {'a': {'freq': 1, 'children': {'n': {'freq': 2, 'children': {}}}}, 'b': {'freq': 1, 'children': {}}}}}   
     """
 
-    if not node.children: # if the node doesn't have children
-        if not node.data:
-            return {node.data: {'freq': node.freq,
-                                'children': {} }}
-        else:
-            return {'freq': node.freq,
-                    'children': {} }
+    if not node.children: # leaf node (no children)
+        return {'freq': node.freq,
+                'children': {} }
 
-    else:
-        trie_dict = {}
-        for node_char in node.children:
-            trie_dict[node_char] = trie_to_dict(node.children[node_char])
-    
+    trie_dict = {}
+    for node_char in node.children:
+        # Entering recursion for node with child(ren)
+        trie_dict[node_char] = trie_to_dict(node.children[node_char])
+
+    if not node.data: # root node scenario
+        return {'': {'freq': 0,
+                     'children': trie_dict}}
+
+    # Q: Is it more pythonic to use else or just start with the return statement?
+    # print('non-leaf-node recursion')
     return {'freq': node.freq,
-            'children': trie_dict }
+            'children': trie_dict}
 
+
+def get_tag_frequency(word):
+    """Get tag frequency for a certain word from the db."""
+
+    frequency_in_videos = db.session.query(func.count(TagVideo.tag_video_id)
+                            ).join(Tag
+                            ).filter(Tag.tag == word
+                            ).first()
+
+    frequency_in_images = db.session.query(func.count(TagImage.tag_image_id)
+                            ).join(Tag
+                            ).filter(Tag.tag == word
+                            ).first()
+
+    return frequency_in_videos + frequency_in_images # need to make an integer from query object
+    # There shouldn't be any tags whose frequency is zero.
 
 @app.route('/autocomplete-trie.json')
 def construct_tag_trie():
+    """Return a jsonified dictionary representation of a trie for all the
+    tags in the database."""
 
     trie = Trie()
-
+    
     for tag in Tag.query.all():
-        trie.add_word(tag.tag)
+        trie.add_word(tag.tag, get_tag_frequency(tag.tag))
 
-    # make trie into dictionary
-
+    # turn trie into a dictionary so it can be jsonified
     trie_dict = trie_to_dict(trie.root)
 
     return jsonify(trie_dict)
