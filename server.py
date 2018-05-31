@@ -24,6 +24,45 @@ app.secret_key = 'ABC'
 # Raises an error when using an undefined variable in Jinja.
 app.jinja_env.undefined = StrictUndefined
 
+##### classes
+
+class Trie:
+    """A trie abstract data structure."""
+    def __init__(self):
+        self.root = TrieNode(None)
+
+    def add_word(self, word, frequency):
+        current = self.root
+
+        for char in word:
+            if char in current.children:
+                current = current.children[char]
+            else:
+                current.add_child(char)
+                current = current.children[char]
+
+        current.frequency = frequency
+    
+    def __repr__(self):
+        return '<Trie root={}>'.format(self.root)
+
+
+class TrieNode:
+
+    def __init__(self, data):
+        self.data = data
+        self.children = dict() # key is char, value is TrieNode object
+        self.frequency = 0
+
+    def add_child(self, data):
+        child_node = TrieNode(data)
+        self.children[data] = child_node
+
+    def __repr__(self):
+        return '<TrieNode data={}, freq={}, children={}>'.format(self.data,
+                                                                 self.frequency,
+                                                                 self.children)
+
 
 ##### Helper functions
 
@@ -184,7 +223,7 @@ def show_specific_video_page(video_id):
     """Show info about a specific video."""
 
     video = Video.query.filter(Video.video_id == video_id).first()
-    video_thumbnail_url = video.thumbnail_url
+    thumbnail_url = video.thumbnail_url
 
     # Update the video_stats table with the most up-to-date info
     add_video_stats_data(parse_video_data(yt_info_by_id(video_id)))    
@@ -212,7 +251,7 @@ def show_specific_video_page(video_id):
 
     return render_template('video.html',
                             video=video,
-                            video_thumbnail_url=video_thumbnail_url,
+                            thumbnail_url=thumbnail_url,
                             video_stats=video_stats,
                             channel=channel,
                             image_analysis=image_analysis,
@@ -539,17 +578,17 @@ def autocomplete_search():
 
 
 @app.route('/autocomplete-trie.json')
-def autocomplete_trie_search():
-    prefix = request.args.get('tagInput')
-    try:
-        prefix = prefix.lower().strip()
-    except AttributeError: # if tags are non-alphabet
-        print('AttributeError: ' + prefix)
-    finally:
-        prefix_trie = trie.create_prefix_trie(prefix) # prefix_trie is a trie object
-        print(prefix_trie)
+def create_tag_trie():
 
-        return jsonify(prefix_trie)
+    trie = Trie()
+
+    for tag in Tag.query.all():
+        trie.add_word(tag.tag)
+
+    # make trie into dictionary
+
+
+    return jsonify(trie_dict)
 
 
 @app.route('/check-database.json')
