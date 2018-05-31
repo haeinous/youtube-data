@@ -40,24 +40,6 @@ def make_int_from_sqa_object(object):
     return int(str(object)[1:-2])
 
 
-def get_ad_status_id(variable):
-    """
-    >>> get_ad_status_id('fully_monetized_vids')
-    4
-    """
-
-    if 'fully' in variable:
-        return 4
-    elif 'partially' in variable:
-        return 3
-    elif 'demonetized' in variable:
-        return 2
-
-def make_thumbnail_url(video_id):
-    
-    return 'https://i.ytimg.com/vi/' + video_id + '/sddefault.jpg'
-
-
 def format_timedelta(timedelta_object):
     """Assume timedelta_object represents video duration.
     Return a string representing the video duration in minutes, 
@@ -73,17 +55,6 @@ def format_timedelta(timedelta_object):
     else:
         return '{}:{}:{}'.format(hours, minutes, seconds)
 
-
-def make_monetization_status_boolean(ad_status_id):
-    """Given an ad_status_id, return the boolean for whether the 
-    video is monetized or not."""
-
-    if ad_status_id == 2:
-        return False
-    elif ad_status_id == 3:
-        return True
-    elif ad_status_id == 1:
-        return None # it's "other"
 
 ##### /end helper functions
 
@@ -213,7 +184,7 @@ def show_specific_video_page(video_id):
     """Show info about a specific video."""
 
     video = Video.query.filter(Video.video_id == video_id).first()
-    video_thumbnail_url = make_thumbnail_url(video_id) # tk to be removed after db re-seeded
+    video_thumbnail_url = video.thumbnail_url
 
     # Update the video_stats table with the most up-to-date info
     add_video_stats_data(parse_video_data(yt_info_by_id(video_id)))    
@@ -278,12 +249,11 @@ def show_specific_category_page(video_category_id):
     else:
         demonetized_videos = random.sample(Video.query.join(
                                 VideoCategory).filter(
-                                Video.ad_status_id == 2).filter(
+                                Video.is_monetized == False).filter(
                                 VideoCategory.video_category_id == video_category_id).all(), 3)
         monetized_videos = random.sample(Video.query.join(
                                 VideoCategory).filter(
-                                    (Video.ad_status_id == 3) |
-                                    (Video.ad_status_id == 4)).filter(
+                                    Video.is_monetized == True).filter(
                                     VideoCategory.video_category_id == video_category_id).all(), 3)
         random_videos = demonetized_videos + monetized_videos
 
@@ -336,14 +306,14 @@ def add_data():
         monetization_status = request.form['monetizationStatus']
         print(monetization_status)
         if monetization_status == 'demonetized':
-            ad_status_id = 2
+            is_monetized = False
         else:
-            ad_status_id = 3
+            is_monetized = True
 
         submitted_time = datetime.datetime.utcnow()
 
         if video:
-            video.ad_status_id = ad_status_id
+            video.is_monetized = is_monetized
             video.updated_at = submitted_time
             db.session.commit()
             flash("Successfully updated the video's monetization status!")
@@ -351,7 +321,7 @@ def add_data():
 
         else:
             video = Video(video_id=video_id,
-                          ad_status_id=ad_status_id,
+                          is_monetized=is_monetized,
                           submitted_time=submitted_time)
             db.session.add(video)
             db.session.commit()
@@ -395,7 +365,7 @@ def process_period_tag_query(tag):
     #                                  Video.published_at < period[quarter][1])
         
     #     if basequery.count(): # if total videos with that tag is not zero
-    #         demonetized_count = basequery.filter(Video.ad_status_id == 2).count()
+    #         demonetized_count = basequery.filter(Video.is_monetized == False).count()
     #         tag_data_by_period.append((round(demonetized_count/total_count*100), total_count))
     #         # ^^ numerator is the # of demonetized videos, denominator is total videos
             
@@ -408,7 +378,7 @@ def process_period_tag_query(tag):
     # bqq = db.session.query(TagVideo).join(Tag).filter(Tag.tag == tag)
     # tag_period_data = []
     # for quarter in range(len(period)):
-    #     demonetized_vids = db.session.query(TagVideo).join(Tag).filter(Tag.tag.like('%a')).join(Video).filter(Video.published_at >= period[quarter][0], Video.published_at < period[quarter][1]).filter(Video.ad_status_id == 2).count()
+    #     demonetized_vids = db.session.query(TagVideo).join(Tag).filter(Tag.tag.like('%a')).join(Video).filter(Video.published_at >= period[quarter][0], Video.published_at < period[quarter][1]).filter(Video.is_monetized == True).count()
     #     all_vids = db.session.query(TagVideo).join(Tag).filter(Tag.tag.like('%a')).join(Video).filter(Video.published_at >= period[quarter][0], Video.published_at < period[quarter][1]).count()
     #     if all_vids:
     #         tag_period_data.append((round(demonetized_vids/all_vids*100), all_vids))
@@ -419,7 +389,7 @@ def process_period_tag_query(tag):
     bqq = db.session.query(TagVideo).join(Tag).filter(Tag.tag == tag)
     tag_period_data = []
     for quarter in range(len(period)):
-        demonetized_vids = db.session.query(TagVideo).join(Tag).filter(Tag.tag == tag).join(Video).filter(Video.published_at >= period[quarter][0], Video.published_at < period[quarter][1]).filter(Video.ad_status_id == 2).count()
+        demonetized_vids = db.session.query(TagVideo).join(Tag).filter(Tag.tag == tag).join(Video).filter(Video.published_at >= period[quarter][0], Video.published_at < period[quarter][1]).filter(Video.is_monetized == False).count()
         all_vids = db.session.query(TagVideo).join(Tag).filter(Tag.tag == tag).join(Video).filter(Video.published_at >= period[quarter][0], Video.published_at < period[quarter][1]).count()
         if all_vids:
             tag_period_data.append(round(demonetized_vids/all_vids*100))
@@ -500,14 +470,14 @@ def create_tag_data_json():
 @app.route('/check-database.json')
 def check_user_submission():
     """Check the database to see if the user-submitted video is already in the
-    database, and if so, whether the ad_status_ids are the same.
+    database, and if so, whether the monetization status is the same.
     """
 
     video_id = request.args.get('videoId')
     monetized = request.args.get('monetizationStatus') #boolean
     
     if Video.query.filter(Video.video_id == video_id).first(): # if it exists
-        if Video.query.filter(make_monetization_status_boolean(Video.ad_status_id) == monetized):
+        if Video.query.filter(Video.is_monetized == True):
             database_status = 1
         else:
             database_status = 2
@@ -516,22 +486,22 @@ def check_user_submission():
         # flash message directly?
 
     data = {'status': 
-            database_status} # 0 if new video, 1 if existing + same ad_status_id, 2 if existing and diff ad_status_id
+            database_status} # 0 if new video, 1 if existing + same monetization status, 2 if existing and different monetization status
     print(data)
     return jsonify(data)
 
 
 @app.route('/change-ad-status.json')
 def change_ad_status_in_db():
-    """Update the video's ad_status_id in the database based on user feedback."""
+    """Update the video's monetization status in the database based on user feedback."""
 
     video_id = request.form['video-id-input']
 
     video = Video.query.filter(Video.video_id == video_id).first()
-    if video.ad_status_id == 2:
-        video.ad_status_id = 4
+    if video.is_monetized == False:
+        video.is_monetized = True
     else:
-        video.ad_status_id = 2
+        video.is_monetized = False
 
     db.session.commit()
     flash("The video's ad status was successfully updated.") # tk add link
@@ -587,12 +557,11 @@ def check_database_for_duplicates():
 
     video_id = request.args.get('video-id-input')
     video = Video.query.filter(Video.video_id == video_id).first()
-    video_info = {'in_database': False,
-                  'ad_status_id': None}
+    video_info = {}
 
     if video:
         video_info['in_database'] = True
-        video_info['ad_status_id'] = video.ad_status_id
+        video_info['is_monetized'] = video.is_monetized
 
     return jsonify(video_info)
 
@@ -616,27 +585,27 @@ def check_database_for_duplicates():
 #             demonetized_vids]
 
 #     for item in data:
-#         basequery = basequery.filter(video.ad_status_id == get_ad_status_id(str(item))
+#         basequery = basequery.filter(video.is_monetized == get_is_monetized(str(item))
 #         elif item == partially_monetized_vids:
-#             basequery = basequery.filter(video.ad_status_id == 4)
+#             basequery = basequery.filter(video.is_monetized == True)
 
 #         for tier in range(5):
 #             if item == 0:
-#                 ad_status_id = 4
+#                 is_monetized = 4
 #             elif item == 1:
-#                 ad_status_id = 3
+#                 is_monetized = 3
 #             elif item == 2:
-#                 ad_status_id = 2
+#                 is_monetized = 2
 #             data[tier].append(basequery.filter(ChannelStat.total_subscribers >= 1000000,
-#                                             Video.ad_status_id == ad_status_id).first())
+#                                             Video.is_monetized == is_monetized).first())
 #             data[0].append(basequery.filter(ChannelStat.total_subscribers >= 1000000,
-#                                             Video.ad_status_id == ad_status_id).first())
+#                                             Video.is_monetized == is_monetized).first())
 #             data[0].append(basequery.filter(ChannelStat.total_subscribers >= 1000000,
-#                                             Video.ad_status_id == ad_status_id).first())
+#                                             Video.is_monetized == is_monetized).first())
 #             data[0].append(basequery.filter(ChannelStat.total_subscribers >= 1000000,
-#                                             Video.ad_status_id == ad_status_id).first())
+#                                             Video.is_monetized == is_monetized).first())
 #             data[0].append(basequery.filter(ChannelStat.total_subscribers >= 1000000,
-#                                             Video.ad_status_id == ad_status_id).first())
+#                                             Video.is_monetized == is_monetized).first())
 
 
 
@@ -671,19 +640,19 @@ def json_data_by_channel_size():
                             Channel).join(
                             ChannelStat).filter(
                             ChannelStat.total_subscribers >= 1000000,
-                            Video.ad_status_id == 4).first())
+                            Video.is_monetized == True).first())
     tier1_partially_monetized = make_int_from_sqa_object(db.session.query(
                                 func.count(Video.video_id)).join(
                                 Channel).join(
                                 ChannelStat).filter(
                                 ChannelStat.total_subscribers >= 1000000,
-                                Video.ad_status_id == 3).first())
+                                Video.is_monetized == True).first())
     tier1_demonetized = make_int_from_sqa_object(db.session.query(
                         func.count(Video.video_id)).join(
                         Channel).join(
                         ChannelStat).filter(
                         ChannelStat.total_subscribers >= 1000000,
-                        Video.ad_status_id == 2).first())
+                        Video.is_monetized == False).first())
     try:
         tier1_percent_demonetized = round(tier1_demonetized/tier1_all_vids, 2)
     except ZeroDivisionError:
@@ -702,21 +671,21 @@ def json_data_by_channel_size():
                             ChannelStat).filter(
                             ChannelStat.total_subscribers < 1000000,
                             ChannelStat.total_subscribers >= 500000,
-                            Video.ad_status_id == 4).first())
+                            Video.is_monetized == True).first())
     tier2_partially_monetized = make_int_from_sqa_object(db.session.query(
                                 func.count(Video.video_id)).join(
                                 Channel).join(
                                 ChannelStat).filter(
                                 ChannelStat.total_subscribers < 1000000,
                                 ChannelStat.total_subscribers >= 500000,
-                                Video.ad_status_id == 3).first())
+                                Video.is_monetized == True).first())
     tier2_demonetized = make_int_from_sqa_object(db.session.query(
                         func.count(Video.video_id)).join(
                         Channel).join(
                         ChannelStat).filter(
                         ChannelStat.total_subscribers < 1000000,
                         ChannelStat.total_subscribers >= 500000,
-                        Video.ad_status_id == 2).first())
+                        Video.is_monetized == False).first())
     try:
         tier2_percent_demonetized = round(tier2_demonetized/tier2_all_vids, 2)
     except ZeroDivisionError:
@@ -735,21 +704,21 @@ def json_data_by_channel_size():
                             ChannelStat).filter(
                             ChannelStat.total_subscribers < 500000,
                             ChannelStat.total_subscribers >= 100000,
-                            Video.ad_status_id == 4).first())
+                            Video.is_monetized == True).first())
     tier3_partially_monetized = make_int_from_sqa_object(db.session.query(
                                 func.count(Video.video_id)).join(
                                 Channel).join(
                                 ChannelStat).filter(
                                 ChannelStat.total_subscribers < 500000,
                                 ChannelStat.total_subscribers >= 100000,
-                                Video.ad_status_id == 3).first())
+                                Video.is_monetized == True).first())
     tier3_demonetized = make_int_from_sqa_object(db.session.query(
                         func.count(Video.video_id)).join(
                         Channel).join(
                         ChannelStat).filter(
                         ChannelStat.total_subscribers < 500000,
                         ChannelStat.total_subscribers >= 100000,
-                        Video.ad_status_id == 2).first())
+                        Video.is_monetized == False).first())
     try:
         tier3_percent_demonetized = round(tier3_demonetized/tier3_all_vids, 2)
     except ZeroDivisionError:
@@ -766,21 +735,21 @@ def json_data_by_channel_size():
                             ChannelStat).filter(
                             ChannelStat.total_subscribers < 100000,
                             ChannelStat.total_subscribers >= 50000,
-                            Video.ad_status_id == 4).first())
+                            Video.is_monetized == True).first())
     tier4_partially_monetized = make_int_from_sqa_object(db.session.query(
                                 func.count(Video.video_id)).join(
                                 Channel).join(
                                 ChannelStat).filter(
                                 ChannelStat.total_subscribers < 100000,
                                 ChannelStat.total_subscribers >= 50000,
-                                Video.ad_status_id == 3).first())
+                                Video.is_monetized == True).first())
     tier4_demonetized = make_int_from_sqa_object(db.session.query(
                         func.count(Video.video_id)).join(
                         Channel).join(
                         ChannelStat).filter(
                         ChannelStat.total_subscribers < 100000,
                         ChannelStat.total_subscribers >= 50000,
-                        Video.ad_status_id == 2).first())
+                        Video.is_monetized == False).first())
     try:
         tier4_percent_demonetized = round(tier4_demonetized/tier4_all_vids, 2)
     except ZeroDivisionError:
@@ -795,19 +764,19 @@ def json_data_by_channel_size():
                             Channel).join(
                             ChannelStat).filter(
                             ChannelStat.total_subscribers < 50000,
-                            Video.ad_status_id == 4).first())
+                            Video.is_monetized == True).first())
     tier5_partially_monetized = make_int_from_sqa_object(db.session.query(
                                 func.count(Video.video_id)).join(
                                 Channel).join(
                                 ChannelStat).filter(
                                 ChannelStat.total_subscribers < 50000,
-                                Video.ad_status_id == 3).first())
+                                Video.is_monetized == True).first())
     tier5_demonetized = make_int_from_sqa_object(db.session.query(
                         func.count(Video.video_id)).join(
                         Channel).join(
                         ChannelStat).filter(
                         ChannelStat.total_subscribers < 50000,
-                        Video.ad_status_id == 2).first())
+                        Video.is_monetized == False).first())
     try:
         tier5_percent_demonetized = round(tier5_demonetized/tier5_all_vids, 2)
     except ZeroDivisionError:

@@ -22,8 +22,7 @@ class Video(db.Model):
     video_id = db.Column(db.String(11),
                          primary_key=True,
                          unique=True)
-    ad_status_id = db.Column(db.Integer,
-                             db.ForeignKey('ad_statuses.ad_status_id'))
+    is_monetized = db.Column(db.Boolean)
     channel_id = db.Column(db.String(24), 
                            db.ForeignKey('channels.channel_id'))
     video_title = db.Column(db.String(100))
@@ -34,10 +33,7 @@ class Video(db.Model):
     live_broadcast_id = db.Column(db.Integer,
                                   db.ForeignKey('live_broadcasts.live_broadcast_id'))
     duration = db.Column(db.Interval)
-    # thumbnail_url = db.Column(db.String(48))
-    # For user submissions through the /contribute.html -- this may become its own table
-    # submitted_at = db.Column(db.DateTime(timezone=False))
-    # updated_at = db.Column(db.DateTime(timezone=False))
+    thumbnail_url = db.Column(db.String(48))
 
     channel = db.relationship('Channel',
                               backref=db.backref('videos'))
@@ -45,30 +41,10 @@ class Video(db.Model):
                                      backref=db.backref('videos'))
 
     def __repr__(self):
-        return '<Video video_id={} channel_id={} ad_status_id={}>'.format(
+        return '<Video video_id={} channel_id={} is_monetized={}>'.format(
                 self.video_id,
                 self.channel_id,
-                self.ad_status_id)
-
-
-class AdStatus(db.Model):
-    """A video's ad status - four possibilities:
-       (1) disabled by user
-       (2) demonetized by youtube
-       (3) monetized without adsense
-       (4) fully monetized
-    """
-    __tablename__ = 'ad_statuses'
-
-    ad_status_id = db.Column(db.Integer,
-                             autoincrement = True,
-                             primary_key=True)
-    ad_status_name = db.Column(db.String(25))
-
-    def __repr__(self):
-        return '<AdStatus {} (id: {})>'.format(
-                self.ad_status_name,
-                self.ad_status_id)
+                self.is_monetized)
 
 
 class LiveBroadcast(db.Model):
@@ -152,42 +128,6 @@ class Channel(db.Model):
                 self.channel_title)
 
 
-class ChannelPerson(db.Model):
-    """An association table connecting the Channel and Person tables."""
-    __tablename__ = 'channels_people'
-
-    channel_person_id = db.Column(db.Integer,
-                                  autoincrement=True,
-                                  primary_key=True)
-    channel_id = db.Column(db.String(24),
-                           db.ForeignKey('channels.channel_id'),
-                           nullable=False)
-    person_id = db.Column(db.Integer,
-                          db.ForeignKey('people.person_id'),
-                          nullable=False)
-
-    def __repr__(self):
-        return '<ChannelPerson id={}>'.format(self.channel_person_id)
-
-
-class Person(db.Model):
-    __tablename__ = 'people'
-
-    person_id = db.Column(db.Integer,
-                          autoincrement=True,
-                          primary_key=True)
-    person_name = db.Column(db.String(100))
-
-    channels = db.relationship('Channel',
-                               secondary='channels_people',
-                               backref=db.backref('people'))
-
-    def __repr__(self):
-        return '<Person {}, id={}>'.format(
-                self.person_name, 
-                self.person_id)
-
-
 class ChannelStat(db.Model):
 
     __tablename__ = 'channel_stats'
@@ -235,21 +175,13 @@ class TextAnalysis(db.Model):
                                  autoincrement=True, 
                                  primary_key=True)
     video_id = db.Column(db.String(11))
-    textfield_id = db.Column(db.Integer, 
-                             db.ForeignKey('textfields.textfield_id'))
+    textfield = db.Column(db.String(11)) 
     sentiment_score = db.Column(db.Float)
     sentiment_magnitude = db.Column(db.Float)
-    # tk remove after drop/create db
-    # sentiment_score_standard_deviation = db.Column(db.Float)
-    # sentiment_max_score = db.Column(db.Float)
-    # sentiment_min_score = db.Column(db.Float)
-    language_code = db.Column(db.String(2),
-                         db.ForeignKey('languages.language_code'))
-
-    textfield = db.relationship('Textfield',
-                                backref=db.backref('text_analyses'))
-    language = db.relationship('Language',
-                               backref=db.backref('languages'))
+    sentiment_score_standard_deviation = db.Column(db.Float)
+    sentiment_max_score = db.Column(db.Float)
+    sentiment_min_score = db.Column(db.Float)
+    language_code = db.Column(db.String(2))
 
     def __repr__(self):
         return "<TextAnalysis for field {} of video {}\nscore: {}, magnitude: {}>".format(
@@ -257,40 +189,6 @@ class TextAnalysis(db.Model):
                 self.video_id,
                 self.sentiment_score,
                 self.sentiment_magnitude)
-
-
-class Language(db.Model):
-    __tablename__ = 'languages'
-
-    language_code = db.Column(db.String(2),
-                              primary_key=True)
-    language_name = db.Column(db.String(10))
-
-    def __repr__(self):
-        return '<Language code={} name={}'.format(
-                self.language_code,
-                self.language_name)
-
-
-class Textfield(db.Model):
-    """
-        Primarily exists to assert referential integrity in the
-        TextAnalysis Table.
-        video_title = 1
-        video_description = 2
-        tags = 3
-    """
-    __tablename__ = 'textfields'
-
-    textfield_id = db.Column(db.Integer,
-                             autoincrement=True,
-                             primary_key=True)
-    textfield_name = db.Column(db.String(17))
-
-    def __repr__(self):
-        return '<Textfield name={}, id={}>'.format(
-                self.textfield_name,
-                self.textfield_id)
 
 
 class ImageAnalysis(db.Model):
@@ -397,8 +295,6 @@ class Color(db.Model):
         return '<Color id={}, name={}>'.format(
                 self.color_hex_code,
                 self.color_name)
-
-
 
 
 

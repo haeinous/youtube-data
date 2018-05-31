@@ -156,15 +156,12 @@ def add_tag_data(tags):
         # In case there are tags like numbers that would raise an AttributeError
         tags = list(filter(lambda x: type(x) == str, tags))
     finally:
-        for tag_item in tags[:]: # Get rid of shallow copy when re-seeded
+        for tag_item in tags:
             if not Tag.query.filter(Tag.tag == tag_item).first():
-                # Get rid of this when db is re-seeded
-                if len(tag_item) < 40:
-                    add_tag = Tag(tag=tag_item)
-                    db.session.add(add_tag)
-                else:
-                    tags.remove(tag_item)
+                add_tag = Tag(tag=tag_item)
+                db.session.add(add_tag)
         db.session.commit()
+
         return tags
 
 
@@ -203,9 +200,7 @@ def add_video_details(video_data):
     video = Video.query.filter(Video.video_id == video_data['video_id']).first()
     video.channel_id = video_data['channel_id']
     video.video_title = video_data['video_title']
-    print('video_title: ' + str(video_data['video_title']))
     video.video_description = video_data['video_description']
-    print('video_description: ' + str(video_data['video_description']))
     video.published_at = video_data['published_at']
     video.category_id = video_data['category_id']
     video.live_broadcast_id = video_data['live_broadcast_id']

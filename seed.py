@@ -28,19 +28,6 @@ def load_video_category(video_category_filename):
     db.session.commit()
     f.close()
 
-def load_ad_status(ad_status_filename):
-    f = open(ad_status_filename)
-
-    for row in f:
-        row = row.rstrip()
-        ad_status_id, ad_status_name = row.split(',')
-        ad_status = AdStatus(ad_status_id=ad_status_id,
-                             ad_status_name=ad_status_name)
-        db.session.add(ad_status)
-
-    db.session.commit()
-    f.close()
-
 
 def load_live_broadcast(live_broadcast_filename):
     f = open(live_broadcast_filename)
@@ -51,20 +38,6 @@ def load_live_broadcast(live_broadcast_filename):
         live_broadcast = LiveBroadcast(live_broadcast_id=live_broadcast_id,
                                        broadcast_status_name=broadcast_status_name)
         db.session.add(live_broadcast)
-
-    db.session.commit()
-    f.close()
-
-
-def load_textfield(textfield_filename):
-    f = open(textfield_filename)
-
-    for row in f:
-        row = row.rstrip()
-        textfield_id, textfield_name = row.split(',')
-        textfield = Textfield(textfield_id=textfield_id,
-                              textfield_name=textfield_name)
-        db.session.add(textfield)
 
     db.session.commit()
     f.close()
@@ -93,16 +66,6 @@ def load_country(country_filename):
     f.close()
 
 
-def load_language(language_filename):
-    f = open(language_filename)
-
-    for row in f:
-        row = row.rstrip()
-        language_code, language_name = row.split(',')
-        language = Language(language_code=language_code,
-                            language_name=language_name)
-
-
 # Load data on video monetization status (raw data)
 
 def load_video(video_filename):
@@ -110,9 +73,9 @@ def load_video(video_filename):
 
     for row in f:
         row = row.rstrip()
-        video_id, ad_status_id = row.split(',')
+        video_id, is_monetized = row.split(',')
         video = Video(video_id=video_id,
-                      ad_status_id=ad_status_id)
+                      is_monetized=is_monetized)
         db.session.add(video)
 
     db.session.commit()
@@ -149,21 +112,14 @@ def populate_video_data():
         parse_video_data(yt_info_by_id(item.video_id))
 
 
-def make_thumbnail_urls(video_id):
-    """Assume video_id is a string.
-    Return a string that is the thumbnail url."""
-
-    return 'https://i.ytimg.com/vi/' + video_id + '/sddefault.jpg'
-
 
 def populate_image_data():
     """Populate the ImageAnalysis table for videos with thumbnails."""
 
-    # thumbnails = db.session.query(Video.video_id).filter(ImageAnalysis.video_id == None).all()
-    video_ids_for_thumbnails = Video.query.filter(Video.video_id.isnot(None),
-                                                  Video.channel_id.isnot(None)).all()
+    thumbnails = db.session.query(Video.video_id).filter(ImageAnalysis.video_id == None).all()
+
     image_urls = []
-    for item in video_ids_for_thumbnails[:4]:
+    for item in thumbnails:
         print(item)
         if not ImageAnalysis.query.filter(ImageAnalysis.video_id == item.video_id).first():
             print('not')
@@ -196,19 +152,13 @@ if __name__ == '__main__':
     connect_to_db(app)
 
     # video_category_filename = 'seed_data/video_category.csv'
-    # ad_status_filename = 'seed_data/ad_status.csv'
-    # textfield_filename = 'seed_data/textfield.csv'
     # country_filename = 'seed_data/country.csv'
     # live_broadcast_filename = 'seed_data/live_broadcast.csv'
-    # language_filename = 'seed_data/language.csv'
     # video_filename = 'seed_data/video.csv'
     # load_video_category(video_category_filename)
-    # load_ad_status(ad_status_filename)
     # load_live_broadcast(live_broadcast_filename)
-    # load_textfield(textfield_filename)
     # load_country(country_filename)
     # load_video(video_filename)
-    # load_language(language_filename)
 
     # populate_channel_data()
     # populate_video_data()

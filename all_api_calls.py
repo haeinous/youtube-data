@@ -30,12 +30,12 @@ def add_to_videos_table(filename):
         video_ids = []
         for line in f:
             line = line.strip()
-            video_id, ad_status_id = line.split(',')
+            video_id, is_monetized = line.split(',')
             video_ids.append(video_id)
-            print(video_id, ad_status_id)
+            print(video_id, is_monetized)
 
             video = Video(video_id=video_id,
-                          ad_status_id=ad_status_id)
+                          is_monetized=is_monetized)
             db.session.add(video)
         db.session.commit()
 

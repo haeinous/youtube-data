@@ -75,12 +75,12 @@ def add_to_db(nlp_response, video_id, textfield_id):
     print('stdev={}, max={}, min={}'.format(standard_deviation, maximum, minimum))
 
     text_analysis = TextAnalysis(video_id=video_id,
-                                 textfield_id=textfield_id,
+                                 textfield=textfield,
                                  sentiment_score=sentiment_score,
                                  sentiment_magnitude=sentiment_magnitude,
-                                 # sentiment_score_standard_deviation=standard_deviation,
-                                 # sentiment_max_score=maximum,
-                                 # sentiment_min_score=minimum,
+                                 sentiment_score_standard_deviation=standard_deviation,
+                                 sentiment_max_score=maximum,
+                                 sentiment_min_score=minimum,
                                  language_code=language_code)
     db.session.add(text_analysis)
 
