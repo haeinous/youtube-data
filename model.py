@@ -297,6 +297,75 @@ class Color(db.Model):
                 self.color_name)
 
 
+class TagChart(db.Model):
+    """A table with info about which tags users are adding to the chart."""
+    __tablename__ = 'tagcharts'
+
+    tag_chart_id = db.Column(db.Integer,
+                             autoincrement=True,
+                             primary_key=True)
+    tag_id = db.Column(db.Integer,
+             db.ForeignKey('tags.tag_id'))
+    added_on = db.Column(db.DateTime(timezone=False))
+
+    tag = db.relationship('Tag',
+                          backref=db.backref('tags'))
+
+
+
+class UserAddition(db.Model):
+    """A table with info on data updates/additions by users."""
+    __tablename__ = 'user_additions'
+
+    user_addition_id = db.Column(db.Integer,
+                                 autoincrement=True,
+                                 primary_key=True)
+    video_id = db.Column(db.String(11),
+               db.ForeignKey('videos.video_id'))
+    added_on = db.Column(db.DateTime(timezone=False))
+    is_update = db.Column(db.Boolean)
+
+    video = db.relationship('Video',
+                            backref=db.backref('videos'))
+
+
+    def __repr__(self):
+        return '<UserAddition video_id={}, date={}>'.format(
+                self.user_addition_id,
+                self.added_on)
+
+
+class Search(db.Model):
+    """Searches on website."""
+    __tablename__ = 'searches'
+
+    search_id = db.Column(db.Integer,
+                          autoincrement=True,
+                          primary_key=True)
+    searched_on = db.Column(db.DateTime(timezone=False))
+    search_text = db.Column(db.Text)
+
+
+class Prediction(db.Model):
+    """Predictions about monetization status."""
+    __tablename__ = 'predictions'
+
+    prediction_id = db.Column(db.Integer,
+                              autoincrement=True,
+                              primary_key=True)
+    channel_id = db.Column(db.String(24),
+                 db.ForeignKey('channels.channel_id'))
+    predicted_monetization_status = db.Column(db.Boolean)
+    field1 = db.Column(db.Text)
+    field2 = db.Column(db.Text)
+    field3 = db.Column(db.Text)
+    field4 = db.Column(db.Integer)
+
+    channel = db.relationship('Channel',
+                              backref=db.backref('predictions'))
+
+
+
 
 #####################################################################
 # Helper functions
