@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container">
+  <div class="row" id="category-row1">
+    <h1>
+      {{ category.category_name }}
+    </h1>
+  </div>
+  <div class="row" id="category-row2">
+    Total videos in the YTD database: {{ videos_in_db }}
+  </div>
+
+  <div class="row" id="category-row3">
+    <h3>
+      Some cool graphs
+    </h3>
+  </div>
+
+  <div class="row" id="category-row4">
+    <div class="col" id="category-row4-col1">
+      <canvas></canvas>      
+    </div>
+    <div class="col" id="category-row4-col2">
+      <canvas></canvas>    
+    </div>
+  </div>
+  
+  <div class="row" id="category-row5">
+    <h3>
+      Some random videos from this category
+    </h3>
+  </div>
+
+  <div class="row" id="category-row6">
+    {% for video in random_videos %}
+      <div class="col-4">
+        <a href="/explore/channels/{{ video.channel_id }}">
+          {{ video.video_id }}
+        </a>
+        <br>
+      </div>
+    {% endfor %}
+  </div>  
+
+</div>
+
+</div>
+
+{% endblock %}

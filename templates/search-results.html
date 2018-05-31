@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Search results{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="row" id="search-row0">
+        <ul class="flashes">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="row" id="search-row1">
+    <h1>
+      Search results for &ldquo;{{ search_term }}&rdquo;
+    </h1>
+  </div>
+  
+  <div class="row" id="search-row2">
+    {% for result in search_results %}
+      <div class="col-3">
+        <h3>
+          {{ result[0] }}
+        </h3>
+        <br><br>
+        <ul>
+          {% for i in range(1, result|length) %}
+            <li>
+              <a href="/explore/{{ result[0].lower() }}/{{ result[i][0]|string }}">
+                {{ result[i][1]|string }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+
+  </div>
+
+  <!-- /.container -->
+</div>
+
+{% endblock %}

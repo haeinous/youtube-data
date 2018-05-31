@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}Add data to YTD{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+  <div class="row lead" id="add-data-row1">
+    <div class="col">
+      Our insights get better when we have more data! Thanks for contributing.
+    </div>
+  </div>
+
+  <div class="form">
+
+    <form action="/add-data" method="POST" id="add-to-database-action">
+
+      <div class="form-group row" id="video-id-row">
+        <label class="col-sm-2 col-form-label" data-toggle="tooltip" data-placement="left" title="YouTube video IDs are 11 characters long and only consist of alphanumeric characters, underscores, and dashes.">
+          YouTube video ID
+        </label>
+        
+        <div class="col-sm-10">
+          <input class="form-control" id="video-id-input" name="video-id-input" placeholder="e.g., HZakJFqdpRY" required>
+          <div class="error-message" id="video-id-error-message">
+          </div>
+        </div>
+        <!-- /#video-id-row -->
+      </div>
+
+      <fieldset class="form-group" id="monetization-status">
+        <div class="row">
+          <legend class="col-form-label col-sm-2 pt-0">
+            Monetization status
+          </legend>
+          <div class="col-sm-10">
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="monetizedRadio" id="clicked-monetization-true" value="monetized" required>
+              <label class="form-check-label" for="gridRadios1">
+                Monetized
+              </label>
+              <!-- /.form-check -->
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="monetizedRadio" id="clicked-monetization-false" value="demonetized" required>
+              <label class="form-check-label" for="gridRadios2">
+                Not monetized
+              </label>
+              <!-- /.form-check -->
+            </div>
+
+          </div>
+        </div>
+        <!-- /#monetization-status -->
+      </fieldset>
+
+      <div class="form-group row" id="telling-the-truth">
+        <div class="col-sm-2"></div>
+        <div class="col-sm-10">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="gridCheck1" required>
+            <label class="form-check-label" for="gridCheck1">
+              Cross my heart and kiss my elbow, I swear this information is true.
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group row">
+        <div class="col-sm-10">
+          <button type="submit" class="btn btn-primary" id="submit-form-button" data-toggle="modal" data-target="#exampleModalCenter">
+            Add data
+          </button>
+        </div>
+      </div>
+
+  </form>
+  </div>
+
+  <div class="modal fade d-none modalMismatch" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLongTitle">
+            Something's not right
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">
+              &times;
+            </span>
+          </button>
+        </div>
+        <div class="modal-body" id="modal-mismatch-body">
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary close" data-dismiss="modal" id="modal-mismatch-cancel" data-dismiss="modal" aria-label="Close">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary" id="modal-mismatch-confirm">
+            Yes, I'm sure.
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade d-none modalInDb" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLongTitle">
+            We already have this video!
+          </h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">
+              &times;
+            </span>
+          </button>
+        </div>
+        <div class="modal-body">
+          This video is already in the YTD database! What would you like to do?
+        </div>
+        <div class="modal-footer">
+          <a href="" type="button" class="btn btn-success" role="button" id="video-in-db-check-it-out">
+            Check it out
+          </a>
+          <button type="button" class="btn btn-primary close" data-dismiss="modal" aria-label="Close">
+            Add another video
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+{% block scripts %}
+
+<script type="text/javascript">
+
+  let videoId = $('#video-id-input').val();
+  console.log(videoId);
+
+  let monetizationStatus = $('input[name=monetizedRadio]:checked').val();
+  console.log(monetizationStatus);
+
+  // 1. Validate videoId (length, legal characters)
+  $('#video-id-input').on('blur', validate_video_id_input);
+
+  function validate_video_id_input() {
+    videoId = $('#video-id-input').val();
+    console.log(videoId);
+
+    let charCount = videoId.length;
+    if (charCount !== 11) {
+      $('#video-id-error-message').html('That is not a valid YouTube video ID, which must be 11 characters long.');
+    }
+
+    let legalChars = /^[\w-]+$/;
+    if (!legalChars.test(videoId)) {
+      $('#video-id-error-message').html('That is not a valid YouTube video ID, which may only contain alphanumeric characters, underscores, and dashes.');
+    }
+  }
+
+  // 2. Check database to determine if it's already in the db
+
+  $('#submit-form-button').on('submit', function(evt) {
+    $.ajax({
+      url: '/check-database.json',
+      data: {'videoId': videoId,
+             'monetizationStatus': monetizationStatus}
+    })
+  })
+    .done(function(data) {
+      displayModal(data);
+    })
+  
+  function displayModal(data) {
+    if (data.status === 1) {
+      $('.modalInDb').removeClass('d-none');
+      $('#video-in-db-check-it-out').attr('href', `/explore/videos/${videoId}`);
+      evt.preventDefault();
+
+    } else if (data.status === 2) {
+
+      $('.modalMismatch').removeClass('d-none');
+      let current_ad_status = undefined;
+
+      if (monetizationStatus === True) {
+        current_ad_status = 'monetized';
+        new_ad_status = 'not monetized';
+      } else {
+        current_ad_status = 'monetized';
+        new_ad_status = 'not monetized';        
+      }
+      $('#modal-mismatch-body').html(`This video is already in the YTD database and was marked as ${current_ad_status}. Are you sure you want to change its ad status to ${new_ad_status}?`);
+      evt.preventDefault();
+    }
+  }
+
+  $('#modal-mismatch-confirm').on('click', changeAdStatus);
+
+  function changeAdStatus() {
+    $.ajax({
+      url: '/change-ad-status.json',
+      data: {'videoId': videoId,
+             'monetizationStatus': monetizationStatus}
+    });
+  }
+     
+
+</script>
+
+{% endblock %}

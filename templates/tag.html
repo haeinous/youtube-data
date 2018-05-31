@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Tag profile: "{{ tag.tag }}"{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <div class="row" id="tag-row1">
+    <h1>
+      Tag page for &ldquo;{{ tag.tag }}&rdquo;
+    </h1>
+  </div>
+  <div class="row" id="tag-row2">
+    Videos tagged with &ldquo;{{ tag.tag }}&rdquo; in the YTD database: {{ videos_in_db }}
+  </div>
+
+  <div class="row" id="tag-row3">
+    <h3>
+      Some cool graphs
+    </h3>
+  </div>
+
+  <div class="row" id="tag-row4">
+    <div class="col" id="tag-row4-col1">
+      <canvas></canvas>      
+    </div>
+    <div class="col" id="tag-row4-col2">
+      <canvas></canvas>    
+    </div>
+  </div>
+  
+  <div class="row" id="tag-row5">
+    <h3>
+      Some random videos that use this tag
+    </h3>
+  </div>
+
+  <div class="row" id="tag-row6">
+
+    {% for video in random_videos %}
+      <div class="col-3">
+        <a href="/explore/videos/{{ video.video_id }}">
+          {{ video.video_title }}
+        </a>
+        <br>
+        <div class="button-container">
+          {% if video.ad_status_id == 2 %}
+            <button type="button" class="btn btn-secondary btn-sm">Not monetized</button>
+          {% else %}
+            <button type="button" class="btn btn-primary btn-sm">Monetized</button>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+
+  </div>  
+
+</div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120128227-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-120128227-1');
+  </script>
+
+  <title>{% block title %}{% endblock %}</title>
+
+  <!-- Select2 CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.16/css/dataTables.bootstrap4.min.css">
+  <!-- Animate.css  -->
+  <!-- <link rel="stylesheet" href="css/animate.css"> -->
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  
+  <style>
+    html, body{
+      font-family: sans-serif;
+    }
+
+    nav {
+      height: 80px;
+      background: #d9f7fa; 
+    }
+
+    footer {
+      position:absolute;
+      bottom: 0;
+      width: 100%;
+      height: 40px;
+      background: #d9f7fa;
+    }
+
+    .navbar {
+      height: 150px;
+      width: 100%;
+      background: #d9f7fa;
+    }
+
+    #homepage-about {
+      font-size: x-large;
+    }
+
+    #big-search {
+      background-color: #282562;
+      height: 80px;
+      width: 280px;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-light rounded" style="background: #d9f7fa;">
+    <a class="navbar-brand" href="/">
+      <img src="/static/logo.png" style="height: 40px;">
+    </a>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-template" aria-controls="navbar-template" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbar-template">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="/explore/" id="dropdown-all" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Explore</a>
+          <div class="dropdown-menu" aria-labelledby="dropdown-all">
+            <a class="dropdown-item" href="/explore/channels/">
+              Channels
+            </a>
+            <a class="dropdown-item" href="/explore/tags/">
+              Tags
+            </a>
+            <a class="dropdown-item" href="/explore/categories/">
+              Categories
+            </a>
+            <a class="dropdown-item" href="/explore/videos/">
+              Videos
+            </a>
+            <!-- /.dropdown-menu -->
+          </div>
+          <!-- /.nav-item .dropdown -->
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="/add-data">
+            Add data
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="/about">
+            About
+          </a>
+        </li>
+        <!-- /.navbar-nav /.mr-auto -->
+      </ul>
+
+      <form action="/search" method="GET" class="form-inline my-2 my-lg-0">
+        <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search" id="search-form-input" name="q">
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+      </form>
+      <!-- /.navbar-collapse -->
+    </div>
+  </nav>
+<!-- end navbar -->
+
+<!-- error message block -->
+  <div class="error d-none" id="error-message-container"> <!-- default is to not show the error message -->
+    <div class="jumbotron jumbotron-fluid">
+      <div class="container">
+        <h1 class="display-4">
+          Uh-oh!
+        </h1>
+        <p class="lead">
+          There was a problem. In the meantime, check out some other cool stuff we have.
+        </p>
+        <a href="/explore" class="btn btn-primary btn-lg" href="#" role="button">
+          Let's explore
+        </a>
+      </div>
+    </div>
+  </div>
+
+<!-- end error message block -->
+
+  {% block content %}
+  {% endblock %}
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <!-- Popper.js (for Bootstrap) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+  <!-- Boostrap CDN -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
+  <!-- Select2 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/js/select2.min.js"></script>
+  <script type="text/javascript">
+    "use strict";
+
+  // Event handler for removing error message (it does not work. why?)
+  window.addEventListener('unload', function(event) {
+    $('#error-message-container').addClass('d-none');
+      });
+
+    $(function() {
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+    
+  </script>
+  {% block scripts %}
+  {% endblock %}
+
+</body>
+
+<!-- <footer class="footer">
+  <div class="container">
+    <span class="text-muted">Made with love by Hae-in Lim.</span>
+  </div>
+</footer>
+ -->
+
+ <!-- make sure to include search!
+        Here's an expandable one: https://bootsnipp.com/snippets/featured/expanding-search-button-in-css -->
+</html>

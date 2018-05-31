@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1>
+  <a href="https://www.youtube.com/channel/{{ channel.channel_id }}">{{ channel.channel_title }}</a>
+</h1>
+
+<ul>
+  <li>Channel created on {{ channel.created_at.strftime('%B %-d, %Y') }}</li>
+  <li>Subscribers: {{ channel_stats.total_subscribers }}</li>
+  <li>Views: {{ channel_stats.total_views }}</li>
+</ul>
+
+<div id="video-info">
+  <h2>
+    Videos
+  </h2>
+  <span>
+    Total videos in the YTD database: {{ videos_in_db }}
+  </span>
+  <div>
+    <table id="video-table" class="display table table-striped table-bordered table-sm sortable">
+      <thead class="thead-dark">
+        <tr>
+          <th scope="col">Title</th>
+          <th scope="col">Status</th>
+          <th scope="col">Upload date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for video in videos %}
+        <tr>
+          <td scope="row"><a href="/explore/videos/{{ video.video_id }}">{{ video.video_title }}</a></td>
+          
+          {% if video.ad_status_id == 2 %}
+            <td class="table-danger">Not monetized</td>
+          {% else %}
+            <td class="table-success">Monetized</td>
+          {% endif %}
+          
+          <td>{{ video.published_at.strftime('%B %-d, %Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- /#video-info -->
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+{% endblock %}

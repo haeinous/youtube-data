@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Explore videos on YTD{% endblock %}
+
+
+{% block content %}
+
+<div class="container">
+
+  <div class="row" id="videos-row1">
+    <h1>
+      Exploring video data
+    </h1>
+    <!-- /#videos-row1 -->
+  </div>
+
+  <div class="row" id="video-container-row2">
+    {% for video in random_videos %}
+
+      <div class="col-3 mr-auto video">
+
+        <div class="video-container">
+          <a href="/explore/videos/{{ video.video_id }}">
+            {{ video.video_title }}
+          </a>
+        </div>
+
+        <div class="chart-container chart">
+          <canvas>
+          </canvas>
+        </div>
+
+        <h5 class="badge">
+          {% if video.ad_status_id == 2 %}
+            <span class="badge badge-danger">
+              Demonetized
+            </span>
+          {% else %}
+            <span class="badge badge-success">
+              Monetized
+            </span>
+          {% endif %}
+        </h5>
+        <!-- /.badge -->
+
+      </div>
+
+    {% endfor %}
+    
+  </div>
+
+
+{% endblock %}
+
+{% block scripts %}
+
+<script type="text/javascript">
+
+</script>
+
+{% endblock %}

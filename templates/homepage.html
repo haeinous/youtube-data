@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="container" id="homepage-block">
+    <div class="row" id="homepage-row1">
+      <h1 id="homepage-title">
+        The YTD data collective
+      </h1>
+    </div>
+
+    <div class="row" id="homepage-row2">
+      <p class="big" id="homepage-about">
+        The YTD data collective crowdsources information from YouTube creators about which of their videos get demonetized. Our data isn't comprehensive, but we currently have information on <strong>{{ videos_in_db }}</strong> videos from <strong>{{ channels_in_db }}</strong> channels. <a href="/about.html">read more &raquo;</a>
+      </p>
+    </div>
+
+    <div class="row block" id="homepage-row3">
+      <div class="col" id="homepage-row3-col1">
+        <h3>Graph1</h3>
+        <canvas id="homepage-canvas1"></canvas>
+      </div>
+
+      <div class="col" id="homepage-row3-col2">
+        <h3>Graph2</h3>
+        <canvas id="homepage-canvas2" style="background-color: #32b259"></canvas>
+      </div>
+    </div>
+
+    <div class="row" id="homepage-row4">
+      <div class="jumbotron jumbotron-fluid big-search big">
+        <h1 class="display-4">Search here</h1>
+        <p class="lead">This is a modified jumbotron that occupies the entire horizontal space of its parent.</p>
+        <hr class="my-4">
+        <a class="btn btn-primary btn-lg" href="#" role="button">
+          Search
+        </a>
+        <!-- /.jumbotron-fluid -->
+      </div>
+      <!-- /#homepage-row4 -->
+    </div>
+
+    <div class="row block" id="homepage-row5">
+      <div class="col" id="homepage-row5-col1">
+        <h3>Graph3</h3>
+        <canvas id="homepage-canvas3" style="background-color: #5ec8d5"></canvas>
+      </div>
+
+      <div class="col" id="homepage-row5-col2">
+        <h3>Graph4</h3>
+        <canvas id="homepage-canvas4" style="background-color: #fff200"></canvas>
+      </div>
+      <!-- /#homepage-row5 -->
+    </div>
+
+    <!-- /#homepage-block -->
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+  <!-- <script>
+    'use strict';
+
+    let ctxChannelSize = $('#by-channel-size').get(0).getContext('2d');
+
+    let options = {responsive: true,
+                   hoverMode: "index",
+                   stacked: false,
+                   title: {display: true,
+                           text: "Monetization by channel size"},
+
+                   scales: {yAxes: [{type: "linear",
+                                     display: true,
+                                     position: "left",
+                                     id: "y-axis-1"},
+                                     
+                                     {type: "linear",
+                                      display: true,
+                                      position: "right",
+                                      id: "y-axis-2",
+                                      gridlines: {drawOnChartArea: false},
+                                      ticks: {min: 0,
+                                              max: 1,
+                                              callback: (label, index, labels) => {return label + " %"}}
+                                    }] 
+                           }
+                  }
+
+    $.get('/bleh-by-channel-size.json', function(data, options) {
+      let myFirstChart = new Chart(ctxChannelSize, {type: "bar",
+                                                    data: data,
+                                                    options: options}
+                                );
+      console.log(data);
+      console.log(options);
+      $('#channel-size-legend').html(myFirstChart.generateLegend());
+                                           }
+    );
+  </script>
+ -->
+{% endblock %}

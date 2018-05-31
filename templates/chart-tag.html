@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container">
+
+  <div class="row justify-content-start" id="tag-displays-container">
+
+    <div class="col tag-display" id="tag-display1" style="background-color: #ee2761;">
+      <div class="tag-text" id="tag-text1"><!--
+        
+   --></div>
+      <span class="remove-tag" id="remove-tag1" aria-hidden="true">
+        <span aria-hidden="true">
+          &times;
+        </span> 
+      </span>
+      <!-- /#tag-display1 -->
+    </div>
+
+    <div class="col tag-display" id="tag-display2" style="background-color: #282562;">
+      <div class="tag-text" id="tag-text2"><!--
+      
+   --></div>
+      <span class="remove-tag" id="remove-tag2" aria-hidden="true">
+        <span aria-hidden="true">
+          &times;
+        </span> 
+      </span>
+      <!-- /#tag-display2 -->
+    </div>
+
+    <div class="col tag-display" id="tag-display3" style="background-color: #32b259;">
+      <div class="tag-text" id="tag-text3"><!--
+        
+   --></div>
+      <span class="remove-tag" id="remove-tag3" aria-hidden="true">
+        <span aria-hidden="true">
+          &times;
+        </span> 
+      </span>
+      <!-- /#tag-display3 -->
+    </div>
+
+    <div class="col tag-display" id="tag-display4" style="background-color: #5ec8d5;">
+      <div class="tag-text" id="tag-text4"><!--
+
+   --></div>
+      <span class="remove-tag" id="remove-tag4" aria-hidden="true">
+        <span aria-hidden="true">
+          &times;
+        </span> 
+      </span>
+      <!-- /#tag-display4 -->
+    </div>
+
+    <div class="col tag-display" id="tag-display5" style="background-color: #fff200;">
+      <div class="tag-text" id="tag-text5"><!--
+
+   --></div>
+      <span class="remove-tag d-none" id="remove-tag5" aria-hidden="true">
+        <span aria-hidden="true">
+          &times;
+        </span> 
+      </span>
+
+      <div class="search-box-container" id="tag-search-box-container" style="position: relative; display: inline-block;">
+        <input type="text" id="tag-search-box" name="tag-search-box" placeholder="Search for tags"/>
+        <div id="suggested-tag-container">
+          <ul class="dropdown-menu" id="suggested-tags" style="background-color: #fff5f8;" role="menu">
+          </ul>
+          <!-- /#suggested-tag-container -->        
+        </div>
+        <!-- /.search-box-container -->
+      </div>
+      <!-- /#tag-display5 -->
+    </div>
+
+    <!-- /.row justify-content-start -->
+  </div>
+
+
+  <div class="row" id="chart-row2">
+    <h1>
+      Demonetization by tags
+    </h1>
+  </div>
+
+  <div class="row justify-content-center" id="chart-row2">
+    <div class="canvas-container col-9" style="background-color: #d9f7fa;">
+      <canvas id="tag-chart">
+        
+      </canvas>
+    </div>
+    <!-- /#chart-row2 -->
+  </div>
+
+  <!-- /.container -->
+</div>
+
+{% endblock %}
+{% block scripts %}
+
+<script type="text/javascript">
+
+  // 1. Declare variables
+
+  let ctxTagChart = $('#tag-chart').get(0).getContext('2d');
+
+  let tagSearchBox = $('#tag-search-box');
+  let suggestedTagBox = $('#suggested-tag-box');
+
+  let colors = ['rgba(238, 39, 97, 1)', // pink
+                'rgba(40, 37, 98, 1)', // purple
+                'rgba(50, 178, 89, 1)', // green
+                'rgba(94, 200, 213, 1)', // blue
+                'rgba(255, 242, 0, 1)']; // yellow
+
+  let tagDisplays = [$('#tag-text1').text(),
+                     $('#tag-text2').text(),
+                     $('#tag-text3').text(),
+                     $('#tag-text4').text(),
+                     $('#tag-text5').text()];
+  console.log(tagDisplays);
+
+  let tagsInUse = new Object();
+  console.log(tagsInUse);
+
+  let options = {responsive: true, // Chart.js default options
+                 animation: false,
+                 title: {display: false,
+                 }, 
+                 tooltips: {mode: 'index',
+                            intersect: true
+                 },
+                 elements: {point: {pointStyle: 'circle'}},
+                 scales: {yAxes: [{ticks: {min: 0,
+                                           max: 100,
+                                           callback: (label, index, labels) => {return label + '%'}},
+                     }],
+                 }}
+  
+  // 2. Load chart upon visiting the page
+
+  
+  window.onload = function() {
+    $.ajax({
+      url: '/initial-tag-data.json',
+      type: 'GET',
+    })
+    .done(function(data) {
+      loadNewChart(data);
+    })
+    .done(function(data) {
+      updateTagsInUse(data);
+    })
+    .done(function(data) {
+      updateTagDisplay(data);
+    })
+  }
+
+  function loadNewChart(data) {
+    tagChart = new Chart(ctxTagChart, {
+      type: 'line',
+      data: data,
+      options: options
+    });
+  }
+
+  function updateTagsInUse(data) {
+    for (let item of Object.entries(data['datasets'])) {
+      tagsInUse[item[1].label] = item[1].borderColor;
+    }
+  }
+
+  function updateTagDisplay(data) {
+    let totalTags = Object.keys(tagsInUse).length;
+    for (let item of Object.entries(data['datasets'])) {
+      $('.tag-text').text(item[1].label);
+      console.log(item);
+    }
+  }
+
+  // function updateTagDisplay(data) {
+  //   for (let item of Object.entries(data['datasets'])) {
+  //     $('tag-displays-container').append('<div class="col tag-display" id="tag-display1" style="background-color: #ee2761;">\
+  //     <div class="tag-text" id="tag-text1"> \
+  //       \
+  //     </div>\
+  //     <span class="remove-tag" id="remove-tag1" aria-hidden="true">\
+  //       <span aria-hidden="true">\
+  //         &times;\
+  //       </span> \
+  //     </span>\
+  //   </div>');
+  //   }
+  //   console.log();
+  //   if ($(tagText.innerText()) == '') {
+  //     $(tagText).html(tagsInUse[item][1].label); // generate all divs via $('').append(<p>feife</p>)
+  //   }      
+  // }
+
+
+  // 3. Autocomplete tag searches
+
+  $('#tag-search-box').on('click', displaySuggestionBox);
+  $('#tag-search-box').on('focus', displaySuggestionBox);
+
+  function displaySuggestionBox() {
+    $('#suggested-tags').show();
+  }
+
+  $('#tag-search-box').on('keyup', displaySuggestedTags);
+
+  function displaySuggestedTags(data) {
+    let inputVal = $('#tag-search-box').val();
+    // if (inputVal.length > 2) {
+      $.ajax({
+        url: '/autocomplete.json',
+        data: {'tagInput': inputVal}
+      })
+      .done(function(data) {
+        parseTagData(data);
+      })
+  }
+
+  function parseTagData(data) {
+    let suggestions = Object.entries(data);
+    suggestions.sort((a, b) => (b[1] - a[1])); // sort by tag frequency
+    populateSuggestions(suggestions);
+  }
+
+  function populateSuggestions(suggestions) {
+    let suggestedTagsHtml = ''
+    for (let i of suggestions) {
+      suggestedTagsHtml += '<li class="clickable-suggestions"><a>' + i[0] + '</a></li>';
+    }
+
+    console.log(suggestedTagsHtml);
+
+    $('#suggested-tags').html(suggestedTagsHtml);
+  }
+
+  function displaySuggestedTags(data) {
+    let inputVal = $('#tag-search-box').val();
+    if (inputVal.length > 2) {
+      $.ajax({
+        url: '/autocomplete-trie.json',
+        data: {'tagInput': inputVal}
+      })
+      .done(function(data) {
+        parseTrie(data);
+      })
+  }
+
+  function parseTrieData(data) {
+    let allTags = [];
+    if (data.frequency != 0) {
+      data.data
+    }
+    for (let node in data.children) {
+      let child = data.children[node];
+      let newTag = 
+    }
+
+    populateSuggestions(trieWords);
+  }
+
+
+  // 4. Select/click on tag to add
+
+  $('.clickable-suggestions').on('click', addTagToChart);
+  let newTag = $()
+
+  $('.clickable-suggestions').click(function(evt) {
+    let newTag = $(evt.target).text();
+    console.log(newTag);
+  })
+
+  function addTagToChart() {
+    tagChart.data.labels.push(newTag);
+    tagChart.data.datasets.forEach(dataset => {
+      dataset.data.push(data);
+    });
+    tagChart.update();
+
+  }
+
+
+      $.ajax({
+      url: '/initial-tag-data.json',
+      type: 'GET',
+    })
+    .done(function(data) {
+      loadNewChart(data);
+    })
+    .done(function(data) {
+      updateTagsInUse(data);
+    })
+    .done(function(data) {
+      updateTagDisplay(data);
+    })
+
+
+  // 5. Update chart with new tag
+
+  function addTagToChart(data) {
+    tagChart.data.labels.push($('#tag-search-box').val());
+    tagChart.data.datasets.forEach(dataset => {
+      dataset.data.push(data);
+    });
+    tagChart.update();
+  }
+
+
+  // 6. Remove tag from chart
+
+  $('.remove-tag').on('click', removeTag);
+
+  function removeTag() {
+    let tagId = $(this).attr('id');
+    tagId = tagId.slice(-1);
+    $('#tag-display' + tagId).hide();
+
+    let tagTextId = '#tag' + tagId;
+    tag = $(tagTextId).text().trim();
+
+    removeTagFromChart(tag); 
+    removeTagFromTagsInUse(tag); 
+  }
+
+  function removeTagFromChart(tag) { // remove chart visualization
+    let dataArray = tagChart.data.datasets;
+    for (let item of dataArray) {
+      if (item.label === tag) {
+        dataArray.splice(item, 1);
+      }
+    }
+    tagChart.update()
+  }
+
+  function removeTagFromTagsInUse(tag) {
+    delete tagsInUse[tag];
+  }
+
+  // 7. Manage tag selection boxes
+
+  do {
+    $('#tag-search-box-container').addClass('d-none');
+    $('#remove-tag5').removeClass('d-none');
+  } while (Object.keys(tagsInUse).length === 5);
+
+  do {
+    $('#tag-search-box-container').removeClass('d-none');
+    $('#remove-tag5').addClass('d-none');
+  } while (Object.keys(tagsInUse).length < 5);
+
+    
+  // $('.tag-display').each(function() {
+  //   if ($('.tag-text:empty')) {
+  //     let tagId = $(this).attr('id');
+
+  //   }
+  // })
+
+  // function hideTagDisplay() {
+
+  // }
+
+
+
+</script>
+
+
+
+
+
+{% endblock %}

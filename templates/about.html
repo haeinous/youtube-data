@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div id="about-block">
+    <h1 id="about-title">About this site</h1>
+    <img src="/static/demonetized.jpg">
+
+    <div id="db-statistics">
+      <div id="big-numbers">
+          <h4>Videos tracked</h4>
+          {{ videos_in_db }}
+          <h4>Channels tracked</h4>
+          {{ channels_in_db }}
+      </div>
+    </div>
+
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+    </p>
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+    </p>
+
+    <h2 id="other-resources">Other resources</h2>
+    <div id="resources-list">
+      <ul>
+        <li>
+          <span class="article-authors">Sapna Maheshwari&#44;</span> &ldquo;<a href="https://www.nytimes.com/2017/05/07/business/media/youtube-stars-feel-advertising-pinch.html"><span class="article-title">Candid, Comedic and Macabre YouTube Stars Feel an Advertising Pinch</span></a>&rdquo; <span class="article-date">(May 7, 2017), </span><span class="article-publisher">The New York Times</span>
+        </li>
+        <li>
+          <span class="article-authors">Nellie Bowles and Jack Nicas&#44;</span> &ldquo;<a href="https://www.nytimes.com/2018/04/04/technology/youtube-attacker-demonetization.html"><span class="article-title">YouTube Attacker&rsquo;s Complaints Echoed Fight Over Ad Dollars</span></a>&rdquo; <span class="article-date">(April 4, 2018), </span><span class="article-publisher">The New York Times</span>
+        </li>
+      </ul>
+      <!-- /#resources-list -->
+    </div>
+    <!-- /#about-block -->
+  </div>
+
+{% endblock %}

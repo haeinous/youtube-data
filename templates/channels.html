@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Explore channels on YTD{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+  <div class="row" id="channels-row1">
+    <h1>
+      Exploring channels
+    </h1>
+  </div>
+
+  <div class="row" id="channels-row2">
+    {% for channel in channels %}
+      <div class="col-3">
+        <a href="/explore/channels/{{ channel.channel_id }}">
+          {{ channel.channel_title }}
+        </a>
+        <br>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+{% endblock %}
