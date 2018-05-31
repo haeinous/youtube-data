@@ -645,13 +645,13 @@ def construct_tag_trie():
     tags in the database."""
 
     trie = Trie()
-    
+
     for tag in Tag.query.all():
         trie.add_word(tag.tag, get_tag_frequency(tag.tag))
 
     # turn trie into a dictionary so it can be jsonified
     trie_dict = trie_to_dict(trie.root)
-
+    print(trie_dict)
     return jsonify(trie_dict)
 
 
