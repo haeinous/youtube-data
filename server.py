@@ -31,7 +31,7 @@ class Trie:
     def __init__(self):
         self.root = TrieNode(None)
 
-    def add_word(self, word, frequency):
+    def add_word(self, word, freq):
         current = self.root
 
         for char in word:
@@ -41,7 +41,7 @@ class Trie:
                 current.add_child(char)
                 current = current.children[char]
 
-        current.frequency = frequency
+        current.freq = freq
     
     def __repr__(self):
         return '<Trie root={}>'.format(self.root)
@@ -52,7 +52,7 @@ class TrieNode:
     def __init__(self, data):
         self.data = data
         self.children = dict() # key is char, value is TrieNode object
-        self.frequency = 0
+        self.freq = 0
 
     def add_child(self, data):
         child_node = TrieNode(data)
@@ -60,7 +60,7 @@ class TrieNode:
 
     def __repr__(self):
         return '<TrieNode data={}, freq={}, children={}>'.format(self.data,
-                                                                 self.frequency,
+                                                                 self.freq,
                                                                  self.children)
 
 
@@ -476,8 +476,7 @@ def create_initial_tag_data_json():
 @app.route('/get-tag-data.json')
 def create_tag_data_json():
     """Query the database the retrieve relevant tag demonetization data and
-    return a json string.
-    """
+    return a json string."""
 
     colors = ['rgba(238, 39, 97, 1)', # pink
               'rgba(40, 37, 98, 1)', # purple
@@ -554,11 +553,11 @@ def count_tag_frequency(tag_item):
     tag_frequencies = []
     for item in tag_item:
         if type(item.tag) == int:
-            tag_frequency = db.session.query('*').filter(TagVideo.tag_id == item.tag_id).count()
-            tag_frequencies.append(tag_frequency)
+            tag_freq = db.session.query('*').filter(TagVideo.tag_id == item.tag_id).count()
+            tag_frequencies.append(tag_freq)
         else:
-            tag_frequency = db.session.query(TagVideo).join(Tag).filter(Tag.tag == item.tag).count()
-            tag_frequencies.append(tag_frequency)
+            tag_freq = db.session.query(TagVideo).join(Tag).filter(Tag.tag == item.tag).count()
+            tag_frequencies.append(tag_freq)
 
     return tag_frequencies
 
@@ -577,8 +576,30 @@ def autocomplete_search():
         return jsonify(data)
 
 
+def trie_to_dict(node):
+    """Assume node is the root_node of a trie.
+    Return a nested dictionary to be converted to JSON.
+    """
+
+    if not node.children: # if the node doesn't have children
+        if not node.data:
+            return {node.data: {'freq': node.freq,
+                                'children': {} }}
+        else:
+            return {'freq': node.freq,
+                    'children': {} }
+
+    else:
+        trie_dict = {}
+        for node_char in node.children:
+            trie_dict[node_char] = trie_to_dict(node.children[node_char])
+    
+    return {'freq': node.freq,
+            'children': trie_dict }
+
+
 @app.route('/autocomplete-trie.json')
-def create_tag_trie():
+def construct_tag_trie():
 
     trie = Trie()
 
@@ -587,6 +608,7 @@ def create_tag_trie():
 
     # make trie into dictionary
 
+    trie_dict = trie_to_dict(trie.root)
 
     return jsonify(trie_dict)
 
