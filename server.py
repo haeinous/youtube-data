@@ -628,35 +628,50 @@ def create_tag_list(trie_dict, previous):
     """Assume trie_dict is a dictionary of characters descended from the root node(not included).
     Return a sorted list of tags to display to autosuggest.
 
-    >>> ab_dict = {'a': {'freq':1,
-                 'children':{}},
-           'b':{'freq':0,
-                'children':{'e':{'freq': 2, 
-                            'children': {}}}
-                           }
-               }
-    >>> create_tag_list(ab_dict, '')
-    ['a', 'be']
+    >>> a_dict = {'a': {'freq': 1, 'children': {}}}
+    >>> create_tag_list(a_dict, '')
+    [['a', 1]]
 
-    >>> f_dict = {'a': {'freq': 17,
-                'children': {'n': {'freq': 20,
-                                   'children': {}}}},
-          'b': {'freq': 0,
-                'children': {'e': {'freq': 15,
-                                   'children': {'t': {'children': {}, 'freq': 5}},
-    }}
-  }
-}   >>> create_tag_list(f_dict, '')
-    []
+    >>> a_be_dict = {'a': {'freq':1,
+                           'children':{}},
+                     'b':{'freq':0,
+                          'children':{'e':{'freq': 2, 
+                                           'children': {}}}}}
+    >>> create_tag_list(a_be_dict, '')
+    [['a', 1], ['be', 2]]
 
-    >>> 
-    []
+    >>> multi_word_dict = {'a': {'freq': 1,
+                                 'children': {'n': {'freq': 2,
+                                                    'children': {}}}},
+                           'b': {'freq': 0,
+                                 'children': {'e': {'freq': 2,
+                                                    'children': {'t': {'children': {}, 'freq': 3}}}}}}
+    >>> create_tag_list(multi_word_dict, '')
+    [['a', 1], ['an', 2], ['be', 2], ['bet', 3]]
 
-    >>> 
-    []
-
-    tk add more doctests
+    >>> multi_level_dict = {'a':{'freq': 1,
+                         'children':{'n':{'freq': 2,
+                                          'children':{'d':{'children':{},'freq':3}}}}},
+                    'b':{'freq':0,
+                         'children':{'e':{'freq':1,
+                                          'children':{'e':{'freq':3,
+                                                           'children':{}},
+                                                      'i':{'freq':0,
+                                                           'children':{'n':{'freq':0,
+                                                                            'children':{'g':{'freq':5,
+                                                                                             'children':{}}}}},
+                                                      't':{'freq':3,
+                                                           'children':{}}}}}},
+                                     'o':{'freq':0,
+                                          'children':{'g':{'freq':3,
+                                                            'children':{}},
+                                                      'n':{'freq':0,
+                                                            'children':{'g':{'freq':4,
+                                                                             'children':{}}}}}}}}
+    >>> create_tag_list(multi_level_dict, '')
+    [['a',1],['an',2],['and',3],['be',2],['bee',3],['bet',3],['being',5],['bog',3],['bong',4]]
     """ 
+
     all_words = []
 
     print('previous=' + previous)
@@ -695,36 +710,10 @@ def create_tag_list(trie_dict, previous):
                     all_words.append(create_tag_list({key: value}, (previous+k)))
                     print('(4) all_words=' + str(all_words))
 
-    # pprint(all_words)
     return all_words
     # tk need to figure out how to get rid of multiple brackets + sort
     # return sorted(all_words, key=lambda x: x[1]) 
     
-# ans=create_tag_list({'a': {'freq':1,
-          #                  'children':{}},
-          #            'b':{'freq':0,
-          #                 'children':{'e':{'freq': 2, 
-          #                             'children': {}}}
-          #                            }
-          #                }, 
-          #            previous='')
-
-
-
-# trie = Trie()
-# trie.add_word('a', 20)
-# trie.add_word('an', 17)
-# trie.add_word('and', 14)
-# trie.add_word('be', 15)
-# trie.add_word('bee', 1)
-# trie.add_word('being', 8)
-# trie.add_word('bet', 5)
-# trie.add_word('bog', 1)
-# trie.add_word('bong', 1)
-
-# td = trie_to_dict(trie.root)['']['children']
-
-# ans = create_tag_list(td, '')
 
 def get_tag_frequency(word):
     """Get tag frequency for a certain word from the db."""
