@@ -128,10 +128,10 @@ def populate_text_data(youtube_id):
 if __name__ == '__main__':
     connect_to_db(app)
 
-    # video_category_filename = 'seed_data/video_category.csv'
-    # country_filename = 'seed_data/country.csv'
-    # load_video_category(video_category_filename)
-    # load_country(country_filename)
+    video_category_filename = 'seed_data/video_category.csv'
+    country_filename = 'seed_data/country.csv'
+    load_video_category(video_category_filename)
+    load_country(country_filename)
 
     # channel_filename = 'seed_data/channel.csv'
     # load_channel(channel_filename)

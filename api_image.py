@@ -11,7 +11,6 @@ from pprint import pprint
 from clarifai.rest import ClarifaiApp, ApiError
 from clarifai.rest import Image as ClImage
 from model import connect_to_db, db, ImageAnalysis, Tag, Color, TagImage, ColorImage
-from all_api_calls import file_to_video_id_list
 
 CLARIFAI_KEY = os.environ.get('CLARIFAI_KEY')
 

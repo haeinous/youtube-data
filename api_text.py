@@ -64,7 +64,6 @@ def add_to_db(nlp_response, youtube_id=None, textfield=None):
     if 'error' in nlp_response:
         return
 
-    else:
     sentiment_score = nlp_response['documentSentiment']['score']
     sentiment_magnitude = nlp_response['documentSentiment']['magnitude']
     language_code = nlp_response['language']
