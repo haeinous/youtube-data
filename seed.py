@@ -5,6 +5,7 @@
 @author: Hae-in Lim, haeinous@gmail.com
 """
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 from server import app
 from model import *
@@ -72,8 +73,14 @@ def load_channel(channel_filename):
 # (3.a) Load seed data on videos, monetization statuses, and channel IDs (raw seed data).
 
 def load_video(video_filename):
-    with open(video_filename) as f:
+    with open(video_filename) as f:        
+        i = 0
+
         for row in f:
+
+            if i%1000 == 0:
+                print(i)
+
             row = row.rstrip()
             video_id, is_monetized, channel_id = row.split(',')
             if is_monetized == 'TRUE':
@@ -85,8 +92,14 @@ def load_video(video_filename):
                           is_monetized=is_monetized,
                           channel_id=channel_id)
             db.session.add(video)
+            
+            try:
+                db.session.commit()
+            except IntegrityError:
+                print('channel_id={}, video_id={}, monetized={}'.format(channel_id, video_id, is_monetized))
+            i += 1
 
-        db.session.commit()
+        print('Done loading seed video files!')
 
 # (3.b) Populate the videos and video_stats tables by calling the YouTube API.
 
@@ -133,11 +146,11 @@ if __name__ == '__main__':
     # load_video_category(video_category_filename)
     # load_country(country_filename)
 
-    channel_filename = 'seed_data/channel.csv'
-    load_channel(channel_filename)
+    # channel_filename = 'seed_data/channel.csv'
+    # load_channel(channel_filename)
 
-    # video_filename = 'seed_data/video.csv'
-    # load_video(video_filename)
+    video_filename = 'seed_data/video.csv'
+    load_video(video_filename)
 
     # populate_video_data()
     # populate_image_data()
