@@ -49,19 +49,19 @@ class Trie:
 
 class TrieNode:
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, value):
+        self.value = value
         self.children = dict() # key is char, value is TrieNode object
         self.freq = 0
 
-    def add_child(self, data):
-        child_node = TrieNode(data)
-        self.children[data] = child_node
+    def add_child(self, value):
+        child_node = TrieNode(value)
+        self.children[value] = child_node
 
     def __repr__(self):
-        return '<TrieNode data={}, freq={}, children={}>'.format(self.data,
-                                                                 self.freq,
-                                                                 self.children)
+        return '<TrieNode value={}, freq={}, children={}>'.format(self.value,
+                                                                  self.freq,
+                                                                  self.children)
 
 
 ##### Helper functions
@@ -613,7 +613,7 @@ def trie_to_dict(node):
         # Entering recursion for node with child(ren)
         trie_dict[node_char] = trie_to_dict(node.children[node_char])
 
-    if not node.data: # root node scenario
+    if not node.value: # root node scenario
         return {'': {'freq': 0,
                      'children': trie_dict}}
 
@@ -622,6 +622,109 @@ def trie_to_dict(node):
     return {'freq': node.freq,
             'children': trie_dict}
 
+
+# to be translated into JavaScript in chart-tag.html
+def create_tag_list(trie_dict, previous):
+    """Assume trie_dict is a dictionary of characters descended from the root node(not included).
+    Return a sorted list of tags to display to autosuggest.
+
+    >>> ab_dict = {'a': {'freq':1,
+                 'children':{}},
+           'b':{'freq':0,
+                'children':{'e':{'freq': 2, 
+                            'children': {}}}
+                           }
+               }
+    >>> create_tag_list(ab_dict, '')
+    ['a', 'be']
+
+    >>> f_dict = {'a': {'freq': 17,
+                'children': {'n': {'freq': 20,
+                                   'children': {}}}},
+          'b': {'freq': 0,
+                'children': {'e': {'freq': 15,
+                                   'children': {'t': {'children': {}, 'freq': 5}},
+    }}
+  }
+}   >>> create_tag_list(f_dict, '')
+    []
+
+    >>> 
+    []
+
+    >>> 
+    []
+
+    tk add more doctests
+    """ 
+    all_words = []
+
+    print('previous=' + previous)
+    print('trie_dict.items(): ' + str(trie_dict.items()))
+    print('len=' + str(len(trie_dict.items())))
+    for k, v in trie_dict.items():
+        print('previous+k={}, v={}'.format(previous+k, v))
+        
+        if not previous: # if previous is ''
+            print("previous=''")
+            if v['freq']:
+                all_words.append([previous + (previous+k), 
+                                  v['freq']])
+                print('(1) all_words=' + str(all_words))
+
+            for key, value in v['children'].items():
+                # print("v['children']= " + str(v['children']) + ' len=' + str(len(v['children'])))
+                print("1. {key: value}=" + str({key: value}) + '\nprevious+k=' + (previous+k))
+                for item in create_tag_list({key: value}, previous + (previous+k)):
+                    all_words.append(item)
+                    print('(2) all_words=' + str(all_words))
+
+        else: # if there's a value in previous
+            print("previous=<something>")
+            if v['freq']:
+                print('AAAA previous+k=' + previous+k)
+                print("AAAA v['freq']=" + str(v['freq']))
+                all_words.append([previous+k, 
+                                  v['freq']])
+                print('(3) all_words=' + str(all_words))
+
+            for key, value in v['children'].items():
+                # print("v['children']= " + str(v['children']) + ' len=' + str(len(v['children'])))
+                print("2. {key: value}=" + str({key: value}) + '\nprevious+k=' + (previous+k))
+                for item in create_tag_list({key: value}, (previous+k)):
+                    all_words.append(create_tag_list({key: value}, (previous+k)))
+                    print('(4) all_words=' + str(all_words))
+
+    # pprint(all_words)
+    return all_words
+    # tk need to figure out how to get rid of multiple brackets + sort
+    # return sorted(all_words, key=lambda x: x[1]) 
+    
+# ans=create_tag_list({'a': {'freq':1,
+          #                  'children':{}},
+          #            'b':{'freq':0,
+          #                 'children':{'e':{'freq': 2, 
+          #                             'children': {}}}
+          #                            }
+          #                }, 
+          #            previous='')
+
+
+
+# trie = Trie()
+# trie.add_word('a', 20)
+# trie.add_word('an', 17)
+# trie.add_word('and', 14)
+# trie.add_word('be', 15)
+# trie.add_word('bee', 1)
+# trie.add_word('being', 8)
+# trie.add_word('bet', 5)
+# trie.add_word('bog', 1)
+# trie.add_word('bong', 1)
+
+# td = trie_to_dict(trie.root)['']['children']
+
+# ans = create_tag_list(td, '')
 
 def get_tag_frequency(word):
     """Get tag frequency for a certain word from the db."""

@@ -200,6 +200,62 @@
   // }
 
 
+  window.onload = function() {
+    $.ajax({
+      url: '/autocomplete-trie.json',
+    })
+    .done(function(data) {
+      populateAllTags(data);
+    })
+  }
+
+  let allTags = []
+
+  function populateAllTags(data) {
+    for (item in data) {
+      if (!item.children) { // recursion base case: when it's a leaf node (no children)
+        // return [wordSoFar + item.value, item.freq] // returns an array whose first element is the tag, second frequency
+        allTags.push([wordSoFar + item.value, item.freq]);
+      } 
+      else {
+        let wordSoFar = item.value; //data.value?
+        for (let char in item.children) {
+          if (char.freq > 0) {
+            allTags.push([wordSoFar + char.value, char.freq]);
+            populateAllTags({char: {freq: char.freq,
+                                    children: char.children}
+            });            
+          }
+          else {
+            wordSoFar += char.value;
+            populateAllTags({char: {freq: char.freq,
+                                    children: char.children}
+            });
+          }
+        }
+      }
+    }
+    // tagArray.sort((a,b) => a[1] - b[1]); // sort by frequency, the second array item
+  }
+
+
+  let dict = {'': {freq: 0,
+                   children: {'a': {freq: 1,
+                                    children: {'n': {freq: 2,
+                                                     children: {'d': {freq: 4,
+                                                                      children: {}},
+                                                                'g': {freq: 0,
+                                                                      children: {'r': {freq: 0,
+                                                                                       children: {'y': 1}}
+                                                                                }
+                                                                     }
+                                                               }
+                                                    }
+                                              }
+                                   }
+                             }
+                  }}
+
   // 3. Autocomplete tag searches
 
   $('#tag-search-box').on('click', displaySuggestionBox);
