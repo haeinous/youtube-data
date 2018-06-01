@@ -6,79 +6,62 @@
 
 What happens when a video and monetization status are submitted on the /add-data page.
 """
+from sqlalchemy import func
 
 from model import *
-from server import app
+from server import app, make_int_from_sqa_object
 from api_youtube import *
 from api_image import *
 from api_text import *
 
 
-def file_to_video_id_list(filename):
+def add_all_info_to_db(video_id):
+    """Assume video_id is an 11-character string for a video that's not in the database.
+    Add all relevant information to the database in the correct order."""
 
-    with open(filename) as f:
-        video_ids = []
-        for line in f:
-            line = line.strip()
-            video_ids.append(line)
-    return video_ids
+    # (1) Determine channel_id.
+    channel_id = get_channel_id_from_video_id(video_id)
+    
+    # (2) Call the YouTube API to populate the channel table if it's not in the db.
+    #     Otherwise, update the channel_stats table.
+    if Channel.query.filter(Channel.channel_id == channel_id).first(): # returns None if channel not in db
+        add_channel_stats_data(parse_channel_data(get_info_by_youtube_id(channel_id), channel_in_db=True))
+    else: # if channel not in db:
+        add_channel_data(parse_channel_data(get_info_by_youtube_id(channel_id)))
+
+    # (3) Add data to the video and video_stats tables (tags and tags_videos if processing new tags).
+    video = Video.query.filter(Video.video_id == video_id)
+    update_video_details(parse_video_data(get_info_by_youtube_id(video_id)))
+    # print('done adding YouTube data for {}!)'.format(video_id))
+
+    # (4) Add data to the image_analyses table by calling the Clarifai API.
+    thumbnail_url = Video.query.filter(Video.video_id == video_id).first().thumbnail_url
+    add_clarifai_data(thumbnail_url)
+    # print('done adding image analysis data')
+
+    # (5) Add data to the text_analyses table if it's likely to yield interesting
+    #     information by calling the Google NLP API for sentiment analysis. The free
+    #     version of the API is capped, so not all videos should be sent over.
+    if meaningful_sentiment_likely(video_id):
+        analyze_sentiment(video_id)
+    # print('done adding text analysis data')
 
 
-def add_to_videos_table(filename):
-
-    with open(filename) as f:
-        video_ids = []
-        for line in f:
-            line = line.strip()
-            video_id, is_monetized = line.split(',')
-            video_ids.append(video_id)
-            print(video_id, is_monetized)
-
-            video = Video(video_id=video_id,
-                          is_monetized=is_monetized)
-            db.session.add(video)
-        db.session.commit()
-
-    add_all_info_to_db(video_ids)
+# def has_impactful_score_and_magnitude(channel_id):
+#     sentiment = TextAnalysis.query.join(Video).filter(Video.channel_id == channel_id).all()
+#     db.session.query(TextAnalysis.video_id, 
+#                      TextAnalysis.sentiment_score, 
+#                      TextAnalysis.sentiment_magnitude
+#              ).join(Video).filter(Video.channel_id == channel_id).all()
 
 
-def add_all_info_to_db(video_ids):
-    """Given a list of video_ids, add all information to the database 
-    in the correct order.
-    """
+# def meaningful_sentiment_likely(video_id):
 
-    for video_id in video_ids:
-        # Determine channel_id if necessary
-        if not Video.query.filter(Video.video_id == video_id,
-                              Video.channel_id.isnot(None)).first():
-            channel_id = get_channel_id_from_video_id(video_id)
-        else:
-            channel_id = Video.query.filter(Video.video_id == video_id).first().channel_id
-        
-        # Add data to the channels and/or the channel_stats tables
-        if Channel.query.filter(Channel.channel_id == channel_id).first():
-            add_channel_stats_data(parse_channel_data(yt_info_by_id(channel_id), channel_in_db=True))
-        else:
-            add_channel_data(parse_channel_data(yt_info_by_id(channel_id)))
+#     if TextAnalysis.query.filter(TextAnalysis.video_id == video_id).first(): # i.e., there's at least one entry
 
-        # Add data to the video_stats and/or the videos, tags, and tags_videos tables
-        if Video.query.filter(Video.video_id == video_id,
-                              Video.video_title.isnot(None)).first():
-            add_video_stats_data(parse_video_data(yt_info_by_id(video_id), video_details_in_db=True))
-        else:
-            add_video_details(parse_video_data(yt_info_by_id(video_id)))
-
-        print('done adding YouTube data for {}!)'.format(video_id))
-
-        # Add data to the image_analyses and text_analyses tables.
-        if not ImageAnalysis.query.filter(ImageAnalysis.video_id == video_id).first():
-            add_clarifai_data(video_ids)
-            print('done adding image analysis data')
-
-        # Add data for sentiment analysis
-        if not TextAnalysis.query.filter(TextAnalysis.video_id == video_id).first():
-            analyze_sentiment(video_ids)
-            print('done adding text analysis data')
+#     # Check number of videos from the same channel
+#     channel_id = get_channel_id_from_video_id(video_id)
+#     video_count = db.session.query(func.count(Video.video_id)).filter(Video.channel_id == 'UC_w1MuuO6WDhTtnGD-X1ZBQ').first()
 
 
 if __name__ == '__main__':

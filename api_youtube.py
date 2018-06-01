@@ -31,20 +31,21 @@ def get_channel_id_from_video_id(video_id):
     return channel_id
 
 
-def yt_info_by_id(yt_id):
+def get_info_by_youtube_id(youtube_id):
     """Access the YouTube API to gather information about videos and channels.
     
-    >>> yt_info_by_id('UCZ9YdClgOz-5qEvkc1s3j6Q')['items'][0]['snippet']['publishedAt']
+    >>> get_info_by_youtube_id('UCZ9YdClgOz-5qEvkc1s3j6Q')['items'][0]['snippet']['publishedAt']
     '2012-07-23T00:42:37.000Z'
-    >>> yt_info_by_id('KcyoKIjayGk')['items'][0]['snippet']['channelId']
+
+    >>> get_info_by_youtube_id('KcyoKIjayGk')['items'][0]['snippet']['channelId']
     'UCZ9YdClgOz-5qEvkc1s3j6Q'
 
     """
     part = '&part=snippet%2CcontentDetails%2Cstatistics'
-    if yt_id[:2] == 'UC':
-        url = YOUTUBE_URL + 'channels?id=' + yt_id + part + '&key=' + GOOGLE_KEY
+    if youtube_id[:2] == 'UC': # YouTube channel IDs all begin with 'UC'
+        url = YOUTUBE_URL + 'channels?id=' + youtube_id + part + '&key=' + GOOGLE_KEY
     else:
-        url = YOUTUBE_URL + 'videos?id=' + yt_id + part + '&key=' + GOOGLE_KEY
+        url = YOUTUBE_URL + 'videos?id=' + youtube_id + part + '&key=' + GOOGLE_KEY
     
     try:
         response = requests.get(url).json()
@@ -56,63 +57,51 @@ def yt_info_by_id(yt_id):
         return response
 
 
-def parse_channel_data(data, channel_in_db=False):
-    """Assume data is a dictionary of the raw JSON returned by
-    the YouTube API.
+def parse_channel_data(response, channel_in_db=False):
+    """Assume data is a dictionary of the raw JSON returned by the YouTube API.
     Return a condensed dictionary with the necessary info."""
-    channel_data = {}
+    try:
+        channel_data = {}
 
-    channel_data['timestamp'] = data['timestamp']
-    items = data['items'][0]
-    channel_data['channel_id'] = items['id']
+        channel_data['timestamp'] = response['timestamp']
+        items = response['items'][0]
+        channel_data['channel_id'] = items['id']
 
-    # Get information for the channel_stats table
-    channel_data['total_views'] = items['statistics']['viewCount']
-    
-    if items['statistics']['hiddenSubscriberCount']:
-        channel_data['total_subscribers'] = None
-    else:
-        channel_data['total_subscribers'] = items['statistics']['subscriberCount']
-    
-    channel_data['total_videos'] = items['statistics']['videoCount']
-    channel_data['total_comments'] = items['statistics']['commentCount']
-
-    if not channel_in_db:
-        channel_data['channel_title'] = items['snippet']['title']
-        channel_data['channel_description'] = items['snippet']['description']
-        created_at = items['snippet']['publishedAt']
-        # Convert string into a datetime object
-        channel_data['created_at'] = dateutil.parser.parse(created_at)
-
-        thumbnail_data = items['snippet']['thumbnails'] # dictionary whose keys are thumbnail versions
-        if 'standard' in thumbnail_data:
-            channel_data['thumbnail_url'] = thumbnail_data['standard']['url']
-        elif 'high' in thumbnail_data:
-            channel_data['thumbnail_url'] = thumbnail_data['high']['url']
-        elif 'medium' in thumbnail_data:
-            channel_data['thumbnail_url'] = thumbnail_data['medium']['url']
-        elif 'default' in thumbnail_data:
-            channel_data['thumbnail_url'] = thumbnail_data['default']['url']
+        # Get information for the channel_stats table
+        channel_data['total_views'] = items['statistics']['viewCount']
+        
+        if items['statistics']['hiddenSubscriberCount']:
+            channel_data['total_subscribers'] = None
         else:
-            channel_data['thumbnail_url'] = ''
+            channel_data['total_subscribers'] = items['statistics']['subscriberCount']
+        
+        channel_data['total_videos'] = items['statistics']['videoCount']
+        channel_data['total_comments'] = items['statistics']['commentCount']
 
-        channel_data['country_code'] = None
-        try: 
-            channel_data['country_code'] = items['snippet']['country']
-        except KeyError:
-            channel_data['country_code'] = None
-        # tk Question: do I need a finally block in order to ensure that the rest 
-        #  gets executed?
-        finally:
-            return channel_data
-    # print('success: parse_channel_data for' + str(channel_data['channel_id']))
-    return channel_data
+        if not channel_in_db: # This data does not change over time
+            channel_data['channel_title'] = items['snippet']['title']
+            channel_data['channel_description'] = items['snippet']['description']
+            created_at = items['snippet']['publishedAt']
+            # Convert string into a datetime object
+            channel_data['created_at'] = dateutil.parser.parse(created_at)
+            channel_data['country_code'] = None # not all channels have a country code
+            try: 
+                channel_data['country_code'] = items['snippet']['country']
+            except KeyError:
+                pass
+            # tk Question: do I need a finally block in order to ensure that the rest 
+            #  gets executed?
+            finally:
+                return channel_data
+        # print('success: parse_channel_data for' + str(channel_data['channel_id']))
+        return channel_data
+    except Exception as e:
+        print(e)
 
 
 def add_channel_data(channel_data):
-    """Assume channel_data is a dictionary with fields in the
-    channels table as keys.
-    Add the data to the channels table."""
+    """Assume channel_data is a dictionary whose keys represent fields in the channels table.
+    Add data to the channels table."""
 
     channel = Channel(channel_id=channel_data['channel_id'],
                       channel_title=channel_data['channel_title'],
@@ -130,8 +119,7 @@ def add_channel_data(channel_data):
 
 
 def add_channel_stats_data(channel_data):
-    """Assume channel_data is a dicionary with fields in the
-    channel_stats table as keys.
+    """Assume channel_data is a dicionary with fields in the channel_stats table as keys.
     Add the data to the channel_stats table."""
 
     channel_stat = ChannelStat(channel_id=channel_data['channel_id'],
@@ -147,27 +135,32 @@ def add_channel_stats_data(channel_data):
 
 
 def add_tag_data(tags):
-    """Assume tags is a list of tags.
-    Add them to the tags table in the database."""
+    """Assume tags is a list of strings that represent tags.
+    Add them to the tags table.
 
+    >>> tags = [' art', '50 cent', 'Peru', '@$$', 'help\n']
+    >>> list(map(lambda x: x.strip().lower(), tags))
+    ['art', '50 cent', 'peru', '@$$', 'help']
+
+    """
+
+    # tk this might not be necessary because all tags are strings -- verify!
     try:
         tags = list(map(lambda x: x.strip().lower(), tags))
-    except AttributeError:
-        # In case there are tags like numbers that would raise an AttributeError
+    except AttributeError: # tags that are numbers would raise an AttributeError
         tags = list(filter(lambda x: type(x) == str, tags))
     finally:
-        for tag_item in tags:
-            if not Tag.query.filter(Tag.tag == tag_item).first():
-                add_tag = Tag(tag=tag_item)
+        for tag_string in tags:
+            if not Tag.query.filter(Tag.tag == tag_string).first(): #None if tag isn't in db
+                add_tag = Tag(tag=tag_string)
                 db.session.add(add_tag)
         db.session.commit()
 
-        return tags
+        return tags # lowercase and stripped of whitespace
 
 
 def add_tag_video_data(tags, video_id):
-    """Use tags and video_id to populate the tags_videos association
-    table in the database."""
+    """Use tags and video_id to populate the tags_videos association table."""
 
     for tag_item in tags:
         # print(tag_item)
@@ -195,31 +188,32 @@ def add_video_stats_data(video_data):
     # print('success: add_video_stats_data for' + str(video_data['video_id']))
 
 
-def add_video_details(video_data):
+def update_video_details(video_data):
 
     video = Video.query.filter(Video.video_id == video_data['video_id']).first()
+
     video.channel_id = video_data['channel_id']
     video.video_title = video_data['video_title']
     video.video_description = video_data['video_description']
     video.published_at = video_data['published_at']
     video.category_id = video_data['category_id']
-    video.live_broadcast_id = video_data['live_broadcast_id']
     video.duration = video_data['duration']
-    db.session.commit()
+    video.thumbnail_url = video_data['thumbnail_url']
 
-    add_video_stats_data(video_data)
-    # print('success: add_video_details for' + str(video_data['video_id']))
+    db.session.commit() # no need to db.session.add because it already exists in the db
+
+    add_video_stats_data(video_data) 
+    # print('success: update_video_details for' + str(video_data['video_id']))
 
 
-def parse_video_data(data, video_details_in_db=False):
-    """Assume data is a dictionary of the raw JSON returned by
-    the YouTube API.
+def parse_video_data(response, video_details_in_db=False):
+    """Assume response is a dictionary of raw JSON returned by the YouTube API.
     Return a condensed dictionary with the necessary info."""
 
     video_data = {}
 
-    video_data['timestamp'] = data['timestamp']
-    items = data['items'][0]
+    video_data['timestamp'] = response['timestamp']
+    items = response['items'][0]
 
     video_data['video_id'] = items['id']
 
@@ -230,38 +224,38 @@ def parse_video_data(data, video_details_in_db=False):
     video_data['comments'] = items['statistics']['commentCount']
 
     if not video_details_in_db:
-    # duration is a timedelta object
-        duration = items['contentDetails']['duration']
+
+        duration = items['contentDetails']['duration'] # duration is a timedelta object
         video_data['duration'] = parse_duration(duration)
 
         video_data['category_id'] = items['snippet']['categoryId']
         video_data['channel_id'] = items['snippet']['channelId']
         video_data['video_title'] = items['snippet']['title']
-        
-        # Delete the lines below after I re-seed the db. This is
-        # just a precautionary measure to not throw an error.
-        if len(video_data['video_title']) > 60:
-            print('title too long!  ')
-            video_data['video_title'] = None
-        
         video_data['video_description'] = items['snippet']['description']
 
-        
         published_at = items['snippet']['publishedAt']
         # Convert into a datetime object
         video_data['published_at'] = dateutil.parser.parse(published_at)
         
-        # Need to add the tags to the Tag table due to foreign key relationships.
-        video_data['tags'] = items['snippet']['tags'] # type(tags) is list
-        add_tag_video_data(add_tag_data(video_data['tags']), video_data['video_id']) # Add data to the TagVideo table
-
-        live_broadcast = items['snippet']['liveBroadcastContent']
-        if live_broadcast == 'none':
-            video_data['live_broadcast_id'] = 1
-        elif live_broadcast == 'upcoming':
-            video_data['live_broadcast_id'] = 2
+        # Need to make sure all tags exist in the tags table first due to foreign keys/referential integrity.
+        try:
+            video_data['tags'] = items['snippet']['tags'] # type(tags) is list -- better to make this a set?
+        except KeyError:
+            pass
         else:
-            video_data['live_broadcast_id'] = 3
+            add_tag_video_data(add_tag_data(video_data['tags']), video_data['video_id']) # Add data to the tags_videos table
+
+        thumbnail_data = items['snippet']['thumbnails'] # dictionary whose keys are thumbnail versions
+        if 'standard' in thumbnail_data:
+            video_data['thumbnail_url'] = thumbnail_data['standard']['url']
+        elif 'high' in thumbnail_data:
+            video_data['thumbnail_url'] = thumbnail_data['high']['url']
+        elif 'medium' in thumbnail_data:
+            video_data['thumbnail_url'] = thumbnail_data['medium']['url']
+        elif 'default' in thumbnail_data:
+            video_data['thumbnail_url'] = thumbnail_data['default']['url']
+        else:
+            video_data['thumbnail_url'] = ''
 
     # print('success: parse_video_data for' + str(video_data['video_id']))
     return video_data
@@ -272,20 +266,4 @@ if __name__ == '__main__':
     from server import app
     connect_to_db(app)
     app.app_context().push()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

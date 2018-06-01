@@ -109,9 +109,6 @@ def index():
     videos_in_db = stringify_sqa_object(videos_in_db)
     channels_in_db = stringify_sqa_object(channels_in_db)
 
-    # return render_template('homepage.html', form=search_form,
-    #                                         videos_in_db=videos_in_db,
-    #                                         channels_in_db=channels_in_db)
     return render_template('homepage.html', videos_in_db=videos_in_db,
                                             channels_in_db=channels_in_db)
 
@@ -196,7 +193,7 @@ def show_specific_channel_page(channel_id):
                         Video.channel_id == channel_id).first())[1:-2]
 
     # Update the channel_stats table with the most up-to-date info
-    add_channel_stats_data(parse_channel_data(yt_info_by_id(channel_id), channel_in_db=True))    
+    add_channel_stats_data(parse_channel_data(get_info_by_youtube_id(channel_id), channel_in_db=True))    
     channel_stats = ChannelStat.query.filter(ChannelStat.channel_id == channel_id).first()
 
     return render_template('channel.html',
@@ -226,14 +223,14 @@ def show_specific_video_page(video_id):
     thumbnail_url = video.thumbnail_url
 
     # Update the video_stats table with the most up-to-date info
-    add_video_stats_data(parse_video_data(yt_info_by_id(video_id)))    
+    add_video_stats_data(parse_video_data(get_info_by_youtube_id(video_id)))    
     video_stats = VideoStat.query.filter(VideoStat.video_id == video_id).first()
 
     channel = Channel.query.join(Video).filter(Video.video_id == video_id).first()
     image_analysis = ImageAnalysis.query.filter(ImageAnalysis.video_id == video_id).first()
     if image_analysis:
         nsfw_score = round(image_analysis.nsfw_score * 100)
-        colors = [color.color_hex_code for color in ColorImage.query.filter(ColorImage.image_analysis_id == image_analysis.image_analysis_id).all()]
+        colors = [color.hex_code for color in ColorImage.query.filter(ColorImage.image_analysis_id == image_analysis.image_analysis_id).all()]
     else:
         nsfw_score = None
         colors = []
@@ -713,7 +710,7 @@ def create_tag_list(trie_dict, previous):
     return all_words
     # tk need to figure out how to get rid of multiple brackets + sort
     # return sorted(all_words, key=lambda x: x[1]) 
-    
+
 
 def get_tag_frequency(word):
     """Get tag frequency for a certain word from the db."""
@@ -818,234 +815,15 @@ def check_database_for_duplicates():
 #       # Multiple base queries >> tack on filters as necessary.
 
 
-@app.route('/bleh-by-channel-size.json')
-def json_data_by_channel_size():
+# @app.route('/bleh-by-channel-size.json')
+# def json_data_by_channel_size():
     """Return demonetization data by channel size."""
 
     # tier1_all_vids = db.session.query(
     #                     func.count(Video.video_id)).join(
     #                     ChannelStat).filter(
     #                     ChannelStat.total_subscribers > 1000000).first()
-    tier1_all_vids = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(ChannelStat).filter(
-                        ChannelStat.total_subscribers >= 1000000).first())
-    tier1_fully_monetized = make_int_from_sqa_object(db.session.query(
-                            func.count(Video.video_id)).join(
-                            Channel).join(
-                            ChannelStat).filter(
-                            ChannelStat.total_subscribers >= 1000000,
-                            Video.is_monetized == True).first())
-    tier1_partially_monetized = make_int_from_sqa_object(db.session.query(
-                                func.count(Video.video_id)).join(
-                                Channel).join(
-                                ChannelStat).filter(
-                                ChannelStat.total_subscribers >= 1000000,
-                                Video.is_monetized == True).first())
-    tier1_demonetized = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(
-                        ChannelStat).filter(
-                        ChannelStat.total_subscribers >= 1000000,
-                        Video.is_monetized == False).first())
-    try:
-        tier1_percent_demonetized = round(tier1_demonetized/tier1_all_vids, 2)
-    except ZeroDivisionError:
-        tier1_percent_demonetized = 0
-
-###################
-
-    tier2_all_vids = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(ChannelStat).filter(
-                        ChannelStat.total_subscribers < 1000000,
-                        ChannelStat.total_subscribers >= 500000).first())
-    tier2_fully_monetized = make_int_from_sqa_object(db.session.query(
-                            func.count(Video.video_id)).join(
-                            Channel).join(
-                            ChannelStat).filter(
-                            ChannelStat.total_subscribers < 1000000,
-                            ChannelStat.total_subscribers >= 500000,
-                            Video.is_monetized == True).first())
-    tier2_partially_monetized = make_int_from_sqa_object(db.session.query(
-                                func.count(Video.video_id)).join(
-                                Channel).join(
-                                ChannelStat).filter(
-                                ChannelStat.total_subscribers < 1000000,
-                                ChannelStat.total_subscribers >= 500000,
-                                Video.is_monetized == True).first())
-    tier2_demonetized = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(
-                        ChannelStat).filter(
-                        ChannelStat.total_subscribers < 1000000,
-                        ChannelStat.total_subscribers >= 500000,
-                        Video.is_monetized == False).first())
-    try:
-        tier2_percent_demonetized = round(tier2_demonetized/tier2_all_vids, 2)
-    except ZeroDivisionError:
-        tier2_percent_demonetized = 0
-
-###################    
-
-    tier3_all_vids = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(ChannelStat).filter(
-                        ChannelStat.total_subscribers < 500000,
-                        ChannelStat.total_subscribers >= 100000).first())
-    tier3_fully_monetized = make_int_from_sqa_object(db.session.query(
-                            func.count(Video.video_id)).join(
-                            Channel).join(
-                            ChannelStat).filter(
-                            ChannelStat.total_subscribers < 500000,
-                            ChannelStat.total_subscribers >= 100000,
-                            Video.is_monetized == True).first())
-    tier3_partially_monetized = make_int_from_sqa_object(db.session.query(
-                                func.count(Video.video_id)).join(
-                                Channel).join(
-                                ChannelStat).filter(
-                                ChannelStat.total_subscribers < 500000,
-                                ChannelStat.total_subscribers >= 100000,
-                                Video.is_monetized == True).first())
-    tier3_demonetized = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(
-                        ChannelStat).filter(
-                        ChannelStat.total_subscribers < 500000,
-                        ChannelStat.total_subscribers >= 100000,
-                        Video.is_monetized == False).first())
-    try:
-        tier3_percent_demonetized = round(tier3_demonetized/tier3_all_vids, 2)
-    except ZeroDivisionError:
-        tier3_percent_demonetized = 0   
-
-    tier4_all_vids = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(ChannelStat).filter(
-                        ChannelStat.total_subscribers < 100000,
-                        ChannelStat.total_subscribers >= 50000).first())
-    tier4_fully_monetized = make_int_from_sqa_object(db.session.query(
-                            func.count(Video.video_id)).join(
-                            Channel).join(
-                            ChannelStat).filter(
-                            ChannelStat.total_subscribers < 100000,
-                            ChannelStat.total_subscribers >= 50000,
-                            Video.is_monetized == True).first())
-    tier4_partially_monetized = make_int_from_sqa_object(db.session.query(
-                                func.count(Video.video_id)).join(
-                                Channel).join(
-                                ChannelStat).filter(
-                                ChannelStat.total_subscribers < 100000,
-                                ChannelStat.total_subscribers >= 50000,
-                                Video.is_monetized == True).first())
-    tier4_demonetized = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(
-                        ChannelStat).filter(
-                        ChannelStat.total_subscribers < 100000,
-                        ChannelStat.total_subscribers >= 50000,
-                        Video.is_monetized == False).first())
-    try:
-        tier4_percent_demonetized = round(tier4_demonetized/tier4_all_vids, 2)
-    except ZeroDivisionError:
-        tier4_percent_demonetized = 0
-
-    tier5_all_vids = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(ChannelStat).filter(
-                        ChannelStat.total_subscribers < 50000).first())
-    tier5_fully_monetized = make_int_from_sqa_object(db.session.query(
-                            func.count(Video.video_id)).join(
-                            Channel).join(
-                            ChannelStat).filter(
-                            ChannelStat.total_subscribers < 50000,
-                            Video.is_monetized == True).first())
-    tier5_partially_monetized = make_int_from_sqa_object(db.session.query(
-                                func.count(Video.video_id)).join(
-                                Channel).join(
-                                ChannelStat).filter(
-                                ChannelStat.total_subscribers < 50000,
-                                Video.is_monetized == True).first())
-    tier5_demonetized = make_int_from_sqa_object(db.session.query(
-                        func.count(Video.video_id)).join(
-                        Channel).join(
-                        ChannelStat).filter(
-                        ChannelStat.total_subscribers < 50000,
-                        Video.is_monetized == False).first())
-    try:
-        tier5_percent_demonetized = round(tier5_demonetized/tier5_all_vids, 2)
-    except ZeroDivisionError:
-        tier5_percent_demonetized = 0
-
-
-    percent_data = [tier5_percent_demonetized,
-                    tier4_percent_demonetized,
-                    tier3_percent_demonetized,
-                    tier2_percent_demonetized,
-                    tier1_percent_demonetized]
-    fully_monetized_data = [tier5_fully_monetized,
-                            tier4_fully_monetized,
-                            tier3_fully_monetized,
-                            tier2_fully_monetized,
-                            tier1_fully_monetized]
-    partially_monetized_data = [tier5_partially_monetized,
-                                tier4_partially_monetized,
-                                tier3_partially_monetized,
-                                tier2_partially_monetized,
-                                tier1_partially_monetized]
-    demonetized_data = [tier5_demonetized,
-                        tier4_demonetized,
-                        tier3_demonetized,
-                        tier2_demonetized,
-                        tier1_demonetized]
-
-
-    data = {'labels': ['10k–50k',
-                       '50k–100k',
-                       '100k–500k',
-                       '500k–1m',
-                       '1m+'],
-            'datasets': [{'type': 'line',
-                          'label': '% Demonetized',
-                          'borderColor': 'rgba(40,37,98,.8)',
-                          'borderWidth': 4,
-                          'fill': False,
-                          'pointRadius': 8,
-                          'data': percent_data,
-                          'yAxisID': 'y-axis-2'
-                         },
-                         {'type': 'bar',
-                          'label': 'Fully monetized',
-                          'backgroundColor': 'rgba(50,178,89,.8)',
-                          'borderWidth': 0,
-                          'pointRadius': 8,
-                          'data': fully_monetized_data,
-                          'yAxisID': 'y-axis-1'
-                         },
-                         {'type': 'bar',
-                          'label': 'Partially monetized',
-                          'backgroundColor': 'rgba(94,200,213,.8)',
-                          'borderWidth': 0,
-                          'pointRadius': 8,
-                          'data': partially_monetized_data,
-                          'yAxisID': 'y-axis-1'
-                         },
-                         {'type': 'bar',
-                          'label': 'Demonetized',
-                          'backgroundColor': 'rgba(238,39,97,.8)',
-                          'borderWidth': 0,
-                          'pointRadius': 8,
-                          'data': demonetized_data,
-                          'yAxisID': 'y-axis-1'
-                        }]
-           }
-
-    return jsonify(data)
-
-
-
-
-
+  
 
 if __name__ == '__main__':
     app.debug = True

@@ -6,7 +6,6 @@
 
 Models and database functions for Hae-in's Hackbright project."""
 
-
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -30,8 +29,8 @@ class Video(db.Model):
     published_at = db.Column(db.DateTime(timezone=False))
     category_id = db.Column(db.Integer,
                             db.ForeignKey('video_categories.video_category_id'))
-    live_broadcast_id = db.Column(db.Integer,
-                                  db.ForeignKey('live_broadcasts.live_broadcast_id'))
+    live_broadcast_status = db.Column(db.String(10))
+    # live broadcast statuses: none, upcoming, live
     duration = db.Column(db.Interval)
     thumbnail_url = db.Column(db.String(48))
 
@@ -45,24 +44,6 @@ class Video(db.Model):
                 self.video_id,
                 self.channel_id,
                 self.is_monetized)
-
-
-class LiveBroadcast(db.Model):
-    """A video can have one of three live broadcast statuses:
-       (1) none,
-       (2) upcoming, and
-       (3) live """
-    __tablename__ = 'live_broadcasts'
-
-    live_broadcast_id = db.Column(db.Integer,
-                                  primary_key=True,
-                                  autoincrement=True)
-    broadcast_status_name = db.Column(db.String(10))
-
-    def __repr__(self):
-        return '<LiveBroadcast {} (id: {})>'.format(
-                self.live_broadcast_id,
-                self.broadcast_status_name)
 
 
 class VideoCategory(db.Model):
@@ -174,8 +155,11 @@ class TextAnalysis(db.Model):
     text_analysis_id = db.Column(db.Integer, 
                                  autoincrement=True, 
                                  primary_key=True)
-    video_id = db.Column(db.String(11))
-    textfield = db.Column(db.String(11)) 
+    video_id = db.Column(db.String(11),
+                         db.ForeignKey('videos.video_id'))
+    channel_id = db.Column(db.String(24),
+                           db.ForeignKey('channels.channel_id'))
+    textfield = db.Column(db.String(20))
     sentiment_score = db.Column(db.Float)
     sentiment_magnitude = db.Column(db.Float)
     sentiment_score_standard_deviation = db.Column(db.Float)
@@ -183,10 +167,17 @@ class TextAnalysis(db.Model):
     sentiment_min_score = db.Column(db.Float)
     language_code = db.Column(db.String(2))
 
+    video = db.relationship('Video',
+                            backref=db.backref('text_analyses'))
+    channel = db.relationship('Channel',
+                              backref=db.backref('text_analyses'))
+
+
     def __repr__(self):
-        return "<TextAnalysis for field {} of video {}\nscore: {}, magnitude: {}>".format(
-                self.field_name,
+        return '<TextAnalysis for field {} of {}{}\nscore: {}, magnitude: {}>'.format(
+                self.textfield,
                 self.video_id,
+                self.channel_id,
                 self.sentiment_score,
                 self.sentiment_magnitude)
 
@@ -204,6 +195,10 @@ class ImageAnalysis(db.Model):
     video = db.relationship('Video',
                             backref=db.backref('image_analyses'))
 
+    colors = db.relationship('Color',
+                             secondary='colors_images',
+                             backref=db.backref('image_analyses'))
+
     def __repr__(self):
         return '<ImageAnalysis id={} video={} nsfw_score={}>'.format(
                 self.image_analysis_id,
@@ -218,7 +213,8 @@ class Tag(db.Model):
     tag_id = db.Column(db.Integer,
                        autoincrement=True,
                        primary_key=True)
-    tag = db.Column(db.String(100))
+    tag = db.Column(db.String(100),
+                    unique=True)
 
     videos = db.relationship('Video',
                              secondary='tags_videos',
@@ -226,6 +222,9 @@ class Tag(db.Model):
     image_analyses = db.relationship('ImageAnalysis',
                                      secondary='tags_images',
                                      backref=db.backref('tags'))
+    channels = db.relationship('Channel',
+                               secondary='tags_channels',
+                               backref=db.backref('channels'))
 
     def __repr__(self):
         return '<Tag tag={} id={}>'.format(
@@ -234,7 +233,7 @@ class Tag(db.Model):
 
 
 class TagVideo(db.Model):
-    """An association table connecting the Tag and Video tables."""
+    """An association table connecting the tags and videos tables."""
     __tablename__ = 'tags_videos'
 
     tag_video_id = db.Column(db.Integer,
@@ -250,8 +249,24 @@ class TagVideo(db.Model):
                 self.tag_video_id)
 
 
+class TagChannel(db.Model):
+    """An association table connecting the tags and channels tables."""
+    __tablename__ = 'tags_channels'
+
+    tag_channel_id = db.Column(db.Integer,
+                               autoincrement=True,
+                               primary_key=True)
+    tag_id = db.Column(db.Integer,
+                       db.ForeignKey('tags.tag_id'))
+    channel_id = db.Column(db.String(11),
+                           db.ForeignKey('channels.channel_id'))
+
+    def __repr__(self):
+        return '<TagChannel id={}>'.format(self.tag_channel_id)
+
+
 class TagImage(db.Model):
-    """An association table connecting the Tag and Image tables."""
+    """An association table connecting the tags and images tables."""
     __tablename__ = 'tags_images'
 
     tag_image_id = db.Column(db.Integer,
@@ -268,14 +283,14 @@ class TagImage(db.Model):
 
 
 class ColorImage(db.Model):
-    """An association table connecting the Color and ImageAnalysis tables."""
+    """An association table connecting the color and image_analyses tables."""
     __tablename__ = 'colors_images'
 
     color_image_id = db.Column(db.Integer,
                                autoincrement=True,
                                primary_key=True)
-    color_hex_code = db.Column(db.String(7),
-                     db.ForeignKey('colors.color_hex_code'))
+    hex_code = db.Column(db.String(7),
+                         db.ForeignKey('colors.hex_code'))
     image_analysis_id = db.Column(db.Integer,
                         db.ForeignKey('image_analyses.image_analysis_id'))
 
@@ -287,13 +302,13 @@ class ColorImage(db.Model):
 class Color(db.Model):
     __tablename__ = 'colors'
 
-    color_hex_code = db.Column(db.String(7),
-                               primary_key=True)
+    hex_code = db.Column(db.String(7),
+                         primary_key=True)
     color_name = db.Column(db.String(25))
 
     def __repr__(self):
         return '<Color id={}, name={}>'.format(
-                self.color_hex_code,
+                self.hex_code,
                 self.color_name)
 
 
@@ -309,8 +324,7 @@ class TagChart(db.Model):
     added_on = db.Column(db.DateTime(timezone=False))
 
     tag = db.relationship('Tag',
-                          backref=db.backref('tags'))
-
+                          backref=db.backref('tagcharts'))
 
 
 class UserAddition(db.Model):
@@ -326,8 +340,7 @@ class UserAddition(db.Model):
     is_update = db.Column(db.Boolean)
 
     video = db.relationship('Video',
-                            backref=db.backref('videos'))
-
+                            backref=db.backref('user_additions'))
 
     def __repr__(self):
         return '<UserAddition video_id={}, date={}>'.format(
@@ -356,14 +369,64 @@ class Prediction(db.Model):
     channel_id = db.Column(db.String(24),
                  db.ForeignKey('channels.channel_id'))
     predicted_monetization_status = db.Column(db.Boolean)
+
     field1 = db.Column(db.Text)
     field2 = db.Column(db.Text)
     field3 = db.Column(db.Text)
     field4 = db.Column(db.Integer)
+    field5 = db.Column(db.Integer)
 
     channel = db.relationship('Channel',
                               backref=db.backref('predictions'))
 
+
+class ChannelPerson(db.Model):
+    """An association table connecting the channels and people tables."""
+    __tablename__ = 'channels_people'
+
+    channel_person_id = db.Column(db.Integer,
+                                  autoincrement=True,
+                                  primary_key=True)
+    channel_id = db.Column(db.String(24),
+                           db.ForeignKey('channels.channel_id'),
+                           nullable=False)
+    person_id = db.Column(db.Integer,
+                          db.ForeignKey('people.person_id'),
+                          nullable=False)
+
+
+    def __repr__(self):
+        return '<ChannelPerson id={}>'.format(self.channel_person_id)
+
+
+class Person(db.Model):
+
+    __tablename__ = 'people'
+
+    person_id = db.Column(db.Integer,
+                          autoincrement=True,
+                          primary_key=True)
+    person_name = db.Column(db.String(150),
+                            unique=True)
+
+    field1 = db.Column(db.String(150))
+    field2 = db.Column(db.String(150))
+    field3 = db.Column(db.String(150))
+    field4 = db.Column(db.Integer)
+    field5 = db.Column(db.Text)
+    field6 = db.Column(db.Text)
+    field7 = db.Column(db.String(150))
+    field8 = db.Column(db.String(150))
+
+    channel = db.relationship('Channel',
+                             secondary='channels_people',
+                             backref=db.backref('people'))
+
+
+    def __repr__(self):
+        return '<Person {}, id={}>'.format(
+                self.person_name, 
+                self.person_id)
 
 
 
@@ -371,9 +434,9 @@ class Prediction(db.Model):
 # Helper functions
 
 def connect_to_db(app):
-    """Connect the database to the Flask app."""
+    """Connect database to the Flask app."""
 
-    # Configure to use our PostgreSQL database
+    # Configure to use PostgreSQL.
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///youtube'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.app = app

@@ -20,7 +20,7 @@ def populate_channel_data():
     for video_id in blank_channel_ids:
         channel_id = get_channel_id_from_video_id(video_id)
         print(channel_id)
-        parse_channel_data(yt_info_by_id(video_id))
+        parse_channel_data(get_info_by_youtube_id(video_id))
 
 
 def populate_video_data():
@@ -29,7 +29,7 @@ def populate_video_data():
     blank_video_ids = Video.query.filter(Video.video_title == None).all()
     for video_id in blank_video_ids:
         video_id = video_id.video_id
-        parse_video_data(yt_info_by_id(video_id))
+        parse_video_data(get_info_by_youtube_id(video_id))
 
 
 def populate_image_data():

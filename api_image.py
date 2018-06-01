@@ -15,18 +15,19 @@ from all_api_calls import file_to_video_id_list
 
 CLARIFAI_KEY = os.environ.get('CLARIFAI_KEY')
 
+
+####### new/single ########
+def add_clarifai_data(thumbnail_url):
+
+    image_info = parse_image_data(thumbnail_url)
+    if image_info:
+        add_non_duplicate_data(image_info)
+
+
+
+
+####### old/bulk ########
 # Create a list of initialized Clarifai images (class ClImage) and call the Clarifai API
-
-def make_thumbnail_urls(video_ids):
-    """Assume video_ids is a list of video_ids.
-    Return a list of thumbnail urls."""
-
-    thumbnail_urls = []
-    for video_id in video_ids:
-        thumbnail_urls.append('https://i.ytimg.com/vi/' + video_id + '/sddefault.jpg')
-    
-    return thumbnail_urls
-
 
 def add_tag_data(tag):
     """Assume tag is a tag in string form.
@@ -39,18 +40,18 @@ def add_tag_data(tag):
     return tag
 
 
-def add_color_data(color_hex_code, color_name, color_name_in_db=False):
-    """Assume color_hex_code is a 7-character string that's a hex code.
+def add_color_data(hex_code, color_name, color_name_in_db=False):
+    """Assume hex_code is a 7-character string that's a hex code.
     Add it to the database if it doesn't already exist."""
     if color_name_in_db:
-        color = Color.query.filter(Color.color_hex_code == color_hex_code).first()
+        color = Color.query.filter(Color.hex_code == hex_code).first()
         color.color_name = color_name
     else:
-        add_color = Color(color_hex_code=color_hex_code.strip().lower(),
+        add_color = Color(hex_code=hex_code.strip().lower(),
                           color_name=color_name.strip().lower())
         db.session.add(add_color)
     db.session.commit()
-    return color_hex_code
+    return hex_code
 
 
 def add_tag_image_data(image_info, image_analysis_id):
@@ -78,10 +79,10 @@ def add_color_image_data(image_info, image_analysis_id):
     for video_id in image_info:
         colors = image_info[video_id]['colors'] # colors is a dictionary
         for color_to_add in colors:
-            color_hex_code = Color.query.filter(Color.color_hex_code == color_to_add).first().color_hex_code
-            if not ColorImage.query.filter(ColorImage.color_hex_code == color_hex_code,
+            hex_code = Color.query.filter(Color.hex_code == color_to_add).first().hex_code
+            if not ColorImage.query.filter(ColorImage.hex_code == hex_code,
                                            ColorImage.image_analysis_id == image_analysis_id).first():        
-                color_image = ColorImage(color_hex_code=color_hex_code,
+                color_image = ColorImage(hex_code=hex_code,
                                          image_analysis_id=image_analysis_id)
                 db.session.add(color_image)
     db.session.commit()          
@@ -118,8 +119,6 @@ def parse_image_data(image_urls):
     except ApiError as e:
         error = json.loads(e.response.content) #tk more sophisticated error handling by removing problematic inputs
         pprint(error)
-        # if error['status']['code'] == 10010:
-        #     initialized_ClImages.remove()
 
     else:
         for item in general_response['outputs']:
@@ -157,7 +156,7 @@ def parse_image_data(image_urls):
                     print('adding ' + str(color['w3c']))
                     color_add = color['w3c']['hex'].strip().lower()
                     color_name_add = color['w3c']['name'].strip().lower()
-                    color_basequery = Color.query.filter(Color.color_hex_code == color_add)
+                    color_basequery = Color.query.filter(Color.hex_code == color_add)
                     if not color_basequery.first():
                         add_color_data(color_add, color_name_add)
                     # tk remove the color_name thing for production
@@ -187,13 +186,12 @@ def add_non_duplicate_data(image_info):
         add_color_image_data(image_info, image_analysis_id)
         print('added: ' + video_id)
 
+# def add_clarifai_data(video_ids):
 
-def add_clarifai_data(video_ids):
-
-    thumbnail_urls = make_thumbnail_urls(video_ids)
-    image_info = parse_image_data(thumbnail_urls)
-    if image_info:
-        add_non_duplicate_data(image_info)
+#     thumbnail_urls = make_thumbnail_urls(video_ids)
+#     image_info = parse_image_data(thumbnail_urls)
+#     if image_info:
+#         add_non_duplicate_data(image_info)
 
 
 if __name__ == '__main__':
