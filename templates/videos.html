@@ -31,7 +31,7 @@
         </div>
 
         <h5 class="badge">
-          {% if video.ad_status_id == 2 %}
+          {% if video.is_monetized == False %}
             <span class="badge badge-danger">
               Demonetized
             </span>

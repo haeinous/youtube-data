@@ -6,7 +6,7 @@
 
 """
 
-import datetime, random
+import datetime, random, collections
 from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session, jsonify
 from flask_debugtoolbar import DebugToolbarExtension
@@ -62,6 +62,97 @@ class TrieNode:
         return '<TrieNode value={}, freq={}, children={}>'.format(self.value,
                                                                   self.freq,
                                                                   self.children)
+
+
+class RandomBag:
+    """A random bag that allows elements to be inserted and selected randomly
+    in O(1) time."""
+
+    def __init__(self):
+        self.dictionary = dict() # for storing key(object)-value(index in list)
+        self._list = list() # list of objects (or should I use a doubly linked list like deque?)
+        self.length = 0
+
+
+    def insert(self, object):
+        self.dictionary[object] = self.length - 1 # index of object in list
+        self._list.append(object)
+        self.length += 1
+        return
+
+
+    def get_random_elements(self, number):
+        """Return a number of random elements without permanently removing them."""
+
+        random_elements = []
+
+        i = 1
+        for num in range(number):
+            r = random.randint(0, self.length - i)
+            self._list[-1], self._list[r] = self._list[r], self._list[-1] # O(1) to remove last element
+            random_elements.append(self._list.pop())
+            i += 1
+
+        for element in random_elements:
+            self._list.append(element)
+            self.dictionary[element] = self.length - 1
+
+        return random_elements
+
+
+    def __len__(self):
+        return len(self.dictionary) # or it could may well be len(self._list) as they're both O(1)
+
+
+    def __repr__(self):
+        return '<RandomBag containing {} item(s).>'.format(self.length)
+
+
+class Graph:
+    """An undirected graph consisting of vertices and edges."""
+
+    def __init__(self, vertex):
+        self._graph =collections.defaultdict(set())
+        self.vertex = vertex
+
+
+    def add_vertex(self, vertex, ):
+        pass
+
+    def __repr__(self):
+        return '<Graph: >'.format()
+
+
+class Vertex:
+    """A vertex in a graph."""
+
+    def __init__(self, value):
+        self.value = value
+        self.connections = 0
+
+
+    def add_vertex(self, value):
+        pass
+
+
+    def __repr__(self):
+        return '<Vertex: value={}, {} connections>'.format(self.value,
+                                                           self.connections)
+
+
+class Edge:
+    """And edge that connects vertices in a graph."""
+
+    def __init__(self, vertex1, vertex2, weight):
+        self.vertex1 = vertex1
+        self.vertex2 = vertex2
+        self.weight = weight
+
+
+    def __repr__(self):
+        return '<Edge connecting {} and {}, weight={}>'.format(self.vertex1,
+                                                               self.vertex2,
+                                                               self.weight)
 
 
 ##### Helper functions
@@ -172,12 +263,24 @@ def explore_page():
 @app.route('/explore/channels/', methods=['GET'])
 def show_channels_page():
     """Show a random selection of YouTube channels."""
+
+    channels = RandomBag()
+    for channel in Channel.query.all(): # create RandomBag of channels
+        channels.insert(channel)
     
-    random_channels = random.sample(Channel.query.all(), 8)
+    random_channels = channels.get_random_elements(16)
+    channel_videos = []
 
+    for channel in random_channels:
+        video = Video.query.filter(Video.channel_id == channel.channel_id
+                          ).first()
+        channel_videos.append(video)
+
+    random_channels = zip(random_channels, channel_videos)
+
+    print(random_channels)
     return render_template('channels.html',
-                           channels=random_channels)
-
+                            random_channels=random_channels)
 
 
 @app.route('/explore/channels/<channel_id>')
@@ -239,7 +342,7 @@ def show_specific_video_page(video_id):
                       text_analysis.sentiment_score, 
                       text_analysis.sentiment_magnitude) for text_analysis in text_analyses] # list comprehension
     if Tag.query.join(TagVideo).filter(TagVideo.video_id == video_id).first():
-        tags = [tag.tag for tag in Tag.query.join(TagVideo).filter(TagVideo.video_id == video_id).all()]
+        tags = Tag.query.join(TagVideo).filter(TagVideo.video_id == video_id).all()
     else:
         tags = []
 
@@ -278,20 +381,12 @@ def show_specific_category_page(video_category_id):
                         Video.video_id)).join(VideoCategory).filter(
                         VideoCategory.video_category_id == video_category_id).first())[1:-2]
 
-    if int(videos_in_db) < 4:
-        random_videos = Video.query.join(VideoCategory).filter(
-                            VideoCategory.video_category_id == video_category_id).all()
+    videos = RandomBag()
 
-    else:
-        demonetized_videos = random.sample(Video.query.join(
-                                VideoCategory).filter(
-                                Video.is_monetized == False).filter(
-                                VideoCategory.video_category_id == video_category_id).all(), 3)
-        monetized_videos = random.sample(Video.query.join(
-                                VideoCategory).filter(
-                                    Video.is_monetized == True).filter(
-                                    VideoCategory.video_category_id == video_category_id).all(), 3)
-        random_videos = demonetized_videos + monetized_videos
+    for video in Video.query.filter(Video.category_id == video_category_id).all():
+        videos.insert(video)
+    
+    random_videos = videos.get_random_elements(8)
 
     return render_template('category.html',
                             category=category,
@@ -302,31 +397,33 @@ def show_specific_category_page(video_category_id):
 @app.route('/explore/tags/')
 def show_tags_page():
 
-    desired_items_on_page = 80
+    tags = RandomBag()
 
-    tags = random.sample(Tag.query.all(), desired_items_on_page)
-    tags = sorted(tags, key=lambda x: x.tag)
+    for tag in Tag.query.all():
+        tags.insert(tag)
+    
+    random_tags = tags.get_random_elements(80)
+
+    # tags = random.sample(Tag.query.all(), desired_items_on_page)
+    tags = sorted(random_tags, key=lambda x: x.tag)
     return render_template('tags.html',
-                            tags=tags)
+                            tags=random_tags)
 
 
 @app.route('/explore/tags/<int:tag_id>')
 def show_specific_tag_page(tag_id):
 
     tag = Tag.query.filter(Tag.tag_id == tag_id).first()
-
     tag_videos = Video.query.join(TagVideo).filter(TagVideo.tag_id == tag_id).all()
 
-    num_videos = len(tag_videos)
-
     if len(tag_videos) < 4:
-        random_videos = random.shuffle(tag_videos, len(tag_videos))
+        random_videos = tag_videos
     else:
         random_videos = random.sample(tag_videos, 4)
 
     return render_template('tag.html',
                             tag=tag,
-                            videos_in_db=num_videos,
+                            videos_in_db=len(tag_videos),
                             random_videos=random_videos)
 
 
@@ -696,7 +793,7 @@ def create_tag_list(trie_dict, previous):
             if v['freq']:
                 print('AAAA previous+k=' + previous+k)
                 print("AAAA v['freq']=" + str(v['freq']))
-                all_words.append([previous+k, 
+                all_words.extend([previous+k, 
                                   v['freq']])
                 print('(3) all_words=' + str(all_words))
 

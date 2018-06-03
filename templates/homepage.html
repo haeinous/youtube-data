@@ -3,13 +3,13 @@
   <div class="container" id="homepage-block">
     <div class="row" id="homepage-row1">
       <h1 id="homepage-title">
-        The YTD data collective
+        ytd data collective
       </h1>
     </div>
 
     <div class="row" id="homepage-row2">
       <p class="big" id="homepage-about">
-        The YTD data collective crowdsources information from YouTube creators about which of their videos get demonetized. Our data isn't comprehensive, but we currently have information on <strong>{{ videos_in_db }}</strong> videos from <strong>{{ channels_in_db }}</strong> channels. <a href="/about.html">read more &raquo;</a>
+        ytd is for YouTube demonetization. The ytd data collective crowdsources information from YouTube creators about which of their videos get demonetized. We currently have information on <strong>{{ videos_in_db }}</strong> videos from <strong>{{ channels_in_db }}</strong> channels. <a href="/about.html">read more &raquo;</a>
       </p>
     </div>
 
@@ -25,16 +25,21 @@
       </div>
     </div>
 
-    <div class="row" id="homepage-row4">
-      <div class="jumbotron jumbotron-fluid big-search big">
-        <h1 class="display-4">Search here</h1>
-        <p class="lead">This is a modified jumbotron that occupies the entire horizontal space of its parent.</p>
-        <hr class="my-4">
-        <a class="btn btn-primary btn-lg" href="#" role="button">
-          Search
-        </a>
-        <!-- /.jumbotron-fluid -->
-      </div>
+    <div class="row align-items-center" id="homepage-row4">
+      <form action="/search" method="get" data-toggle="validator" role="form" class="form-inline">   
+        <div class="form-group">
+          <input name="search" type="text" class="form-control input-lg" aria-label="..." placeholder="Search for something">
+        </div>
+
+        <div class="form-group">
+          <span class="input-group-btn">
+            <button type="submit" class="btn btn-default  btn-search">
+              Search
+            </button>
+          </span>
+        </div>
+
+      </form>
       <!-- /#homepage-row4 -->
     </div>
 

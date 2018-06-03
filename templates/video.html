@@ -4,17 +4,24 @@
 
 {% block content %}
 
-<div class="container">
+<div class="container-fluid">
   <div class="row page-title" id="video-row1">
     <h1>
-      &ldquo;{{ video.video_title }}&rdquo; | <a href="/explore/channels/{{ channel.channel_id }}">{{ channel.channel_title }}</a>
+      &ldquo;{{ video.video_title }}&rdquo;
     </h1>
-    <!-- /#video-row1 -->
+        <!-- /#video-row1 -->
   </div>
 
   <div class="row page-title badge" id="video-row2">
+    <h3>
+      Channel: 
+      <a href="/explore/channels/{{ channel.channel_id }}">
+        {{ channel.channel_title }}
+      </a>
+    </h3>
+
     <h5>
-      {% if video.ad_status_id == 2 %}
+      {% if video.is_monetized == False %}
         <span class="badge badge-danger">
           Demonetized
         </span>
@@ -80,7 +87,7 @@
           <th scope="row">Thumbnail image</th>
             <div class="media">
               <td colspan="2"><img class="align-self-center" 
-                                   src="{{ video_thumbnail_url }}" 
+                                   src="{{ thumbnail_url }}" 
                                    width="350">
               </td>
             </div>
@@ -109,7 +116,7 @@
           <th scope="row">Tags</th>
           <td colspan="2">
             {% for tag in tags %}
-              <a href="/explore/tags/{{ tag }}">{{ tag }}</a>, 
+              <a href="/explore/tags/{{ tag.tag_id }}">{{ tag.tag }}</a>, 
             {% endfor %}
           </td>      
         </tr>

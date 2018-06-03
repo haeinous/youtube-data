@@ -7,6 +7,7 @@
 Models and database functions for Hae-in's Hackbright project."""
 
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Index
 
 db = SQLAlchemy()
 
@@ -24,15 +25,14 @@ class Video(db.Model):
     is_monetized = db.Column(db.Boolean)
     channel_id = db.Column(db.String(24), 
                            db.ForeignKey('channels.channel_id'))
-    video_title = db.Column(db.String(100))
+    video_title = db.Column(db.String(255))
     video_description = db.Column(db.Text)
     published_at = db.Column(db.DateTime(timezone=False))
-    category_id = db.Column(db.Integer,
-                            db.ForeignKey('video_categories.video_category_id'))
-    live_broadcast_status = db.Column(db.String(10))
-    # live broadcast statuses: none, upcoming, live
+    video_category_id = db.Column(db.Integer,
+                                  db.ForeignKey('video_categories.video_category_id'))
     duration = db.Column(db.Interval)
-    thumbnail_url = db.Column(db.String(48))
+    thumbnail_url = db.Column(db.String(255),
+                              unique=True)
 
     channel = db.relationship('Channel',
                               backref=db.backref('videos'))
@@ -40,7 +40,7 @@ class Video(db.Model):
                                      backref=db.backref('videos'))
 
     def __repr__(self):
-        return '<Video video_id={} channel_id={} is_monetized={}>'.format(
+        return '<Video video_id={} channel={} is_monetized={}>'.format(
                 self.video_id,
                 self.channel_id,
                 self.is_monetized)
@@ -67,7 +67,8 @@ class VideoStat(db.Model):
                               autoincrement=True, 
                               primary_key=True)
     video_id = db.Column(db.String(11), 
-                         db.ForeignKey('videos.video_id'))
+                         db.ForeignKey('videos.video_id'),
+                         nullable=False)
     retrieved_at = db.Column(db.DateTime(timezone=False))
     views = db.Column(db.Integer)
     likes = db.Column(db.Integer)
@@ -93,8 +94,7 @@ class Channel(db.Model):
 
     channel_id = db.Column(db.String(24), 
                            primary_key=True)
-    channel_title = db.Column(db.String(100), 
-                              nullable=False)
+    channel_title = db.Column(db.String(255))
     channel_description = db.Column(db.Text)
     created_at = db.Column(db.DateTime(timezone=False))
     country_code = db.Column(db.String(2),
@@ -117,7 +117,8 @@ class ChannelStat(db.Model):
                                 autoincrement=True, 
                                 primary_key=True)
     channel_id = db.Column(db.String(24), 
-                           db.ForeignKey('channels.channel_id'))
+                           db.ForeignKey('channels.channel_id'),
+                           nullable=False)
     retrieved_at = db.Column(db.DateTime(timezone=False))
     total_subscribers = db.Column(db.Integer)
     total_views = db.Column(db.BigInteger)
@@ -136,12 +137,12 @@ class ChannelStat(db.Model):
 
 
 class Country(db.Model):
-    """Countries and ISO two-letter country codes."""
+    """Countries and two-letter ISO country codes."""
     __tablename__ = 'countries'
 
     country_code = db.Column(db.String(2), 
                              primary_key=True)
-    country_name = db.Column(db.String(58))
+    country_name = db.Column(db.String(255))
     has_yt_space = db.Column(db.Boolean)
 
     def __repr__(self):
@@ -151,6 +152,9 @@ class Country(db.Model):
 
 class TextAnalysis(db.Model):
     __tablename__ = 'text_analyses'
+    __table_args__ = (Index('ix_unique_text_analysis',
+                            'textfield', 'video_id',
+                            unique=True),) # Ensures only one analysis per video-textfield pair
 
     text_analysis_id = db.Column(db.Integer, 
                                  autoincrement=True, 
@@ -158,14 +162,15 @@ class TextAnalysis(db.Model):
     video_id = db.Column(db.String(11),
                          db.ForeignKey('videos.video_id'))
     channel_id = db.Column(db.String(24),
-                           db.ForeignKey('channels.channel_id'))
-    textfield = db.Column(db.String(20))
+                           db.ForeignKey('channels.channel_id'),
+                           unique=True)
+    textfield = db.Column(db.String(255))
     sentiment_score = db.Column(db.Float)
     sentiment_magnitude = db.Column(db.Float)
     sentiment_score_standard_deviation = db.Column(db.Float)
     sentiment_max_score = db.Column(db.Float)
     sentiment_min_score = db.Column(db.Float)
-    language_code = db.Column(db.String(2))
+    language_code = db.Column(db.String(4))
 
     video = db.relationship('Video',
                             backref=db.backref('text_analyses'))
@@ -189,9 +194,9 @@ class ImageAnalysis(db.Model):
                                   autoincrement=True,
                                   primary_key=True)
     video_id = db.Column(db.String(11), 
-                         db.ForeignKey('videos.video_id'))
-    nsfw_score = db.Column(db.Float)
-
+                         db.ForeignKey('videos.video_id'),
+                         unique=True)
+    nsfw_score = db.Column(db.Integer) # Score is from 0 to 100
     video = db.relationship('Video',
                             backref=db.backref('image_analyses'))
 
@@ -213,7 +218,7 @@ class Tag(db.Model):
     tag_id = db.Column(db.Integer,
                        autoincrement=True,
                        primary_key=True)
-    tag = db.Column(db.String(100),
+    tag = db.Column(db.String(255),
                     unique=True)
 
     videos = db.relationship('Video',
@@ -304,7 +309,7 @@ class Color(db.Model):
 
     hex_code = db.Column(db.String(7),
                          primary_key=True)
-    color_name = db.Column(db.String(25))
+    color_name = db.Column(db.String(255))
 
     def __repr__(self):
         return '<Color id={}, name={}>'.format(
@@ -327,24 +332,25 @@ class TagChart(db.Model):
                           backref=db.backref('tagcharts'))
 
 
-class UserAddition(db.Model):
+class Addition(db.Model):
     """A table with info on data updates/additions by users."""
-    __tablename__ = 'user_additions'
+    __tablename__ = 'additions'
 
-    user_addition_id = db.Column(db.Integer,
-                                 autoincrement=True,
-                                 primary_key=True)
+    addition_id = db.Column(db.Integer,
+                            autoincrement=True,
+                            primary_key=True)
     video_id = db.Column(db.String(11),
-               db.ForeignKey('videos.video_id'))
+               db.ForeignKey('videos.video_id'),
+               nullable=False)
     added_on = db.Column(db.DateTime(timezone=False))
     is_update = db.Column(db.Boolean)
 
     video = db.relationship('Video',
-                            backref=db.backref('user_additions'))
+                            backref=db.backref('additions'))
 
     def __repr__(self):
-        return '<UserAddition video_id={}, date={}>'.format(
-                self.user_addition_id,
+        return '<Addition video_id={}, date={}>'.format(
+                self.addition_id,
                 self.added_on)
 
 
@@ -356,7 +362,7 @@ class Search(db.Model):
                           autoincrement=True,
                           primary_key=True)
     searched_on = db.Column(db.DateTime(timezone=False))
-    search_text = db.Column(db.Text)
+    search_text = db.Column(db.String(255))
 
 
 class Prediction(db.Model):
@@ -406,21 +412,21 @@ class Person(db.Model):
     person_id = db.Column(db.Integer,
                           autoincrement=True,
                           primary_key=True)
-    person_name = db.Column(db.String(150),
+    person_name = db.Column(db.String(255),
                             unique=True)
 
-    field1 = db.Column(db.String(150))
-    field2 = db.Column(db.String(150))
-    field3 = db.Column(db.String(150))
+    field1 = db.Column(db.String(255))
+    field2 = db.Column(db.String(255))
+    field3 = db.Column(db.String(255))
     field4 = db.Column(db.Integer)
     field5 = db.Column(db.Text)
     field6 = db.Column(db.Text)
-    field7 = db.Column(db.String(150))
-    field8 = db.Column(db.String(150))
+    field7 = db.Column(db.String(255))
+    field8 = db.Column(db.String(255))
 
     channel = db.relationship('Channel',
-                             secondary='channels_people',
-                             backref=db.backref('people'))
+                              secondary='channels_people',
+                              backref=db.backref('people'))
 
 
     def __repr__(self):

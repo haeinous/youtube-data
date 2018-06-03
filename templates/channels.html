@@ -4,20 +4,29 @@
 
 {% block content %}
 
-<div class="container">
+<div class="container-fluid">
 
   <div class="row" id="channels-row1">
     <h1>
-      Exploring channels
+      Channels
     </h1>
   </div>
 
   <div class="row" id="channels-row2">
-    {% for channel in channels %}
-      <div class="col-3">
-        <a href="/explore/channels/{{ channel.channel_id }}">
-          {{ channel.channel_title }}
-        </a>
+    {% for channel in random_channels %}
+      <div class="col-md-3">
+        
+          <figure class="figure">
+            <figcaption class="figure-caption text-center">
+              <a href="/explore/channels/{{ channel[0].channel_id }}">
+                {{ channel[0].channel_title }}
+              </a>
+            </figcaption>
+            
+            <a href="https://www.youtube.com/watch?v={{ channel[1].video_id }}" target="_blank">
+              <img src="{{ channel[1].thumbnail_url }}" class="figure-img img-fluid rounded" alt="">
+            </a>
+          </figure>
         <br>
       </div>
     {% endfor %}

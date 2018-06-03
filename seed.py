@@ -5,7 +5,7 @@
 @author: Hae-in Lim, haeinous@gmail.com
 """
 from sqlalchemy import func
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import exc
 
 from server import app
 from model import *
@@ -74,13 +74,8 @@ def load_channel(channel_filename):
 
 def load_video(video_filename):
     with open(video_filename) as f:        
-        i = 0
 
         for row in f:
-
-            if i%1000 == 0:
-                print(i)
-
             row = row.rstrip()
             video_id, is_monetized, channel_id = row.split(',')
             if is_monetized == 'TRUE':
@@ -92,12 +87,11 @@ def load_video(video_filename):
                           is_monetized=is_monetized,
                           channel_id=channel_id)
             db.session.add(video)
-            
+
             try:
                 db.session.commit()
-            except IntegrityError:
-                print('channel_id={}, video_id={}, monetized={}'.format(channel_id, video_id, is_monetized))
-            i += 1
+            except (Exception, exc.SQLAlchemyError, exc.InvalidRequestError, exc.IntegrityError) as e:
+                print(video_id + '\n' + str(e))
 
         print('Done loading seed video files!')
 
@@ -106,52 +100,63 @@ def load_video(video_filename):
 def populate_video_data():
     """Populate the videos table."""
 
-    # needs criterion for which videos to update
+    all_videos = Video.query.filter(Video.video_title.is_(None)).all()
+    i = 0
 
-    all_videos = Video.query.all()
     for video in all_videos:
+        if i%100 == 0:
+            print(i)
         video_id = video.video_id
-        print(video_id)
         update_video_details(parse_video_data(get_info_by_youtube_id(video_id)))
+        i += 1
 
 # (4) Populate image_analyses data by calling the Clarifai API.
 
 def populate_image_data():
     """Populate the image_analyses table for videos with thumbnails."""
 
-    thumbnail_urls = [video.thumbnail_url for video in Video.query.all()]
+    thumbnail_urls = [video.thumbnail_url for video in Video.query.all() if video.video_title and video.thumbnail_url]
+    loops = len(thumbnail_urls)//128+1
+    print('loops: ' + str(loops))
 
-    while len(thumbnail_urls) > 0:
-        if len(thumbnail_urls) > 127:
-            thumbnail_bunch = thumbnail_urls[:128]
+    for i in range(loops):
+        print('loop #' + str(i))
+        if i == loops-1:
             add_clarifai_data(thumbnail_urls)
-            thumbnail_urls = thumbnail_urls[128:]
         else:
-            add_clarifai_data(thumbnail_urls)
+            add_clarifai_data(thumbnail_urls[:128])
+            thumbnail_urls = thumbnail_urls[128:]
+            
 
 # (5) Populate text_analyses table with Google's NLP API.
 
-def populate_text_data(youtube_id):
+def populate_text_data():
     """Populate the text_analyses table for titles, tags, and descriptions."""
 
-    if meaningful_sentiment_likely(youtube_id):
-        analyze_sentiment(youtube_id)
+    channel_ids = [channel.channel_id for channel in Channel.query.all() if TextAnalysis.query.filter(TextAnalysis.channel_id == channel.channel_id).first()]
+    video_ids = [video.video_id for video in Video.query.all() if len(TextAnalysis.query.filter(TextAnalysis.video_id == video.video_id).all()) < 3]
+    
+    for channel_id in channel_ids:
+        analyze_sentiment(channel_id)
+
+    for video_id in video_ids:
+        analyze_sentiment(video_id)
 
 
 if __name__ == '__main__':
     connect_to_db(app)
 
-    # video_category_filename = 'seed_data/video_category.csv'
-    # country_filename = 'seed_data/country.csv'
-    # load_video_category(video_category_filename)
-    # load_country(country_filename)
+    video_category_filename = 'seed_data/video_category.csv'
+    country_filename = 'seed_data/country.csv'
+    load_video_category(video_category_filename)
+    load_country(country_filename)
 
-    # channel_filename = 'seed_data/channel.csv'
-    # load_channel(channel_filename)
+    channel_filename = 'seed_data/channel.csv'
+    load_channel(channel_filename)
 
     video_filename = 'seed_data/video.csv'
     load_video(video_filename)
 
-    # populate_video_data()
-    # populate_image_data()
-    # populate_text_data()
+    populate_video_data()
+    populate_image_data()
+    populate_text_data()

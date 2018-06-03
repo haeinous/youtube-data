@@ -9,11 +9,11 @@
       <div class="tag-text" id="tag-text1"><!--
         
    --></div>
-      <span class="remove-tag" id="remove-tag1" aria-hidden="true">
+      <button type="button" class="close remove-tag" id="remove-tag1" aria-label="Close" aria-hidden="true">
         <span aria-hidden="true">
           &times;
-        </span> 
-      </span>
+        </span>
+      </button>
       <!-- /#tag-display1 -->
     </div>
 
@@ -21,11 +21,11 @@
       <div class="tag-text" id="tag-text2"><!--
       
    --></div>
-      <span class="remove-tag" id="remove-tag2" aria-hidden="true">
+      <button type="button" class="close remove-tag" id="remove-tag2" aria-label="Close" aria-hidden="true">
         <span aria-hidden="true">
           &times;
-        </span> 
-      </span>
+        </span>
+      </button>
       <!-- /#tag-display2 -->
     </div>
 
@@ -33,11 +33,11 @@
       <div class="tag-text" id="tag-text3"><!--
         
    --></div>
-      <span class="remove-tag" id="remove-tag3" aria-hidden="true">
+      <button type="button" class="close remove-tag" id="remove-tag3" aria-label="Close" aria-hidden="true">
         <span aria-hidden="true">
           &times;
-        </span> 
-      </span>
+        </span>
+      </button>
       <!-- /#tag-display3 -->
     </div>
 
@@ -45,11 +45,11 @@
       <div class="tag-text" id="tag-text4"><!--
 
    --></div>
-      <span class="remove-tag" id="remove-tag4" aria-hidden="true">
+      <button type="button" class="close remove-tag" id="remove-tag4" aria-label="Close" aria-hidden="true">
         <span aria-hidden="true">
           &times;
-        </span> 
-      </span>
+        </span>
+      </button>
       <!-- /#tag-display4 -->
     </div>
 
@@ -57,11 +57,11 @@
       <div class="tag-text" id="tag-text5"><!--
 
    --></div>
-      <span class="remove-tag d-none" id="remove-tag5" aria-hidden="true">
+      <button type="button" class="close remove-tag d-none" id="remove-tag1" aria-label="Close" aria-hidden="true">
         <span aria-hidden="true">
           &times;
-        </span> 
-      </span>
+        </span>
+      </button>
 
       <div class="search-box-container" id="tag-search-box-container" style="position: relative; display: inline-block;">
         <input type="text" id="tag-search-box" name="tag-search-box" placeholder="Search for tags"/>
@@ -199,7 +199,6 @@
   //   }      
   // }
 
-
   window.onload = function() {
     $.ajax({
       url: '/autocomplete-trie.json',
@@ -315,18 +314,18 @@
       })
   }
 
-  function parseTrieData(data) {
-    let allTags = [];
-    if (data.frequency != 0) {
-      data.data
-    }
-    for (let node in data.children) {
-      let child = data.children[node];
-      let newTag = 
-    }
+  // function parseTrieData(data) {
+  //   let allTags = [];
+  //   if (data.frequency != 0) {
+  //     data.data
+  //   }
+  //   for (let node in data.children) {
+  //     let child = data.children[node];
+  //     let newTag = 
+  //   }
 
-    populateSuggestions(trieWords);
-  }
+  //   populateSuggestions(trieWords);
+  // }
 
 
   // 4. Select/click on tag to add

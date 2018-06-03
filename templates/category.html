@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="container">
+<div class="container-fluid">
   <div class="row" id="category-row1">
     <h1>
       {{ category.category_name }}
     </h1>
   </div>
   <div class="row" id="category-row2">
-    Total videos in the YTD database: {{ videos_in_db }}
+    Total videos: {{ videos_in_db }}
   </div>
 
   <div class="row" id="category-row3">
@@ -28,15 +28,20 @@
   
   <div class="row" id="category-row5">
     <h3>
-      Some random videos from this category
+      Some videos in this category
     </h3>
   </div>
 
   <div class="row" id="category-row6">
     {% for video in random_videos %}
-      <div class="col-4">
+      <div class="col-md-3">
         <a href="/explore/channels/{{ video.channel_id }}">
-          {{ video.video_id }}
+          {{ video.video_title }}
+        </a>
+        <a href="{{ video.channel_id }}">
+          <figure class="figure">
+            <img src="{{ video.thumbnail_url }}" class="figure-img img-fluid rounded" alt="">
+          </figure>
         </a>
         <br>
       </div>

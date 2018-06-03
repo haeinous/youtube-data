@@ -11,6 +11,7 @@ from model import *
 import dateutil.parser
 from isodate import parse_duration
 from googleapiclient.errors import HttpError
+from sqlalchemy import exc
 
 GOOGLE_KEY = os.environ.get('GOOGLE_KEY')
 YOUTUBE_URL = 'https://www.googleapis.com/youtube/v3/'
@@ -144,19 +145,16 @@ def add_tag_data(tags):
 
     """
 
-    # tk this might not be necessary because all tags are strings -- verify!
-    try:
-        tags = list(map(lambda x: x.strip().lower(), tags))
-    except AttributeError: # tags that are numbers would raise an AttributeError
-        tags = list(filter(lambda x: type(x) == str, tags))
-    finally:
-        for tag_string in tags:
-            if not Tag.query.filter(Tag.tag == tag_string).first(): #None if tag isn't in db
-                add_tag = Tag(tag=tag_string)
-                db.session.add(add_tag)
-        db.session.commit()
-
-        return tags # lowercase and stripped of whitespace
+    tags = list(map(lambda x: x.strip().lower(), tags))
+    for tag_string in tags:
+        if not Tag.query.filter(Tag.tag == tag_string).first(): #None if tag isn't in db
+            add_tag = Tag(tag=tag_string)
+            db.session.add(add_tag)
+            try:
+                db.session.commit()
+            except (Exception, exc.SQLAlchemyError, exc.InvalidRequestError, exc.IntegrityError) as e:
+                print(video_id + '\n' + str(e))
+    return tags
 
 
 def add_tag_video_data(tags, video_id):
@@ -171,7 +169,10 @@ def add_tag_video_data(tags, video_id):
             tag_video = TagVideo(video_id=video_id,
                                  tag_id=tag_id)
             db.session.add(tag_video)
-    db.session.commit()
+            try:
+                db.session.commit()
+            except (Exception, exc.SQLAlchemyError, exc.InvalidRequestError, exc.IntegrityError) as e:
+                print(video_id + '\n' + str(e))
     # print('success: add_tag_video_data for' + str(video_id))
 
 
@@ -184,7 +185,10 @@ def add_video_stats_data(video_data):
                            dislikes=video_data['dislikes'],
                            comments=video_data['comments'])
     db.session.add(video_stat)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except (Exception, exc.SQLAlchemyError, exc.InvalidRequestError, exc.IntegrityError) as e:
+        print(video_id + '\n' + str(e))
     # print('success: add_video_stats_data for' + str(video_data['video_id']))
 
 
@@ -196,11 +200,14 @@ def update_video_details(video_data):
     video.video_title = video_data['video_title']
     video.video_description = video_data['video_description']
     video.published_at = video_data['published_at']
-    video.category_id = video_data['category_id']
+    video.video_category_id = video_data['video_category_id']
     video.duration = video_data['duration']
     video.thumbnail_url = video_data['thumbnail_url']
 
-    db.session.commit() # no need to db.session.add because it already exists in the db
+    try:
+        db.session.commit() # no need to db.session.add because it already exists in the db
+    except (Exception, exc.SQLAlchemyError, exc.InvalidRequestError, exc.IntegrityError) as e:
+        print(video_id + '\n' + str(e))
 
     add_video_stats_data(video_data) 
     # print('success: update_video_details for' + str(video_data['video_id']))
@@ -211,24 +218,31 @@ def parse_video_data(response, video_details_in_db=False):
     Return a condensed dictionary with the necessary info."""
 
     video_data = {}
-
     video_data['timestamp'] = response['timestamp']
     items = response['items'][0]
-
     video_data['video_id'] = items['id']
 
     # Get information for the video_stats table
     video_data['views'] = items['statistics']['viewCount']
-    video_data['likes'] = items['statistics']['likeCount']
-    video_data['dislikes'] = items['statistics']['dislikeCount']
-    video_data['comments'] = items['statistics']['commentCount']
+    try:
+        video_data['likes'] = items['statistics']['likeCount']
+    except KeyError:
+        video_data['likes'] = None
+    try:
+        video_data['dislikes'] = items['statistics']['dislikeCount']
+    except KeyError:
+        video_data['dislikes'] = None
+    try:
+        video_data['comments'] = items['statistics']['commentCount']
+    except KeyError:
+        video_data['comments'] = None
 
     if not video_details_in_db:
 
         duration = items['contentDetails']['duration'] # duration is a timedelta object
         video_data['duration'] = parse_duration(duration)
 
-        video_data['category_id'] = items['snippet']['categoryId']
+        video_data['video_category_id'] = items['snippet']['categoryId']
         video_data['channel_id'] = items['snippet']['channelId']
         video_data['video_title'] = items['snippet']['title']
         video_data['video_description'] = items['snippet']['description']
@@ -257,8 +271,8 @@ def parse_video_data(response, video_details_in_db=False):
         else:
             video_data['thumbnail_url'] = ''
 
-    # print('success: parse_video_data for' + str(video_data['video_id']))
-    return video_data
+        # print('success: parse_video_data for' + str(video_data['video_id']))
+        return video_data
 
 
 if __name__ == '__main__':

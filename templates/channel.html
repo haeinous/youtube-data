@@ -32,7 +32,7 @@
         <tr>
           <td scope="row"><a href="/explore/videos/{{ video.video_id }}">{{ video.video_title }}</a></td>
           
-          {% if video.ad_status_id == 2 %}
+          {% if video.is_monetized == False %}
             <td class="table-danger">Not monetized</td>
           {% else %}
             <td class="table-success">Monetized</td>
