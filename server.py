@@ -152,9 +152,8 @@ class Vertex:
         return self.neighbors[neighbor_vertex]
 
     def __repr__(self):
-        return '<Vertex {} has {} neighbors={}>'.format(self.name,
-                                                        len(self.neighbors),
-                                                        self.neighbors)
+        return '<Vertex {} has {} neighbors>'.format(self.name,
+                                                     len(self.neighbors))
 
 
 class Graph:
@@ -175,6 +174,9 @@ class Graph:
     def get_vertices(self):
         """Return a set containing the names of all vertices within the graph."""
         return set(self.vertices.keys())
+
+    def get_all_vertices(self):
+        return self.vertices.items()
 
     # def generate_edges(self): # optimize this by taking advantage of the fact that it's undirected?
     #     edges = collections.defaultdict(None, dict())
@@ -198,7 +200,7 @@ class Graph:
         vertex1_name.add_neighbor(vertex2_name, weight)
 
     def __repr__(self):
-        return '<Graph with {} vertices: {}>'.format(self.num_vertices,
+        return '<Graph with {} vertices: {}>'.format(len(self.vertices),
                                                      self.vertices)
 
 def calculate_percent_demonetized(channel_id):
@@ -271,17 +273,35 @@ def generate_video_graph(channel_id):
                                                   ).all())
         video_tags[video.video_id] = all_tags
 
+    # filter out tags in all of the videos
+    tags_in_all_videos = set()
+
+    tags_so_far = set()
+    i = 0
+    for video in video_tags:
+        if i == 0:
+            tags_so_far = video_tags[video] # set
+        else:
+            tags_so_far = tags_so_far & video_tags[video]
+        i += 1
+
+    for video in video_tags:
+        video_tags[video] -= tags_so_far
+
+    video_ids = set([video.video_id for video in all_videos])
+    other_video_ids = set([other_video.video_id for other_video in all_videos])
+
     processed_video_pairs = set()
-    for video in all_videos: # make this more efficient
-        for other_video in all_videos:
-            if video != other_video and (video, other_video) not in processed_video_pairs:
-                edge_weight = len(video_tags[video.video_id] & video_tags[other_video.video_id])
-                if edge_weight: # if there is at least 1 shared tag
-                    video_graph.add_edge(all_vertices[video.video_id], 
-                                         all_vertices[other_video.video_id], 
+    for video_id in video_ids:
+        for other_video_id in other_video_ids:
+            if video_id != other_video_id and (video_id, other_video_id) not in processed_video_pairs:
+                edge_weight = len(video_tags[video_id] & video_tags[other_video_id])
+                if edge_weight:
+                    video_graph.add_edge(all_vertices[video_id], 
+                                         all_vertices[other_video_id], 
                                          edge_weight)        
-        processed_video_pairs.add((video, other_video))
-        processed_video_pairs.add((other_video, video))
+        processed_video_pairs.add((video_id, other_video_id))
+        processed_video_pairs.add((other_video_id, video_id))
 
     return video_graph
 
@@ -305,31 +325,32 @@ def generate_channel_graph():
 @app.route('/video-graph-by-shared-tags.json')
 def generate_video_graph_by_shared_tags():
     """Return JSON to allow D3 to illustrate shared tags and monetization status."""
-    data_template = {'nodes': 
-                     [{'id': None, 'group': 0}],
-                     'links': 
-                     [{'source': None, 'target': None, 'value': 0}
-                     ]}
+
+    data = {'nodes': [],
+            'links': []}
 
     # channel_id = request.args.get['channelId']
     channel_id = 'UCDmCBKaKOtOrEqgsL4-3C8Q' # Blaire White
 
-    
-
-    all_video_ids = []
-
-
-    data = {'nodes':
-            [{'id': video_id, 'group': 1}, # 1 is monetized, 2 is demonetized
-             {'id': video_id, 'group': 2}
-            ],
-            'links':
-            [{'source': video_id, 'target': video_id, 'value': weight},
-             {'source': video_id, 'target': video_id, 'value': weight}
-            ] 
-           }
-
-
+    video_graph = generate_video_graph(channel_id)
+    all_vertices = {}
+    for item in video_graph.get_all_vertices():
+        all_vertices[item[0]] = item[1]
+    processed_pairs = set()
+    for vertex in all_vertices:
+        if all_vertices[vertex].value.is_monetized:
+            data['nodes'].append({'id': vertex, 'group': 1})
+        else:
+            data['nodes'].append({'id': vertex, 'group': 2})
+        for neighbor in all_vertices[vertex].neighbors:
+            if (vertex, neighbor) not in processed_pairs:
+                data['links'].append({'source': vertex,
+                                      'target': neighbor.name,
+                                      'value': all_vertices[vertex].neighbors[neighbor]})
+                processed_pairs.add((vertex, neighbor.name))
+                processed_pairs.add((neighbor.name, vertex))
+    print('- ' * 40)
+    print(data)
     return jsonify(data)
 
 

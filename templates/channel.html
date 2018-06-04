@@ -16,9 +16,11 @@
 
   <div class="row" id="channel-basic-info">
     <ul>
-      <li>
-        Channel created on {{ channel.created_at.strftime('%B %-d, %Y') }}
-      </li>
+      {% if channel.created_at %}
+        <li>
+          Channel created on {{ channel.created_at.strftime('%B %-d, %Y') }}
+        </li>
+      {% endif %}
       <li>
         Subscribers: {{ channel_stats.total_subscribers }}
       </li>
@@ -73,10 +75,11 @@
                 Monetized
               </td>
             {% endif %}
-            
-            <td>
-              {{ video.published_at.strftime('%B %-d, %Y') }}
-            </td>
+            {% if video.published_at %}
+              <td>
+                {{ video.published_at.strftime('%B %-d, %Y') }}
+              </td>
+            {% endif %}
           </tr>
           {% endfor %}
         </tbody>
@@ -118,7 +121,7 @@
 
 // 1. Load JSON
 
-  let channelId = $('#youtube-url').attr(href).slice(-25);
+  let channelId = $('#youtube-url').text().slice(-25);
 
   window.onload = function() {
     $.ajax({
