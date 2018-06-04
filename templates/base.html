@@ -9,11 +9,12 @@
   <!-- Global site tag (gtag.js) - Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-120128227-1"></script>
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'UA-120128227-1');
+    // window.dataLayer = window.dataLayer || [];
+    // function gtag() {
+    //   dataLayer.push(arguments);
+    // }
+    // gtag('js', new Date());
+    // gtag('config', 'UA-120128227-1');
   </script>
 
   <title>{% block title %}{% endblock %}</title>
@@ -35,9 +36,9 @@
       background: #d9f7fa; 
     }
 
-    .navbar {
+    .navbar .footer {
       width: 100%;
-      background: #d9f7fa;
+      background: #f7f8f9;
     }
 
     #homepage-about {
@@ -50,12 +51,22 @@
       width: 280px;
       color: white;
     }
+
+    .links line {
+      stroke: #fff;
+      stroke-opacity: 0.6;
+    }
+
+    .nodes circle {
+      stroke: #fff;
+      stroke-width: 1px;
+    }
   </style>
 </head>
 
 <body>
 
-  <nav class="navbar navbar-expand-lg navbar-light bg-light rounded sticky-top" style="background: #d9f7fa;">
+  <nav class="navbar navbar-expand-lg navbar-light bg-light rounded sticky-top" style="background: #f7f8f9;">
     <a class="navbar-brand" href="/">
       <img src="/static/logo.png" style="height: 40px;">
     </a>
@@ -143,7 +154,7 @@
   <!-- Chart.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
   <!-- D3 -->
-  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://d3js.org/d3.v5.js"></script>
   <!-- Select2 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/js/select2.min.js"></script>
   <script type="text/javascript">
@@ -164,7 +175,7 @@
 
 </body>
 
-<footer class="footer" style="background-color: #d9f7fa;">
+<footer class="footer" style="background-color: #f7f8f9;">
   <div class="container">
     <div class="row">
       <div class="col-md-12 py-2">

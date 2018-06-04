@@ -319,6 +319,22 @@ class Color(db.Model):
                 self.color_name)
 
 
+class Document(db.Model):
+    """Document IDs and details for the inverted index."""
+    __tablename__ = 'documents'
+
+    document_id = db.Column(db.Integer,
+                            autoincrement=True,
+                            primary_key=True)
+    document_type = db.Column(db.String, 
+                              nullable=False) # channel, video, tag, or category
+    document_primary_key = db.Column(db.String(24))
+    document_subtype = db.Column(db.String) # title, description, video tags, image tags
+
+    def __repr__(self):
+        return '<Document: id={}, type={}>'.format(self.document_id,
+                                                   self.document_type)
+
 class TagChart(db.Model):
     """A table with info about which tags users are adding to the chart."""
     __tablename__ = 'tagcharts'
@@ -429,7 +445,6 @@ class Person(db.Model):
     channel = db.relationship('Channel',
                               secondary='channels_people',
                               backref=db.backref('people'))
-
 
     def __repr__(self):
         return '<Person {}, id={}>'.format(

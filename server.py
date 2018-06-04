@@ -6,7 +6,8 @@
 
 """
 
-import datetime, random, collections
+import datetime, random, collections, re, nltk
+from nltk.stem.snowball import EnglishStemmer
 from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session, jsonify
 from flask_debugtoolbar import DebugToolbarExtension
@@ -329,14 +330,14 @@ def generate_video_graph_by_shared_tags():
     data = {'nodes': [],
             'links': []}
 
-    # channel_id = request.args.get['channelId']
-    channel_id = 'UCDmCBKaKOtOrEqgsL4-3C8Q' # Blaire White
+    channel_id = request.args.get('channelId')
 
     video_graph = generate_video_graph(channel_id)
     all_vertices = {}
     for item in video_graph.get_all_vertices():
         all_vertices[item[0]] = item[1]
     processed_pairs = set()
+
     for vertex in all_vertices:
         if all_vertices[vertex].value.is_monetized:
             data['nodes'].append({'id': vertex, 'group': 1})
@@ -349,7 +350,6 @@ def generate_video_graph_by_shared_tags():
                                       'value': all_vertices[vertex].neighbors[neighbor]})
                 processed_pairs.add((vertex, neighbor.name))
                 processed_pairs.add((neighbor.name, vertex))
-    print('- ' * 40)
     print(data)
     return jsonify(data)
 
@@ -357,13 +357,169 @@ def generate_video_graph_by_shared_tags():
 ###################################
 
 
+class PostingsList:
+    """A singly linked list to store the postings list."""
 
-class InvertedIndex:
-    """An inverted index that contains all relevant search terms."""
+    def __init__(self, data=None):
+        """data is a tuple with two elements: the unique doc_id and frequency."""
+        if data:
+            self.head = Posting(data)
+            self.tail = self.head
+        else:
+            self.head = None
+            self.tail = None
+
+    def append(self, data):
+        """Append a posting to the end of a linked list."""
+        new_node = Posting(data)
+
+        if not self.head: # if the head is empty
+            self.head = new_node
+        else:
+            self.tail.next = new_node      
+        self.tail = new_node
+
+    def print_list(self):
+        """Print data for all postings."""
+        current = self.head
+
+        while current:
+            print(current.data)
+            current = current.next
+
+    def __len__(self):
+        i = 0
+        current = self.head
+
+        while current:
+            i += 1
+            current = current.next
+
+        return i
+
+    def __repr__(self):
+        return '<PostingsList with {} postings>'.format(len(self))
+
+
+class Posting:
+    """A node in PostingsList, a singly linked list."""
+
+    def __init__(self, data):
+        """data is a tuple with two elements: the unique doc_id and frequency."""
+        self.data = data
+        self.next = None
+
+    def __repr__(self):
+        if self.next == None:
+            return '<Posting: data={}, next={}>'.format(self.data, 
+                                                        self.next)
+        else:
+            return '<Posting: data={}>'.format(self.data)
+
+
+class InvertedIndex(dict):
+    """Inverted index data structure, consisting of a dictionary of all the unique 
+    words pointing to a singly linked list of the documents in which it appears."""
+
+    # Example: {('word', 3): [(1, 2), (3, 1), (5, 1)],
+    #           ('hello', 2): [(3, 1), (4, 2)]}
+    # The term 'word' appears 4 times across 3 documents (doc_id 1, 3, and 5). It 
+    # appears twice in doc 1. 
 
     def __init__(self):
+        """The nltk module provides a tokenizer function, word stemmer, as well
+        as a list of ignored words for English."""
+        self.index = defaultdict(list)
+
+        self.tokenizer = nltk.word_tokenize
+        self.stemmer = EnglishStemmer()
+        self.stopwords = set(nltk.corpus.stopwords.words('english'))
+
+    def generate_index(self):
+        """Given a number of documents, each represented as a single string,
+        parse and add tokens to the inverted index."""
+
+    def process_terms(self, document, document_id):
+        """Process a term so it can be added to the index."""
+
+        term = nltk.word_tokenize(document).lower()
+        if term not in self.stopwords:
+            term = self.stemmer.stem(term)
+            frequency = term.count(document)
+            if term not in self.index:
+                self.index[term] = PostingsList((document_id, frequency))
+            else:
+                self.index[term].append((document_id, frequency))
+
+    def add_categories(self):
+        categories = set((category.category_name, category.video_category_id) for category in VideoCategory.query.all())
+        for category in categories:
+            document = Document(document_type='category',
+                                document_primary_key=category[1])
+            db.session.add(document)
+            db.session.commit()
+
+            process_terms(category[0], document.document_id)
+
+    def add_channels(self):
+        channels = set(Channel.query.all())
+        channel_subtypes = {'channel_title', 'channel_description'} # maybe add channel tags later
+        for channel in channels:
+            for channel_subtype in channel_subtypes:
+                channel = Document(document_type='channel',
+                                   document_primary_key=channel.channel_id,
+                                   document_subtype=channel_subtype)
+                db.session.add(document)
+                db.session.commit()
+
+                process_terms(channel.channel_subtype, document.document_id)
+
+    def add_videos(self):
+        videos = set(Video.query.all())
+        video_subtypes = {'video_title', 'video_description'} # maybe add video/image tags later
+        for video in videos:
+            for video_subtype in video_subtypes:
+                video = Document(document_type='video',
+                                 document_primary_key=video.video_id,
+                                 document_subtype=video_subtype)
+                db.session.add(document)
+                db.session.commit()
+
+                process_terms(video.video_subtype, document.document_id)
+
+    def add_tags(self):
+        tags = set(Tag.query.all())
+        for tag in tags:
+            tag = Document(document_type='tag',
+                           document_primary_key=tag.tag_id)
+            db.session.add(document)
+            db.session.commit()
+
+            process_terms(tag.tag, document.document_id)
+
+    def generate_inverted_index(self):
+        """Given an inverted_index object, traverse the database to build the index."""
+
+        self.inverted_index.add_categories()
+        self.inverted_index.add_channels()
+        self.inverted_index.add_videos()
+        self.inverted_index.add_tags()
+
+        print('Done adding all terms!')
+
+    def search(self, term):
+        """Given a search term, return a list of documents containing it."""
         pass
 
+    def __missing__(self, term):
+        """Similar to defaultdict(list), it adds the term to the index and indicates
+        that there are no matching documents."""
+        self[term] = []
+
+        return self[term]
+
+    def __repr__(self):
+        return '<InvertedIndex containing {} terms.>'.format(len(self))
 
 
 ##### Helper functions
@@ -510,23 +666,33 @@ def show_channels_page():
 def show_specific_channel_page(channel_id):
     """Show info about a creator's videos."""
 
-    channel = Channel.query.get(channel_id) # channel is a Channel object
-    videos = Video.query.filter(
-                    Video.channel_id == channel_id).order_by(
-                    Video.published_at.desc()).all()
-    videos_in_db = str(db.session.query(func.count(
-                        Video.video_id)).filter(
-                        Video.channel_id == channel_id).first())[1:-2]
-
-    # Update the channel_stats table with the most up-to-date info
+    # get channel data
+    channel = Channel.query.get(channel_id)
     add_channel_stats_data(parse_channel_data(get_info_by_youtube_id(channel_id), channel_in_db=True))    
-    channel_stats = ChannelStat.query.filter(ChannelStat.channel_id == channel_id).first()
+    channel_stats = ChannelStat.query.filter(ChannelStat.channel_id == channel_id
+                                    ).order_by(ChannelStat.retrieved_at.desc()
+                                    ).first()
+    # get video data
+    videos = Video.query.filter(Video.channel_id == channel_id
+                       ).order_by(Video.published_at.desc()).all()
+    demonetized_videos = Video.query.filter(Video.channel_id == channel_id
+                                   ).filter(Video.is_monetized == False
+                                   ).all()
+    try:
+        demonetization_percentage = round(len(demonetized_videos)/len(videos) * 100)
+    except ZeroDivisionError:
+        print(ZeroDivisionError)
+        demonetization_percentage = 0
+
+    print(demonetized_videos)
 
     return render_template('channel.html',
                             channel=channel,
                             channel_stats=channel_stats,
                             videos=videos,
-                            videos_in_db=videos_in_db)
+                            demonetized_videos=demonetized_videos,
+                            videos_in_db=len(videos),
+                            demonetization_percentage=demonetization_percentage)
 
 
 @app.route('/explore/videos/')

@@ -59,45 +59,45 @@ def get_info_by_youtube_id(youtube_id):
 
 
 def parse_channel_data(response, channel_in_db=False):
+
     """Assume data is a dictionary of the raw JSON returned by the YouTube API.
     Return a condensed dictionary with the necessary info."""
-    try:
-        channel_data = {}
+    channel_data = {}
 
-        channel_data['timestamp'] = response['timestamp']
-        items = response['items'][0]
-        channel_data['channel_id'] = items['id']
+    channel_data['timestamp'] = response['timestamp']
+    item = response['items'][0]
 
-        # Get information for the channel_stats table
-        channel_data['total_views'] = items['statistics']['viewCount']
-        
-        if items['statistics']['hiddenSubscriberCount']:
-            channel_data['total_subscribers'] = None
-        else:
-            channel_data['total_subscribers'] = items['statistics']['subscriberCount']
-        
-        channel_data['total_videos'] = items['statistics']['videoCount']
-        channel_data['total_comments'] = items['statistics']['commentCount']
+    channel_data['channel_id'] = item['id']
 
-        if not channel_in_db: # This data does not change over time
-            channel_data['channel_title'] = items['snippet']['title']
-            channel_data['channel_description'] = items['snippet']['description']
-            created_at = items['snippet']['publishedAt']
-            # Convert string into a datetime object
-            channel_data['created_at'] = dateutil.parser.parse(created_at)
-            channel_data['country_code'] = None # not all channels have a country code
-            try: 
-                channel_data['country_code'] = items['snippet']['country']
-            except KeyError:
-                pass
-            # tk Question: do I need a finally block in order to ensure that the rest 
-            #  gets executed?
-            finally:
-                return channel_data
-        # print('success: parse_channel_data for' + str(channel_data['channel_id']))
-        return channel_data
-    except Exception as e:
-        print(e)
+    # Get information for the channel_stats table
+    channel_data['total_views'] = item['statistics']['viewCount']
+    
+    if item['statistics']['hiddenSubscriberCount']:
+        channel_data['total_subscribers'] = None
+    else:
+        channel_data['total_subscribers'] = item['statistics']['subscriberCount']
+    
+    channel_data['total_videos'] = item['statistics']['videoCount']
+    channel_data['total_comments'] = item['statistics']['commentCount']
+
+    if not channel_in_db: # This data does not change over time
+        channel_data['channel_title'] = item['snippet']['title']
+        channel_data['channel_description'] = item['snippet']['description']
+        created_at = item['snippet']['publishedAt']
+        # Convert string into a datetime object
+        channel_data['created_at'] = dateutil.parser.parse(created_at)
+        channel_data['country_code'] = None # not all channels have a country code
+        try: 
+            channel_data['country_code'] = item['snippet']['country']
+        except KeyError:
+            pass
+        # tk Question: do I need a finally block in order to ensure that the rest 
+        #  gets executed?
+        finally:
+            return channel_data
+    # print('success: parse_channel_data for' + str(channel_data['channel_id']))
+
+    return channel_data
 
 
 def add_channel_data(channel_data):
@@ -110,8 +110,6 @@ def add_channel_data(channel_data):
                       created_at=channel_data['created_at'],
                       country_code=channel_data['country_code'])
     
-    channel_data['channel_description']
-
     db.session.add(channel)
     db.session.commit()
 

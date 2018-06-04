@@ -31,68 +31,52 @@
     <!-- /#channel-basic-info -->
   </div>
 
-  <div class="row" id="video-detailed-info">
-    <div class="col">
+  <div class="" id="video-detailed-info">
+    <div class="row">
       <h2>
         Videos
       </h2>
     </div>
-
-    <div class="col">
-      <span>
-        Total videos in the YTD database: {{ videos_in_db }}
-      </span>
+    
+    <div class="row" id="">
+      <ul>
+        <li>
+          Total videos in the YTD database: {{ videos_in_db }}
+        </li>
+        <li>
+          {% if demonetization_percentage == 0 %}
+            None of the videos in the ytd database have been reported as demonetized.
+          {% else %}
+            {{ demonetization_percentage }}% are not monetized
+          {% endif %}
+        </li>
+      </ul>
     </div>
 
-    <div class="col">
-
-      <table id="video-table" class="display table table-striped table-bordered table-sm sortable">
-        <thead class="thead-dark">
-          <tr>
-            <th scope="col">
-              Title
-            </th>
-            <th scope="col">
-              Status
-            </th>
-            <th scope="col">
-              Upload date
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for video in videos %}
-          <tr>
-            <td scope="row"><a href="/explore/videos/{{ video.video_id }}">{{ video.video_title }}</a></td>
-            
-            {% if video.is_monetized == False %}
-              <td class="table-danger">
-                Not monetized
-              </td>
-            {% else %}
-              <td class="table-success">
-                Monetized
-              </td>
-            {% endif %}
-            {% if video.published_at %}
-              <td>
-                {{ video.published_at.strftime('%B %-d, %Y') }}
-              </td>
-            {% endif %}
-          </tr>
-          {% endfor %}
-        </tbody>
-
-      </table>
-
-    </div>
     <!-- /#video-info -->
   </div>
 
+  {% if demonetization_percentage != 0 %}
+    <div class="row" id="demonetized-video-container">
+      {% for video in demonetized_videos %}
+        <div class="col">
+          <h3>
+            {{ video.video_title }}
+          </h3>
+          <a href="/explore/videos/{{ video.video_id }}">
+            <!-- <img src="{{ video.thumbnail_url }}" class="figure-img img-fluid rounded" alt=""> -->
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   <div class="row" id="channel-video-graph">
-    <div class="col-8 svg-container" id="graph-svg-container">
-      <svg width="960" height="600" id="graph-svg"></svg>      
+    <h3>
+      Graph representation of {{ channel.channel_title }}'s videos by shared tags
+    </h3>
+    <div class="col svg-container" id="graph-svg-container">
+      <svg width="700" height="400" id="graph-svg" style="background-color: #f2feff"></svg>      
     </div>
   </div>
 
@@ -104,24 +88,24 @@
 {% block scripts %}
   <script>
 
-  var svg = d3.select('svg'),
+  let svg = d3.select('svg'),
       width = +svg.attr('width'),
       height = +svg.attr('height');
 
-  var color = d3.scaleOrdinal(d3.schemeCategory20);
+  // pink, purple, green, blueberry, yellow
+  let colors = ['#ee2761', '#32b259', '#282562', '#5ec8d5', '#fff200'];
+  let color = d3.scaleOrdinal().range(colors);
 
-  var simulation = d3.forceSimulation()
-    .force('link', 
-           d3.forceLink().id(function(d) { 
-            return d.id;
-           })
-          )
+  // let color = d3.scaleOrdinal(d3.schemeCategory20);
+
+  let simulation = d3.forceSimulation()
+    .force('link', d3.forceLink().id(d => d.id))
     .force('charge', d3.forceManyBody())
     .force('center', d3.forceCenter(width/2, height/2));
 
 // 1. Load JSON
 
-  let channelId = $('#youtube-url').text().slice(-25);
+  let channelId = $('#youtube-url').attr('href').slice(-24);
 
   window.onload = function() {
     $.ajax({
@@ -129,44 +113,40 @@
       data: {'channelId': channelId},
     })
     .done(function(data) {
-      loadD3(data);
+      loadGraph(data);
     })
   }
 
-  function loadD3(graph) {
+  function loadGraph(graph) {
 
-    var link = svg.append('g')
+    let link = svg.append('g')
         .attr('class', 'links')
       .selectAll('line')
       .data(graph.links)
       .enter().append('line')
-        .attr('stroke-width', function(d) {
-          return Math.sqrt(d.value); 
-        });
+        .attr('stroke-width', d => Math.sqrt(d.value)); 
 
-    var node = svg.append('g')
+    let node = svg.append('g')
         .attr('class', 'nodes')
       .selectAll('g')
       .data(graph.nodes)
       .enter().append('g')
       
-    var circles = node.append('circle')
-      .attr('r', 5)
-      .attr('fill', function(d) { 
-        return color(d.group); 
-      })
+    let circles = node.append('circle')
+      .attr('r', 6)
+      .attr('fill', d => color(d.group))
       .call(d3.drag()
         .on('start', dragstarted)
         .on('drag', dragged)
         .on('end', dragended)
       );
 
-    var labels = node.append('text')
-      .text(function(d) {
-        return d.id;
-      })
-      .attr('x', 6)
-      .attr('y', 3);
+    // let labels = node.append('text')
+    //   .text(function(d) {
+    //     return d.id;
+    //   })
+    //   .attr('x', 6)
+    //   .attr('y', 3);
 
     node.append('title')
       .text(function(d) { 
@@ -203,7 +183,6 @@
   }
 
   // Animation functions
-
   function dragstarted(d) {
     if (!d3.event.active) simulation.alphaTarget(0.3).restart();
     d.fx = d.x;
