@@ -48,23 +48,6 @@ def add_all_info_to_db(video_id):
     # print('done adding text analysis data')
 
 
-# def has_impactful_score_and_magnitude(channel_id):
-#     sentiment = TextAnalysis.query.join(Video).filter(Video.channel_id == channel_id).all()
-#     db.session.query(TextAnalysis.video_id, 
-#                      TextAnalysis.sentiment_score, 
-#                      TextAnalysis.sentiment_magnitude
-#              ).join(Video).filter(Video.channel_id == channel_id).all()
-
-
-# def meaningful_sentiment_likely(video_id):
-
-#     if TextAnalysis.query.filter(TextAnalysis.video_id == video_id).first(): # i.e., there's at least one entry
-
-#     # Check number of videos from the same channel
-#     channel_id = get_channel_id_from_video_id(video_id)
-#     video_count = db.session.query(func.count(Video.video_id)).filter(Video.channel_id == 'UC_w1MuuO6WDhTtnGD-X1ZBQ').first()
-
-
 if __name__ == '__main__':
 
     from server import app

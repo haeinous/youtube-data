@@ -64,7 +64,6 @@ def load_channel(channel_filename):
     with open(channel_filename) as f:
         for row in f:
             channel_id = row.rstrip()
-            print(channel_id)
             add_channel_data(parse_channel_data(get_info_by_youtube_id(channel_id)))
 
         db.session.commit()
@@ -92,6 +91,7 @@ def load_video(video_filename):
                 db.session.commit()
             except (Exception, exc.SQLAlchemyError, exc.InvalidRequestError, exc.IntegrityError) as e:
                 print(video_id + '\n' + str(e))
+                db.session.rollback()
 
         print('Done loading seed video files!')
 
@@ -100,12 +100,13 @@ def load_video(video_filename):
 def populate_video_data():
     """Populate the videos table."""
 
-    all_videos = Video.query.filter(Video.video_title.is_(None)).all()
+    all_videos = Video.query.filter(Video.video_title.is_(None)
+                           ).filter(Video.video_status.is_(None) # we want to dismiss deleted and errored-out videos
+                           ).all()
     i = 0
-
     for video in all_videos:
         if i%100 == 0:
-            print(i)
+            print('done adding data for {} videos so far'.format(str(i)))
         video_id = video.video_id
         update_video_details(parse_video_data(get_info_by_youtube_id(video_id)))
         i += 1
@@ -115,13 +116,15 @@ def populate_video_data():
 def populate_image_data():
     """Populate the image_analyses table for videos with thumbnails."""
 
-    thumbnail_urls = [video.thumbnail_url for video in Video.query.all() if video.video_title and video.thumbnail_url]
+    thumbnail_urls = [video.thumbnail_url for video in Video.query.all() if (video.video_title 
+                                                                             and video.thumbnail_url 
+                                                                             and not video.video_status)]
     loops = len(thumbnail_urls)//128+1
     print('loops: ' + str(loops))
 
-    for i in range(loops):
+    for i in range(1, loops+1):
         print('loop #' + str(i))
-        if i == loops-1:
+        if i == loops:
             add_clarifai_data(thumbnail_urls)
         else:
             add_clarifai_data(thumbnail_urls[:128])
@@ -133,8 +136,10 @@ def populate_image_data():
 def populate_text_data():
     """Populate the text_analyses table for titles, tags, and descriptions."""
 
-    channel_ids = [channel.channel_id for channel in Channel.query.all() if TextAnalysis.query.filter(TextAnalysis.channel_id == channel.channel_id).first()]
-    video_ids = [video.video_id for video in Video.query.all() if len(TextAnalysis.query.filter(TextAnalysis.video_id == video.video_id).all()) < 3]
+    channel_ids = [channel.channel_id for channel in Channel.query.all() if len(TextAnalysis.query.filter(TextAnalysis.channel_id == channel.channel_id).all()) < 1]
+    video_ids = [video.video_id for video in Video.query.all() if (len(TextAnalysis.query.filter(TextAnalysis.video_id == video.video_id
+                                                                                        ).filter(Video.video_status.is_(None)
+                                                                                        ).all()) < 3)]
     
     for channel_id in channel_ids:
         analyze_sentiment(channel_id)

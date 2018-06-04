@@ -74,17 +74,14 @@ class RandomBag:
         self._list = list() # list of objects (or should I use a doubly linked list like deque?)
         self.length = 0
 
-
     def insert(self, object):
         self.dictionary[object] = self.length - 1 # index of object in list
         self._list.append(object)
         self.length += 1
         return
 
-
     def get_random_elements(self, number):
         """Return a number of random elements without permanently removing them."""
-
         random_elements = []
 
         i = 1
@@ -100,10 +97,8 @@ class RandomBag:
 
         return random_elements
 
-
     def __len__(self):
         return len(self.dictionary) # or it could may well be len(self._list) as they're both O(1)
-
 
     def __repr__(self):
         return '<RandomBag containing {} item(s).>'.format(self.length)
@@ -111,25 +106,14 @@ class RandomBag:
 
 class Vertex:
     """A vertex in a graph."""
-
     def __init__(self, value, neighbors=None):
         self.value = value
         self.name = value.video_id
 
-        # set neighbors and num_neighbors attributes
         if not neighbors:
             self.neighbors = {}
         else:
             self.neighbors = neighbors
-
-        # set vertex name based on the object's primary id
-        # if isinstance(value, Video):
-        #     self.name == 'vtx_' + value.video_id
-        # elif isinstance(value, Channel):
-        #     self.name == 'vtx_' + value.channel_id
-        # elif isinstance(value, Tag):
-        #     self.name == 'vtx_' + value.tag_id
-
 
     def get_all_neighbors(self, include_weight=False):
         if self.include_weight:
@@ -179,15 +163,6 @@ class Graph:
     def get_all_vertices(self):
         return self.vertices.items()
 
-    # def generate_edges(self): # optimize this by taking advantage of the fact that it's undirected?
-    #     edges = collections.defaultdict(None, dict())
-    #     for vertex in self.vertices:
-    #         for neighbor in self.vertices[vertex]['neighbors']:
-    #             edges[vertex] = {'vertex1': vertex,
-    #                              'vertex2': neighbor,
-    #                              'weight': vertices[vertex]['neighbors'][neighbor]['weight']}
-    #     return edges
-
     def add_vertex(self, vertex):
         assert isinstance(vertex, Vertex), 'The argument needs to be a Vertex object.'
         self.vertices[vertex.name] = vertex
@@ -219,7 +194,6 @@ def calculate_percent_demonetized(channel_id):
 
 def calculate_percent_difference(num1, num2):
     """"""
-
     return round((num2-num1)/num1*100, 2)
 
 
@@ -257,7 +231,7 @@ def generate_video_graph(channel_id):
     """Given a channel_id, generate a graph of all of its videos where weight
     is the number of shared tags between them."""
 
-    # 1. Instantiate vertices and graph.
+    # 1. Instantiate vertices and graph
     all_videos = Video.query.filter(Video.channel_id == channel_id).all()
     all_vertices = {}
 
@@ -265,8 +239,8 @@ def generate_video_graph(channel_id):
         all_vertices[video.video_id] = Vertex(video)
 
     video_graph = Graph(all_vertices) # at this point none of the vertices are connected.
-    # 2. Add edges/connections between vertices.
-
+    
+    # 2. Add edges/connections between vertices
     video_tags = {} # key is video_id, value is set of all tags
     for video in all_videos:
         all_tags = set(tag.tag for tag in Tag.query.join(TagVideo
@@ -274,7 +248,7 @@ def generate_video_graph(channel_id):
                                                   ).all())
         video_tags[video.video_id] = all_tags
 
-    # filter out tags in all of the videos
+    # 3. filter out tags that are in every single video (e.g., channel name)
     tags_in_all_videos = set()
 
     tags_so_far = set()
@@ -780,7 +754,7 @@ def show_specific_category_page(video_category_id):
 
     videos = RandomBag()
 
-    for video in Video.query.filter(Video.category_id == video_category_id).all():
+    for video in Video.query.filter(Video.video_category_id == video_category_id).all():
         videos.insert(video)
     
     random_videos = videos.get_random_elements(8)

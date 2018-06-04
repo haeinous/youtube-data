@@ -95,6 +95,7 @@ def add_to_db(nlp_response, youtube_id=None, textfield=None):
         db.session.commit()
     except (Exception, exc.SQLAlchemyError, exc.InvalidRequestError, exc.IntegrityError) as e:
         print(youtube_id + '\n' + str(e))
+        db.session.rollback()
 
 
 def analyze_sentiment(youtube_id):
@@ -123,30 +124,8 @@ def analyze_sentiment(youtube_id):
             add_to_db(call_nlp_api(channel_tags), youtube_id, 'channel_tags')
 
 
-# def has_meaningful_description(video_id):
-#     channel_id = get_channel_id_from_video_id(video_id)
-#     video_count = db.session.query(func.count(Video.video_id)).filter(Video.channel_id == 'UC_w1MuuO6WDhTtnGD-X1ZBQ').first()
-
-#     if make_int_from_sqa_object(video_count) > 5:
-#         videos = Video.query.filter(Video.channel_id == channel_id).limit(4).all()
-#         descriptions = list(map(lambda x: x.video_description, videos))
-#         a = descriptions[0]
-#         b = descriptions[1]
-#         c = descriptions[2]
-#         d = descriptions[3]
-
-#         diff_score1 = difflib.SequenceMatcher(None, a, b).quick_ratio()
-#         diff_score2 = difflib.SequenceMatcher(None, c, d).quick_ratio()
-
-#         if statistics.mean(diff_score1, diff_score2) < .5:
-#             return True
-
-#     return False   
-
-
 if __name__ == '__main__':
 
     from server import app
     connect_to_db(app)
     app.app_context().push()
-
