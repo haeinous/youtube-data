@@ -4,26 +4,103 @@
 
 {% block content %}
 
-<div class="container">
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <div class="row" id="search-row0">
-        <ul class="flashes">
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-  {% endwith %}
+<div class="container-fluid">
+  <div class="row" id="search-row0">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="col-9">
+          <ul class="flashes">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    {% endwith %}
+  </div>
 
   <div class="row" id="search-row1">
     <h1>
-      Search results for &ldquo;{{ search_term }}&rdquo;
+      You searched for &ldquo;{{ search_term }}&rdquo;
     </h1>
   </div>
   
-  <div class="row" id="search-row2">
+  <div class="row" id="top-search-results">
+    <div class="col col-9">
+      <h3>
+        Top search results
+      </h3>
+
+      <div class="result-list" id="search-result-list-channel">
+        <ul>
+          <li>
+            {{}}
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="row" id="all-search-results">
+
+    <div class="result-type col col-5" id="search-result-tag">
+      <h3>
+        Tag(s)
+      </h3>
+      <div class="result-list" id="search-result-list-tag">
+        <ul>
+          <li>
+            {{}}
+          </li>
+        </ul>
+        <!-- /.result-list -->
+      </div>
+
+    <div class="result-type col col-5" id="search-result-channel">
+      <h3>
+        Channel(s)
+      </h3>
+      <div class="result-list" id="search-result-list-channel">
+        <ul>
+          <li>
+            {{}}
+          </li>
+        </ul>
+        <!-- /.result-list -->
+      </div>
+
+    <div class="result-type col col-5" id="search-result-video">
+      <h3>
+        Video(s)
+      </h3>
+      <div class="result-list" id="search-result-list-video">
+        <ul>
+          <li>
+            {{}}
+          </li>
+        </ul>
+        <!-- /.result-list -->
+      </div>
+
+    <div class="result-type col col-5" id="search-result-category">
+      <h3>
+        Categories
+      </h3>
+      <div class="result-list" id="search-result-list-category">
+        <ul>
+          <li>
+            {{}}
+          </li>
+        </ul>
+        <!-- /.result-list -->
+      </div>
+
+    </div>
+    <!-- /#all-search-results -->
+  </div>
+
+  <<!-- div>
     {% for result in search_results %}
       <div class="col-3">
         <h3>
@@ -42,9 +119,10 @@
       </div>
     {% endfor %}
 
-  </div>
+  </div> -->
 
-  <!-- /.container -->
+    <!-- /.container -->
+  </div>
 </div>
 
 {% endblock %}

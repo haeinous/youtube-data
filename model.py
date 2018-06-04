@@ -28,8 +28,10 @@ class Video(db.Model):
     video_title = db.Column(db.String(255))
     video_description = db.Column(db.Text)
     published_at = db.Column(db.DateTime(timezone=False))
-    video_category_id = db.Column(db.Integer,
-                                  db.ForeignKey('video_categories.video_category_id'))
+    category_id = db.Column(db.Integer,
+                            db.ForeignKey('video_categories.video_category_id'))
+    # video_category_id = db.Column(db.Integer,
+    #                               db.ForeignKey('video_categories.video_category_id'))
     duration = db.Column(db.Interval)
     thumbnail_url = db.Column(db.String(255),
                               unique=True)

@@ -1,54 +1,223 @@
 {% extends 'base.html' %}
+
+{% block title %}Channel profile: {{ channel.channel_title }}{% endblock %}
+
 {% block content %}
 
-<h1>
-  <a href="https://www.youtube.com/channel/{{ channel.channel_id }}">{{ channel.channel_title }}</a>
-</h1>
+<div class="container-fluid">
 
-<ul>
-  <li>Channel created on {{ channel.created_at.strftime('%B %-d, %Y') }}</li>
-  <li>Subscribers: {{ channel_stats.total_subscribers }}</li>
-  <li>Views: {{ channel_stats.total_views }}</li>
-</ul>
-
-<div id="video-info">
-  <h2>
-    Videos
-  </h2>
-  <span>
-    Total videos in the YTD database: {{ videos_in_db }}
-  </span>
-  <div>
-    <table id="video-table" class="display table table-striped table-bordered table-sm sortable">
-      <thead class="thead-dark">
-        <tr>
-          <th scope="col">Title</th>
-          <th scope="col">Status</th>
-          <th scope="col">Upload date</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for video in videos %}
-        <tr>
-          <td scope="row"><a href="/explore/videos/{{ video.video_id }}">{{ video.video_title }}</a></td>
-          
-          {% if video.is_monetized == False %}
-            <td class="table-danger">Not monetized</td>
-          {% else %}
-            <td class="table-success">Monetized</td>
-          {% endif %}
-          
-          <td>{{ video.published_at.strftime('%B %-d, %Y') }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="row page-title" id="channel-row1">
+    <h1>
+      <a href="https://www.youtube.com/channel/{{ channel.channel_id }}" id="youtube-url">
+        {{ channel.channel_title }}
+      </a>
+    </h1>
   </div>
-  <!-- /#video-info -->
+
+  <div class="row" id="channel-basic-info">
+    <ul>
+      <li>
+        Channel created on {{ channel.created_at.strftime('%B %-d, %Y') }}
+      </li>
+      <li>
+        Subscribers: {{ channel_stats.total_subscribers }}
+      </li>
+      <li>
+        Views: {{ channel_stats.total_views }}
+      </li>
+    </ul>
+    <!-- /#channel-basic-info -->
+  </div>
+
+  <div class="row" id="video-detailed-info">
+    <div class="col">
+      <h2>
+        Videos
+      </h2>
+    </div>
+
+    <div class="col">
+      <span>
+        Total videos in the YTD database: {{ videos_in_db }}
+      </span>
+    </div>
+
+    <div class="col">
+
+      <table id="video-table" class="display table table-striped table-bordered table-sm sortable">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="col">
+              Title
+            </th>
+            <th scope="col">
+              Status
+            </th>
+            <th scope="col">
+              Upload date
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for video in videos %}
+          <tr>
+            <td scope="row"><a href="/explore/videos/{{ video.video_id }}">{{ video.video_title }}</a></td>
+            
+            {% if video.is_monetized == False %}
+              <td class="table-danger">
+                Not monetized
+              </td>
+            {% else %}
+              <td class="table-success">
+                Monetized
+              </td>
+            {% endif %}
+            
+            <td>
+              {{ video.published_at.strftime('%B %-d, %Y') }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+
+      </table>
+
+    </div>
+    <!-- /#video-info -->
+  </div>
+
+  <div class="row" id="channel-video-graph">
+    <div class="col-8 svg-container" id="graph-svg-container">
+      <svg width="960" height="600" id="graph-svg"></svg>      
+    </div>
+  </div>
+
+  <!-- /.container-fluid -->
 </div>
 
 {% endblock %}
 
 {% block scripts %}
+  <script>
+
+  var svg = d3.select('svg'),
+      width = +svg.attr('width'),
+      height = +svg.attr('height');
+
+  var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+  var simulation = d3.forceSimulation()
+    .force('link', 
+           d3.forceLink().id(function(d) { 
+            return d.id;
+           })
+          )
+    .force('charge', d3.forceManyBody())
+    .force('center', d3.forceCenter(width/2, height/2));
+
+// 1. Load JSON
+
+  let channelId = $('#youtube-url').attr(href).slice(-25);
+
+  window.onload = function() {
+    $.ajax({
+      url: '/video-graph-by-shared-tags.json',
+      data: {'channelId': channelId},
+    })
+    .done(function(data) {
+      loadD3(data);
+    })
+  }
+
+  function loadD3(graph) {
+
+    var link = svg.append('g')
+        .attr('class', 'links')
+      .selectAll('line')
+      .data(graph.links)
+      .enter().append('line')
+        .attr('stroke-width', function(d) {
+          return Math.sqrt(d.value); 
+        });
+
+    var node = svg.append('g')
+        .attr('class', 'nodes')
+      .selectAll('g')
+      .data(graph.nodes)
+      .enter().append('g')
+      
+    var circles = node.append('circle')
+      .attr('r', 5)
+      .attr('fill', function(d) { 
+        return color(d.group); 
+      })
+      .call(d3.drag()
+        .on('start', dragstarted)
+        .on('drag', dragged)
+        .on('end', dragended)
+      );
+
+    var labels = node.append('text')
+      .text(function(d) {
+        return d.id;
+      })
+      .attr('x', 6)
+      .attr('y', 3);
+
+    node.append('title')
+      .text(function(d) { 
+        return d.id; 
+      });
+
+    simulation
+      .nodes(graph.nodes)
+      .on('tick', ticked);
+
+    simulation.force('link')
+      .links(graph.links);
+
+    function ticked() {
+      link
+        .attr('x1', function(d) {
+          return d.source.x; 
+        })
+        .attr('y1', function(d) {
+          return d.source.y; 
+        })
+        .attr('x2', function(d) { 
+          return d.target.x; 
+        })
+        .attr('y2', function(d) { 
+          return d.target.y; 
+        });
+
+      node
+        .attr('transform', function(d) {
+          return 'translate(' + d.x + ',' + d.y + ')';
+        })
+    }
+  }
+
+  // Animation functions
+
+  function dragstarted(d) {
+    if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+
+  function dragged(d) {
+    d.fx = d3.event.x;
+    d.fy = d3.event.y;
+  }
+
+  function dragended(d) {
+    if (!d3.event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  </script>
 
 {% endblock %}

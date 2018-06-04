@@ -45,46 +45,80 @@
       </thead>
       <tbody>
         <tr>
-          <th scope="row">Uploaded</th>
-          <td colspan="3">{{ video.published_at.strftime('%B %-d, %Y') }}</td>
+          <th scope="row">
+            Uploaded
+          </th>
+          <td colspan="3">
+            {{ video.published_at.strftime('%B %-d, %Y') }}
+          </td>
         </tr>
         <tr>
-          <th scope="row">Views</th>
-          <td>{{ video_stats.views }}</td>
-          <td>(e.g., 15% more than usual)</td>
-        </tr>
-        <tr>
-          <th scope="row">Likes</th>
-          <td>{{ video_stats.likes }}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <th scope="row">Dislikes</th>
-          <td>{{ video_stats.dislikes }}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <th scope="row">Comments</th>
-          <td>{{ video_stats.comments }}</td>
-          <td></td>
-        </tr>
-        <tr>
-          <th scope="row">Category</th>
+          <th scope="row">
+            Views
+          </th>
           <td>
-            <a href="/explore/categories/<int:{{ category.video_category_id }}>">{{ category.category_name }}</a>
+            {{ video_stats.views }}
+          </td>
+          <td>
+            (e.g., 15% more than usual)
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">
+            Likes
+          </th>
+          <td>
+            {{ video_stats.likes }}
           </td>
           <td></td>
         </tr>
         <tr>
-          <th scope="row">Duration</th>
-          <td>{{ duration }}</td>
-          <td>(e.g., 20% longer than usual)</td>
+          <th scope="row">
+            Dislikes
+          </th>
+          <td>
+            {{ video_stats.dislikes }}
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <th scope="row">
+            Comments
+          </th>
+          <td>
+            {{ video_stats.comments }}
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <th scope="row">
+            Category
+          </th>
+          <td>
+            <a href="/explore/categories/<int:{{ category.video_category_id }}>">
+              {{ category.category_name }}
+            </a>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <th scope="row">
+            Duration
+          </th>
+          <td>
+            {{ duration }}
+          </td>
+          <td>
+            (e.g., 20% longer than usual)
+          </td>
         </tr>
         <tr>
           <td colspan="3"></td>
         </tr>
         <tr>
-          <th scope="row">Thumbnail image</th>
+          <th scope="row">
+            Thumbnail image
+          </th>
             <div class="media">
               <td colspan="2"><img class="align-self-center" 
                                    src="{{ thumbnail_url }}" 
@@ -93,13 +127,18 @@
             </div>
         </tr>
         <tr>
-          <th scope="row">NSFW score</th>
-          <td>{{ nsfw_score }}
+          <th scope="row">
+            NSFW score
+          </th>
+          <td>
+            {{ nsfw_score }}
           </td>
           <td></td>
         </tr>
         <tr>
-          <th scope="row">Colors</th>
+          <th scope="row">
+            Colors
+          </th>
           <td colspan="2">
             {% for color in colors %}
               <div id="color-square" style="width: 20px; height: 20px; background-color: {{ color }};" data-toggle="tooltip" data-placement="left" title="{{ color }}"></div>
@@ -109,14 +148,22 @@
           <td colspan="3"></td>
         </tr>
         <tr>
-          <th scope="row">Description</th>
-          <td colspan="2">{{ video.video_description }}</td>
+          <th scope="row">
+            Description
+          </th>
+          <td colspan="2">
+            {{ video.video_description }}
+          </td>
         </tr>
         <tr>
-          <th scope="row">Tags</th>
+          <th scope="row">
+            Tags
+          </th>
           <td colspan="2">
             {% for tag in tags %}
-              <a href="/explore/tags/{{ tag.tag_id }}">{{ tag.tag }}</a>, 
+              <a href="/explore/tags/{{ tag.tag_id }}">
+                {{ tag.tag }}
+              </a>
             {% endfor %}
           </td>      
         </tr>
@@ -125,28 +172,45 @@
 
         <tr>
           {% if text_analysis[0] == 1 %}
-            <th scope="row">Title sentiment</th>
+            <th scope="row">
+              Title sentiment
+            </th>
             <td>
               <div id="title-sentiment-score" data-toggle="tooltip" data-placement="left" title="Sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
                 {% if text_analysis[1] < 0 %}
-                  Score: <span class="negative" style="color: red;">{{ text_analysis[1] }}</span>
+                  Score: 
+                  <span class="negative" style="color: red;">
+                    {{ text_analysis[1] }}
+                  </span>
                 {% else %}
-                  Score: <span class="positive" style="color: green;">{{ text_analysis[1] }}</span>           
+                  Score: 
+                  <span class="positive" style="color: green;">
+                    {{ text_analysis[1] }}
+                  </span>           
                 {% endif %}
               </div>
+
               <div id="title-sentiment-magnitude" data-toggle="tooltip" data-placement="left" title="Magnitude is the strength of sentiment regardless of score and ranges from 0 to infinity.">
                 Magnitude: {{ text_analysis[2] }}
               </div>
             </td>
             <td></td>
           {% elif text_analysis[0] == 2 %}
-            <th scope="row">Description sentiment</th>
+            <th scope="row">
+              Description sentiment
+            </th>
             <td>
               <div id="description-sentiment-score" data-toggle="tooltip" data-placement="left" title="Sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
                 {% if text_analysis[1] < 0 %}
-                  Score: <span class="negative" style="color: red;">{{ text_analysis[1] }}</span>
+                  Score: 
+                  <span class="negative" style="color: red;">
+                    {{ text_analysis[1] }}
+                  </span>
                 {% else %}
-                  Score: <span class="positive" style="color: green;">{{ text_analysis[1] }}</span>           
+                  Score: 
+                  <span class="positive" style="color: green;">
+                    {{ text_analysis[1] }}
+                  </span>           
                 {% endif %}
               </div>
               <div id="description-sentiment-magnitude" data-toggle="tooltip" data-placement="left" title="Magnitude is the strength of sentiment regardless of score and ranges from 0 to infinity.">
@@ -155,12 +219,20 @@
             </td>
             <td></td>
           {% elif text_analysis[0] == 3 %}
-            <th scope="row">Tag sentiment</th>
+            <th scope="row">
+              Tag sentiment
+            </th>
               <div id="tag-sentiment-score" data-toggle="tooltip" data-placement="left" title="Sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
                 {% if text_analysis[1] < 0 %}
-                  Score: <span class="negative" style="color: red;">{{ text_analysis[1] }}</span>
+                  Score: 
+                  <span class="negative" style="color: red;">
+                    {{ text_analysis[1] }}
+                  </span>
                 {% else %}
-                  Score: <span class="positive" style="color: green;">{{ text_analysis[1] }}</span>           
+                  Score: 
+                  <span class="positive" style="color: green;">
+                    {{ text_analysis[1] }}
+                  </span>           
                 {% endif %}
               </div>
               <div id="tag-sentiment-magnitude" data-toggle="tooltip" data-placement="left" title="Magnitude is the strength of sentiment regardless of score and ranges from 0 to infinity.">

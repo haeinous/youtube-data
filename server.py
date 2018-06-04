@@ -108,54 +108,245 @@ class RandomBag:
         return '<RandomBag containing {} item(s).>'.format(self.length)
 
 
-class Graph:
-    """An undirected graph consisting of vertices and edges."""
-
-    def __init__(self, vertex):
-        self._graph =collections.defaultdict(set())
-        self.vertex = vertex
-
-
-    def add_vertex(self, vertex, ):
-        pass
-
-    def __repr__(self):
-        return '<Graph: >'.format()
-
-
 class Vertex:
     """A vertex in a graph."""
 
-    def __init__(self, value):
+    def __init__(self, value, neighbors=None):
         self.value = value
-        self.connections = 0
+        self.name = value.video_id
+
+        # set neighbors and num_neighbors attributes
+        if not neighbors:
+            self.neighbors = {}
+        else:
+            self.neighbors = neighbors
+
+        # set vertex name based on the object's primary id
+        # if isinstance(value, Video):
+        #     self.name == 'vtx_' + value.video_id
+        # elif isinstance(value, Channel):
+        #     self.name == 'vtx_' + value.channel_id
+        # elif isinstance(value, Tag):
+        #     self.name == 'vtx_' + value.tag_id
 
 
-    def add_vertex(self, value):
+    def get_all_neighbors(self, include_weight=False):
+        if self.include_weight:
+            return set(self.neighbors.items()) # set of tuples
+        else:
+            return set(self.neighbors.keys())
+
+    def get_closest_neighbors(self, num_neighbors):
+        """Return a list num_neighbors long of the vertex's closest neighbors by weight."""
+        assert num_neighbors > len(self.neighbors), 'num_neighbors too large (max is {}).'.format(len(self.neighbors))
+        
+        return sorted(list(self.get_all_neighbors(include_weight=True)), 
+                           key=lambda x: (-x[1], x[0]))[:num_neighbors]
+
+    def add_neighbor(self, vertex, weight):
+        assert isinstance(vertex, Vertex), 'The neighbor you want to add is not a vertex.'
+        self.neighbors[vertex] = weight
+
+    def get_edge_weight(self, neighbor_vertex):
+        assert isinstance(neighbor_vertex, Vertex), 'The neighbor must be an instance of the Vertex class.'
+        return self.neighbors[neighbor_vertex]
+
+    def __repr__(self):
+        return '<Vertex {} has {} neighbors={}>'.format(self.name,
+                                                        len(self.neighbors),
+                                                        self.neighbors)
+
+
+class Graph:
+    """An undirected graph consisting of vertices and edges.
+    Implemented using an adjacency list given its sparse nature."""
+
+    def __init__(self, vertices=None):
+        """Assume vertices is a dictionary whose key is the vertex name and whose
+        value is the Vertex object."""
+
+        if not vertices:
+            self.vertices = collections.defaultdict(None, dict())
+            self.num_vertices = 0
+        else:
+            self.vertices = vertices
+            self.num_vertices = len(vertices)
+
+    def get_vertices(self):
+        """Return a set containing the names of all vertices within the graph."""
+        return set(self.vertices.keys())
+
+    # def generate_edges(self): # optimize this by taking advantage of the fact that it's undirected?
+    #     edges = collections.defaultdict(None, dict())
+    #     for vertex in self.vertices:
+    #         for neighbor in self.vertices[vertex]['neighbors']:
+    #             edges[vertex] = {'vertex1': vertex,
+    #                              'vertex2': neighbor,
+    #                              'weight': vertices[vertex]['neighbors'][neighbor]['weight']}
+    #     return edges
+
+    def add_vertex(self, vertex):
+        assert isinstance(vertex, Vertex), 'The argument needs to be a Vertex object.'
+        self.vertices[vertex.name] = vertex
+        self.num_vertices += 1
+
+    def add_edge(self, vertex1_name, vertex2_name, weight):
+        if vertex1_name not in self.vertices:
+            self.add_vertex(vertex1_name)
+        if vertex2_name not in self.vertices:
+            self.add_vertex(vertex2_name)
+        vertex1_name.add_neighbor(vertex2_name, weight)
+
+    def __repr__(self):
+        return '<Graph with {} vertices: {}>'.format(self.num_vertices,
+                                                     self.vertices)
+
+def calculate_percent_demonetized(channel_id):
+    """Given a channel_id, return the % of videos in that channel that are demonetized."""
+
+    all_videos = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)
+                                                   ).filter(Video.channel_id == channel_id
+                                                   ).first())
+    demonetized_videos = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)
+                                                           ).filter(Video.channel_id == channel_id
+                                                           ).filter(Video.is_monetized == False
+                                                           ).first())
+    return round(demonetized_videos/all_videos * 100)
+
+
+def calculate_percent_difference(num1, num2):
+    """"""
+
+    return round((num2-num1)/num1*100, 2)
+
+
+def calculate_weight_by_shared_tags(youtube_id1, youtube_id2):
+    """Given two YouTube IDs of the same type (video ID or channel ID), return
+    the number of shared tags between videos or channels."""
+    assert len(youtube_id1) == len(youtube_id2), 'Arguments need to be the same type (either video_id or channel_id).'
+    
+    if len(youtube_id1) == 11: # video ID
+        video_tags1 = {tag.tag for tag in Tag.query.join(TagVideo
+                                                  ).filter(TagVideo.video_id.match(youtube_id1)
+                                                  ).all()}
+        video_tags2 = {tag.tag for tag in Tag.query.join(TagVideo
+                                                  ).filter(TagVideo.video_id.match(youtube_id2)
+                                                  ).all()}
+        return abs(len(video_tags1 & video_tags2))
+
+    else:
+        channel_tags1 = {tag.tag for tag in Tag.query.join(TagVideo
+                                                    ).join(Video
+                                                    ).filter(TagVideo.video_id.in_(
+                                                        [video.video_id for video in Video.query.filter(Video.channel_id.match(youtube_id1) 
+                                                        ).all()])
+                                                    ).all()}
+        channel_tags2 = {tag.tag for tag in Tag.query.join(TagVideo
+                                                    ).join(Video
+                                                    ).filter(TagVideo.video_id.in_(
+                                                        [video.video_id for video in Video.query.filter(Video.channel_id.match(youtube_id2) 
+                                                        ).all()])
+                                                    ).all()}
+        return abs(len(channel_tags1 & channel_tags2))
+
+
+def generate_video_graph(channel_id):
+    """Given a channel_id, generate a graph of all of its videos where weight
+    is the number of shared tags between them."""
+
+    # 1. Instantiate vertices and graph.
+    all_videos = Video.query.filter(Video.channel_id == channel_id).all()
+    all_vertices = {}
+
+    for video in all_videos:
+        all_vertices[video.video_id] = Vertex(video)
+
+    video_graph = Graph(all_vertices) # at this point none of the vertices are connected.
+    # 2. Add edges/connections between vertices.
+
+    video_tags = {} # key is video_id, value is set of all tags
+    for video in all_videos:
+        all_tags = set(tag.tag for tag in Tag.query.join(TagVideo
+                                                  ).filter(TagVideo.video_id == video.video_id
+                                                  ).all())
+        video_tags[video.video_id] = all_tags
+
+    processed_video_pairs = set()
+    for video in all_videos: # make this more efficient
+        for other_video in all_videos:
+            if video != other_video and (video, other_video) not in processed_video_pairs:
+                edge_weight = len(video_tags[video.video_id] & video_tags[other_video.video_id])
+                if edge_weight: # if there is at least 1 shared tag
+                    video_graph.add_edge(all_vertices[video.video_id], 
+                                         all_vertices[other_video.video_id], 
+                                         edge_weight)        
+        processed_video_pairs.add((video, other_video))
+        processed_video_pairs.add((other_video, video))
+
+    return video_graph
+
+
+def generate_channel_graph():
+    """"""
+
+    # Tags in common
+    # Demonetization %
+    # Channel size
+    # Channel category
+    channel_graph = Graph()
+
+    for channel in Channel.query.all():
+        channel_graph.add_vertex(channel)
+
+    pass
+
+
+
+@app.route('/video-graph-by-shared-tags.json')
+def generate_video_graph_by_shared_tags():
+    """Return JSON to allow D3 to illustrate shared tags and monetization status."""
+    data_template = {'nodes': 
+                     [{'id': None, 'group': 0}],
+                     'links': 
+                     [{'source': None, 'target': None, 'value': 0}
+                     ]}
+
+    # channel_id = request.args.get['channelId']
+    channel_id = 'UCDmCBKaKOtOrEqgsL4-3C8Q' # Blaire White
+
+    
+
+    all_video_ids = []
+
+
+    data = {'nodes':
+            [{'id': video_id, 'group': 1}, # 1 is monetized, 2 is demonetized
+             {'id': video_id, 'group': 2}
+            ],
+            'links':
+            [{'source': video_id, 'target': video_id, 'value': weight},
+             {'source': video_id, 'target': video_id, 'value': weight}
+            ] 
+           }
+
+
+    return jsonify(data)
+
+
+###################################
+
+
+
+class InvertedIndex:
+    """An inverted index that contains all relevant search terms."""
+
+    def __init__(self):
         pass
 
 
-    def __repr__(self):
-        return '<Vertex: value={}, {} connections>'.format(self.value,
-                                                           self.connections)
-
-
-class Edge:
-    """And edge that connects vertices in a graph."""
-
-    def __init__(self, vertex1, vertex2, weight):
-        self.vertex1 = vertex1
-        self.vertex2 = vertex2
-        self.weight = weight
-
-
-    def __repr__(self):
-        return '<Edge connecting {} and {}, weight={}>'.format(self.vertex1,
-                                                               self.vertex2,
-                                                               self.weight)
-
 
 ##### Helper functions
+
 
 def stringify_sqa_object(object):
     """Assume object is a sqlalchemy.util._collections.result.
@@ -216,30 +407,41 @@ def show_charts():
     return render_template('chart-tag.html')
 
 
-@app.route('/search')
+def construct_inverted_index():
+    pass
+
+
+@app.route('/search', methods=['GET', 'POST'])
 def display_search_results():
     """Display search results."""
 
-    search_term = request.args.get('q')
-    # search_term = 'something'
+    if request.method == 'POST':
 
-    search_results = [['Channels', ('UCe2ba_7LwQdNK5BKFSLm41Q', 'Tessa Brooks'), 
-                                  ('UCzUV5283-l5c0oKRtyenj6Q', 'Mark Dice')],
-                     ['Tags', (938, 'dobre twins'), 
-                               (944, 'team ten')],
-                     ['Categories', (10, 'Music')],
-                     ['Videos', ('0EoGyT4f8Lc', 'Paris... The City Of Love ;) (Shameless Beauty Launch)'),
-                                  ('vuA9G2RBwug', 'MARCH FASHION LOOKBOOK')]]
+        search_term = request.args.get('q')
+        search_results = {'channels': None,
+                          'videos': None,
+                          'tags': None,
+                          'categories': None}
 
-    if not search_results:
-        flash('No search results!')
-        return redirect('/')
+        # search_results = [['Channels', ('UCe2ba_7LwQdNK5BKFSLm41Q', 'Tessa Brooks'), 
+        #                               ('UCzUV5283-l5c0oKRtyenj6Q', 'Mark Dice')],
+        #                  ['Tags', (938, 'dobre twins'), 
+        #                            (944, 'team ten')],
+        #                  ['Categories', (10, 'Music')],
+        #                  ['Videos', ('0EoGyT4f8Lc', 'Paris... The City Of Love ;) (Shameless Beauty Launch)'),
+        #                               ('vuA9G2RBwug', 'MARCH FASHION LOOKBOOK')]]
+
+        if not search_results:
+            flash('No search results!')
+            return redirect('/')
+
+        else:
+            print(search_results)
+            return render_template('search-results.html', search_results=search_results,
+                                                          search_term=search_term)
 
     else:
-        print(search_results)
-        return render_template('search-results.html', search_results=search_results,
-                                                      search_term=search_term)
-
+        pass
 
 @app.route('/about')
 def about_page():
@@ -310,9 +512,17 @@ def show_specific_channel_page(channel_id):
 def show_videos_page():
     """Show a random selection of YouTube videos."""
 
-    random_videos = random.sample(Video.query.filter(
-                        Video.channel_id.isnot(None)).filter(
-                        Video.video_title.isnot(None)).all(), 8)
+    monetized_videos = RandomBag()
+    not_monetized_videos = RandomBag()
+
+    for video in Video.query.filter(Video.is_monetized == True).all():
+        monetized_videos.insert(video)
+
+    for video in Video.query.filter(Video.is_monetized == False).all():
+        not_monetized_videos.insert(video)
+    
+    random_videos = random.shuffle(monetized_videos.get_random_elements(8) + 
+                                   not_monetized_videos.get_random_elements(8))
 
     return render_template('videos.html',
                             random_videos=random_videos)

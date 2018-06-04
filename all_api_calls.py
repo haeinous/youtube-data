@@ -9,7 +9,8 @@ What happens when a video and monetization status are submitted on the /add-data
 from sqlalchemy import func
 
 from model import *
-from server import app, make_int_from_sqa_object
+# from server import app, make_int_from_sqa_object
+from server import *
 from api_youtube import *
 from api_image import *
 from api_text import *
