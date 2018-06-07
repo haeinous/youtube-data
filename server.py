@@ -329,20 +329,23 @@ class PostingsList:
 
     def append(self, data):
         """Append a posting to the end of a linked list."""
-        new_node = Posting(data)
+        new_posting = Posting(data)
 
         if not self.head: # if the head is empty
-            self.head = new_node
+            self.head = new_posting
         else:
-            self.tail.next = new_node      
-        self.tail = new_node
+            self.tail.next = new_posting      
+        self.tail = new_posting
+        new_posting.next = None
 
     def print_list(self):
         """Print data for all postings."""
         current = self.head
 
         while current:
-            print(current.data)
+            print('type type')
+            print(type(current))
+            print(current)
             current = current.next
 
     def __len__(self):
@@ -367,11 +370,8 @@ class Posting:
         self.next = None
 
     def __repr__(self):
-        if self.next == None:
-            return '<Posting: data={}, next={}>'.format(self.data, 
-                                                        self.next)
-        else:
-            return '<Posting: data={}>'.format(self.data)
+        return '<Posting: data={}, next={}>'.format(self.data, 
+                                                    self.next)
 
 
 class InvertedIndex(dict):
@@ -386,11 +386,7 @@ class InvertedIndex(dict):
     def __init__(self):
         """The nltk module provides a tokenizer function, word stemmer, as well
         as a list of ignored words for English."""
-        self.index = defaultdict(list)
-
-        self.tokenizer = nltk.word_tokenize
-        self.stemmer = EnglishStemmer()
-        self.stopwords = set(nltk.corpus.stopwords.words('english'))
+        self.index = collections.defaultdict(list)
 
     def process_terms(self, document, document_id):
         """Process a term so it can be added to the index."""
@@ -404,61 +400,9 @@ class InvertedIndex(dict):
             else:
                 self.index[term].append((document_id, frequency))
 
-    # def add_categories(self):
-    #     categories = set((category.category_name, category.video_category_id) for category in VideoCategory.query.all())
-    #     for category in categories:
-    #         document = Document(document_type='category',
-    #                             document_primary_key=category[1])
-    #         db.session.add(document)
-    #         db.session.commit()
-
-    #         process_terms(category[0], document.document_id)
-
-    def add_channels(self):
-        channels = set(Channel.query.all())
-        channel_subtypes = {'channel_title', 'channel_description'} # maybe add channel tags later
-        for channel in channels:
-            for channel_subtype in channel_subtypes:
-                channel = Document(document_type='channel',
-                                   document_primary_key=channel.channel_id,
-                                   document_subtype=channel_subtype)
-                db.session.add(document)
-                db.session.commit()
-
-                process_terms(channel.channel_subtype, document.document_id)
-
-    def add_videos(self):
-        videos = set(Video.query.all())
-        video_subtypes = {'video_title', 'video_description'} # maybe add video/image tags later
-        for video in videos:
-            for video_subtype in video_subtypes:
-                video = Document(document_type='video',
-                                 document_primary_key=video.video_id,
-                                 document_subtype=video_subtype)
-                db.session.add(document)
-                db.session.commit()
-
-                process_terms(video.video_subtype, document.document_id)
-
-    def add_tags(self):
-        tags = set(Tag.query.all())
-        for tag in tags:
-            tag = Document(document_type='tag',
-                           document_primary_key=tag.tag_id)
-            db.session.add(document)
-            db.session.commit()
-
-            process_terms(tag.tag, document.document_id)
-
-    def generate_inverted_index(self):
-        """Given an inverted_index object, traverse the database to build the index."""
-
-        self.inverted_index.add_categories()
-        self.inverted_index.add_channels()
-        self.inverted_index.add_videos()
-        self.inverted_index.add_tags()
-
-        print('Done adding all terms!')
+    def print(self):
+        """Print the inverted index."""
+        print(dict(self.items()))
 
     def search(self, term):
         """Given a search term, return a list of documents containing it."""
@@ -472,12 +416,84 @@ class InvertedIndex(dict):
         return self[term]
 
     def __repr__(self):
-        return '<InvertedIndex containing {} terms.>'.format(len(self))
+        return '<InvertedIndex containing {} terms:\n{}>'.format(len(self),
+                                                                 dict(self.items()))
 
 
-def process_document(document_text, document_id):
+def create_document_id(document_info):
+    """Assume document_info is a tuple containing the document_type,
+    document_primary_key, and document_text. Create and return a new document_id 
+    in the documents table."""
 
-    terms = nltk.word_tokenize(document_text).lower() # list
+    if not document_info:
+        return (None, None, None)
+
+    document = Document(document_type=document_info[0],
+                        document_primary_key=document_info[1])
+    db.session.add(document)
+
+    try:
+        db.session.commit()
+    except:
+        print('error creating document ID for {}'.format(document_info[1]))
+        return (None, None, None)
+
+    document_id = Document.query.filter(Document.document_type == document_info[0]
+                               ).filter(Document.document_primary_key == document_info[1]
+                               ).first(
+                               ).document_id
+
+    return (document_id, document_info[1], document_info[2])
+
+def categorize_document(document):
+    """Determine document type."""
+
+    if isinstance(document, VideoCategory):
+        print(document)
+        document_type = 'category'
+        document_primary_key = str(document.video_category_id)
+        document_text = document.category_name
+
+        return (document_type, document_primary_key, document_text)
+
+    elif isinstance(document, Channel):
+        print(document)
+        document_type = 'channel'
+        document_primary_key = document.channel_id
+        
+        channel_title = document.channel_title
+        channel_description = document.channel_description
+        
+        if channel_title and channel_description:
+            document_text = channel_title + '\n' + channel_description
+            print(document_text)
+            return (document_type, document_primary_key, document_text)
+        else:
+            return None
+
+    elif isinstance(document, Video):
+        print(document)
+        document_type = 'video'
+        document_primary_key = document.video_id
+        
+        video_title = document.video_title
+        video_description = document.video_description
+        
+        if video_title and video_description:
+            document_text = video_title + '\n' + video_description
+            print(document_text)
+            return (document_type, document_primary_key, document_text)
+        else:
+            return None
+
+        return (document_type, document_primary_key, document_text)
+
+def index_document(document_text, document_id):
+
+    stopwords = set(nltk.corpus.stopwords.words('english'))
+    stemmer = EnglishStemmer()
+
+    terms = [term.lower() for term in nltk.word_tokenize(document_text)] # list
     all_document_info = []
 
     for term in terms:
@@ -485,7 +501,8 @@ def process_document(document_text, document_id):
             term = stemmer.stem(term)
             frequency = term.count(document_text)
             all_document_info.append((term, document_id, frequency))
-
+    print('- - - all document info - - -')
+    print(all_document_info)
     return all_document_info
 
 
@@ -494,89 +511,29 @@ def generate_inverted_index():
     terms, document ids, and frequencies."""
 
     inverted_index = InvertedIndex()
+    print(inverted_index)
+    all_documents = (set(VideoCategory.query.all()) | 
+                     set(Channel.query.all()) | 
+                     set(Video.query.filter(Video.video_status.is_(None)).all()))
+    i = 0
+    for document in all_documents:
+        document_id, document_primary_key, document_text = create_document_id(categorize_document(document))
 
-    documents_to_process = [('category', None),
-                            ('channel', (channel_title,
-                                         channel_description,
-                                         channel_tags)),
-                            ('video', (video_title,
-                                       video_description,
-                                       video_tags))]
-
-    # process category names
-    # set comprehension to get all tuple pairs for (category_name, video_category_id)
-    for category in set((category.category_name, 
-                         category.video_category_id) for category in VideoCategory.query.all()):
-        document = Document(document_type='category',
-                            document_primary_key=category[1])
-        db.session.add(document)
-        db.session.commit()
-
-        document_id = Document.query.filter(Document.document_type == 'category'
-                                   ).filter(Document.document_primary_key == category[1]
-                                   ).first()
-
-        all_document_info = process_document(category.category_name, document_id)
-
-        for term in all_document_info:
-            if term not in inverted_index: # add a new index entry
+        if document_id: # is not None
+            all_document_info = index_document(document_text, document_id)
+        
+        for term_info in all_document_info:
+            if term_info[0] not in inverted_index: # add a new index entry
                 inverted_index[term_info[0]] = PostingsList((term_info[1], term_info[2]))
-            else: # add Posting to the end of the PostingsList
+            else: # add Posting to the end of the PostingsList (a linked list)
                 inverted_index[term_info[0]].append((term_info[1], term_info[2]))
-
-    print('Done adding categories to the inverted index.')
-
-    # process channels (titles, descriptions, tags)
-    # set comprehension to get all tuple pairs for (channel_subtype, channel_id)
-    all_channels = Channel.query.all()
-    for channel_subtype in [channel_title, channel_description, channel_tags]:
-        for channel in set((channel.channel_subtype,
-                            channel.channel_id) for channel in all_channels):
-
-            document = Document(document_type='channel',
-                                document_primary_key=channel[1])
-            db.session.add(document)
-            db.session.commit()
-
-            document_id = Document.query.filter(Document.document_type == 'channel'
-                                       ).filter(Document.document_primary_key == channel[1]
-                                       ).first()
-
-            all_document_info = process_document(channel.channel_subtype, document_id)
-            
-            for term in all_document_info:
-                if term not in inverted_index: # add a new index entry
-                    inverted_index[term_info[0]] = PostingsList((term_info[1], term_info[2]))
-                else: # add Posting to the end of the PostingsList
-                    inverted_index[term_info[0]].append((term_info[1], term_info[2]))
-    
-    print('Done adding channels to the inverted index.')
-
-    # process channels (titles, descriptions, tags)
-    # set comprehension to get all tuple pairs for (channel_subtype, channel_id)
-    all_videos = Video.query.all()
-    for video_subtype in [video_title, video_description, video_tags]:
-        for video in set((video.video_subtype,
-                          video.video_id) for video in all_videos):
-            
-            document = Document(document_type='video',
-                                document_primary_key=video[1])
-            db.session.add(document)
-            db.session.commit()
-
-            document_id = Document.query.filter(Document.document_type == 'video'
-                                       ).filter(Document.document_primary_key == video[1]
-                                       ).first()
-
-            all_document_info = process_document(video.video_subtype, document_id)
-
-            for term in all_document_info:
-                if term not in inverted_index: # add a new index entry
-                    inverted_index[term_info[0]] = PostingsList((term_info[1], term_info[2]))
-                else: # add Posting to the end of the PostingsList
-                    inverted_index[term_info[0]].append((term_info[1], term_info[2]))
+        print('- ' * 20 + 'start ' + '- ' * 20)
+        print(str(i) + ': ' + str(inverted_index))
+        print('- ' * 20 + 'end ' + '- ' * 20)
+        i += 1
 
     print('Done adding channels to the inverted index.')
+    return inverted_index
 
     # To-do: pickle the index.
 
