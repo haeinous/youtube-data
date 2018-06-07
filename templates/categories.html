@@ -1,22 +1,41 @@
 {% extends 'base.html' %}
 
-{% block title %}Video categories{% endblock %}
+{% block title %}video categories | ytdc{% endblock %}
 
 {% block content %}
 
-<div class="container-fluid">
+<div class="container">
 
   <div class="row align-items-center" id="categories-row1">
     <h1>
-      Categories
+      video categories
     </h1>
+  </div>
+
+  <div class="row justify-content-center" id="chart-row">
+    <div>
+      <h2>
+       demonetization % by video category
+      </h2>
+    </div>
+
+    <div class="canvas-container col-9" style="background-color: #d9f7fa;">
+      <canvas class="col" id="category-chart"></canvas>
+    </div>
+
+  </div>
+
+  <div class="row justify-content-center">
+    <h2>
+      all categories
+    </h2>
   </div>
 
   <div class="row" id="categories-row2">
     {% for category in categories %}
-      <div class="col-4">
+      <div class="col-sm-6 col-md-4 col-lg-3">
         <a href="/explore/categories/{{ category.video_category_id }}">
-          {{ category.category_name }}
+          {{ category.category_name.lower() }}
         </a>
         <br>
       </div>
@@ -26,3 +45,47 @@
 </div>
 
 {% endblock %}
+
+{% block scripts %}
+
+<script type="text/javascript">
+
+  let ctxCategoryChart = $('#category-chart').get(0).getContext('2d');
+
+  window.onload = function() {
+    $.ajax({
+      url: '/category-data.json',
+      type: 'GET'
+    })
+    .done(function(response) {
+      loadNewChart(response);
+    })
+  }
+
+  function loadNewChart(response) {
+    categoryChart = new Chart(ctxCategoryChart, {
+      type: 'horizontalBar',
+      data: response,
+      options: {responsive: true,
+                animation: false,
+                legend: {display: false,
+                         position: 'right'},
+                elements: {rectangle: {borderWidth: 0}},
+                title: {display: false},
+                scales: {xAxes: [{ticks: {min: 0,
+                                          callback: (label, index, labels) => {return label + '%'}}
+                      }]
+              }
+      }
+    })
+  }
+
+</script>
+
+{% endblock %}
+
+
+
+
+
+

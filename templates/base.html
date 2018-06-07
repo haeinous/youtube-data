@@ -27,6 +27,10 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
   
   <style>
+    html {
+      position: relative;
+      min-height: 100%;
+    }
     html, body{
       font-family: sans-serif;
     }
@@ -36,9 +40,19 @@
       background: #d9f7fa; 
     }
 
-    .navbar .footer {
+    .navbar{
       width: 100%;
       background: #f7f8f9;
+    }
+
+    .footer {
+      width: 100%;
+      background: #f7f8f9;
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      right: 0;
+
     }
 
     #homepage-about {
@@ -79,21 +93,21 @@
       <ul class="navbar-nav mr-auto">
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="/explore/" id="dropdown-all" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Explore
+            explore
           </a>
 
           <div class="dropdown-menu" aria-labelledby="dropdown-all">
             <a class="dropdown-item" href="/explore/channels/">
-              Channels
+              channels
             </a>
             <a class="dropdown-item" href="/explore/tags/">
-              Tags
+              tags
             </a>
             <a class="dropdown-item" href="/explore/categories/">
-              Categories
+              categories
             </a>
             <a class="dropdown-item" href="/explore/videos/">
-              Videos
+              videos
             </a>
             <!-- /.dropdown-menu -->
           </div>
@@ -102,21 +116,23 @@
 
         <li class="nav-item">
           <a class="nav-link" href="/add-data">
-            Add data
+            add data
           </a>
         </li>
 
         <li class="nav-item">
           <a class="nav-link" href="/about">
-            About
+            about
           </a>
         </li>
         <!-- /.navbar-nav /.mr-auto -->
       </ul>
 
       <form action="/search" method="GET" class="form-inline my-2 my-lg-0">
-        <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search" id="search-form-input" name="q">
-        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+        <input class="form-control mr-sm-2" type="text" placeholder="search" aria-label="search" id="search-form-input" name="q">
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">
+          search
+        </button>
       </form>
       <!-- /.navbar-collapse -->
     </div>
@@ -128,13 +144,13 @@
     <div class="jumbotron jumbotron-fluid">
       <div class="container">
         <h1 class="display-4">
-          Uh-oh!
+          uh-oh!
         </h1>
         <p class="lead">
-          There was a problem. In the meantime, check out some other cool stuff we have.
+          there was a problem. in the meantime, check out some other cool stuff we have.
         </p>
         <a href="/explore" class="btn btn-primary btn-lg" href="#" role="button">
-          Let's explore
+          let's explore
         </a>
       </div>
     </div>
@@ -195,11 +211,9 @@
   </div>
   <div class="text-center">
     <span>
-      Made with love by Hae-in Lim.
+      made with love by hae-in lim.
     </span>
   </div>
 </footer>
 
- <!-- make sure to include search!
-        Here's an expandable one: https://bootsnipp.com/snippets/featured/expanding-search-button-in-css -->
 </html>

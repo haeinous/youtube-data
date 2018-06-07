@@ -50,13 +50,15 @@ def get_info_by_youtube_id(youtube_id):
     
     try:
         response = requests.get(url).json()
+        response['timestamp'] = datetime.datetime.utcnow()
     except HttpError as e:
         response = {'error': e, 'youtube_id': youtube_id}
+    except:
+        response = {'error': 'other error', 'youtube_id': youtube_id}
+
     else:
         if not response['items']: # if response['items'] is empty because the video was deleted
             response = youtube_id # video_id
-        else:    
-            response['timestamp'] = datetime.datetime.utcnow()
     finally:
         return response
 
@@ -71,10 +73,8 @@ def parse_channel_data(response, channel_in_db=False):
         
     else:
         channel_data = {}
-
         channel_data['timestamp'] = response['timestamp']
         item = response['items'][0]
-
         channel_data['channel_id'] = item['id']
 
         # Get information for the channel_stats table
@@ -245,7 +245,7 @@ def parse_video_data(response, video_details_in_db=False):
             db.session.rollback()
         finally:
             return None
-    elif len(response) == 2: # if there was an http error
+    elif len(response) < 4: # if there was an http error
         video = Video.query.filter(Video.video_id == response['youtube_id']).first()
         video.video_status = 'http error'
         try:
@@ -283,7 +283,11 @@ def parse_video_data(response, video_details_in_db=False):
             duration = items['contentDetails']['duration'] # duration is a timedelta object
             video_data['duration'] = parse_duration(duration)
 
-            video_data['video_category_id'] = items['snippet']['categoryId']
+            if int(items['snippet']['categoryId']) > 29:
+                video_data['video_category_id'] = None
+            else:
+                video_data['video_category_id'] = items['snippet']['categoryId']
+
             video_data['channel_id'] = items['snippet']['channelId']
             video_data['video_title'] = items['snippet']['title']
             video_data['video_description'] = items['snippet']['description']

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="container-fluid">
+<div class="container">
 
   <div class="row justify-content-start" id="tag-displays-container">
 
@@ -87,9 +87,7 @@
 
   <div class="row justify-content-center" id="chart-row2">
     <div class="canvas-container col-9" style="background-color: #d9f7fa;">
-      <canvas id="tag-chart">
-        
-      </canvas>
+      <canvas id="tag-chart"></canvas>
     </div>
     <!-- /#chart-row2 -->
   </div>
@@ -98,6 +96,7 @@
 </div>
 
 {% endblock %}
+
 {% block scripts %}
 
 <script type="text/javascript">
@@ -127,14 +126,11 @@
 
   let options = {responsive: true, // Chart.js default options
                  animation: false,
-                 title: {display: false,
-                 }, 
+                 title: {display: false}, 
                  tooltips: {mode: 'index',
-                            intersect: true
-                 },
+                            intersect: true},
                  elements: {point: {pointStyle: 'circle'}},
                  scales: {yAxes: [{ticks: {min: 0,
-                                           max: 100,
                                            callback: (label, index, labels) => {return label + '%'}},
                      }],
                  }}

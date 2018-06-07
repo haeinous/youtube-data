@@ -1,14 +1,29 @@
 {% extends 'base.html' %}
+
+{% block title %}search results: {{ search_term }} | ytdc{% endblock %}
+
 {% block content %}
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class="flashes">
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
+<div class="container">
+  <div class="row" id="">
+    <h1>
+      search results for &ldquo;{{ search_term.lower() }}&rdquo;
+    </h1>
+  </div>
+
+
+
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script type="text/javascript">
+  
+
+
+</script>
 
 {% endblock %}

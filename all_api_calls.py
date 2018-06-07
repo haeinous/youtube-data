@@ -26,8 +26,10 @@ def add_all_info_to_db(video_id):
     # (2) Call the YouTube API to populate the channel table if it's not in the db.
     #     Otherwise, update the channel_stats table.
     if Channel.query.filter(Channel.channel_id == channel_id).first(): # returns None if channel not in db
+        channel_in_db = True
         add_channel_stats_data(parse_channel_data(get_info_by_youtube_id(channel_id), channel_in_db=True))
     else: # if channel not in db:
+        channel_in_db = False
         add_channel_data(parse_channel_data(get_info_by_youtube_id(channel_id)))
 
     # (3) Add data to the video and video_stats tables (tags and tags_videos if processing new tags).
@@ -35,17 +37,19 @@ def add_all_info_to_db(video_id):
     update_video_details(parse_video_data(get_info_by_youtube_id(video_id)))
     # print('done adding YouTube data for {}!)'.format(video_id))
 
-    # (4) Add data to the image_analyses table by calling the Clarifai API.
+    # (4) Add data to the text_analyses table by calling the Google NLP API for 
+    #     sentiment analysis.
+    analyze_sentiment(video_id)
+
+    if not channel_in_db:
+        analyze_sentiment(Channel.query.filter(Channel.channel_id == channel_id).first().channel_id)
+    
+    # print('done adding text analysis data')
+
+    # (5) Add data to the image_analyses table by calling the Clarifai API.
     thumbnail_url = Video.query.filter(Video.video_id == video_id).first().thumbnail_url
     add_clarifai_data(thumbnail_url)
     # print('done adding image analysis data')
-
-    # (5) Add data to the text_analyses table if it's likely to yield interesting
-    #     information by calling the Google NLP API for sentiment analysis. The free
-    #     version of the API is capped, so not all videos should be sent over.
-    if meaningful_sentiment_likely(video_id):
-        analyze_sentiment(video_id)
-    # print('done adding text analysis data')
 
 
 if __name__ == '__main__':

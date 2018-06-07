@@ -15,7 +15,7 @@ from sqlalchemy import func
 
 from model import *
 from api_youtube import *
-# from tries import Trie, TrieNode, TrieWord, create_prefix_trie
+from all_api_calls import *
 
 app = Flask(__name__)
 
@@ -47,8 +47,10 @@ class Trie:
     def __repr__(self):
         return '<Trie root={}>'.format(self.root)
 
-
 class TrieNode:
+    """A trie node containing one character of a word. If self.freq == 0, it
+    is not the end of a word. When self.freq > 0, it signifies the end of the word
+    and also conveys frequency (i.e., relevancy)."""
 
     def __init__(self, value):
         self.value = value
@@ -64,7 +66,6 @@ class TrieNode:
                                                                   self.freq,
                                                                   self.children)
 
-
 class RandomBag:
     """A random bag that allows elements to be inserted and selected randomly
     in O(1) time."""
@@ -78,7 +79,6 @@ class RandomBag:
         self.dictionary[object] = self.length - 1 # index of object in list
         self._list.append(object)
         self.length += 1
-        return
 
     def get_random_elements(self, number):
         """Return a number of random elements without permanently removing them."""
@@ -255,7 +255,7 @@ def generate_video_graph(channel_id):
     i = 0
     for video in video_tags:
         if i == 0:
-            tags_so_far = video_tags[video] # set
+            tags_so_far = video_tags[video]
         else:
             tags_so_far = tags_so_far & video_tags[video]
         i += 1
@@ -279,22 +279,6 @@ def generate_video_graph(channel_id):
         processed_video_pairs.add((other_video_id, video_id))
 
     return video_graph
-
-
-def generate_channel_graph():
-    """"""
-
-    # Tags in common
-    # Demonetization %
-    # Channel size
-    # Channel category
-    channel_graph = Graph()
-
-    for channel in Channel.query.all():
-        channel_graph.add_vertex(channel)
-
-    pass
-
 
 
 @app.route('/video-graph-by-shared-tags.json')
@@ -324,7 +308,7 @@ def generate_video_graph_by_shared_tags():
                                       'value': all_vertices[vertex].neighbors[neighbor]})
                 processed_pairs.add((vertex, neighbor.name))
                 processed_pairs.add((neighbor.name, vertex))
-    print(data)
+    # print(data)
     return jsonify(data)
 
 
@@ -368,7 +352,6 @@ class PostingsList:
         while current:
             i += 1
             current = current.next
-
         return i
 
     def __repr__(self):
@@ -409,10 +392,6 @@ class InvertedIndex(dict):
         self.stemmer = EnglishStemmer()
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
 
-    def generate_index(self):
-        """Given a number of documents, each represented as a single string,
-        parse and add tokens to the inverted index."""
-
     def process_terms(self, document, document_id):
         """Process a term so it can be added to the index."""
 
@@ -425,15 +404,15 @@ class InvertedIndex(dict):
             else:
                 self.index[term].append((document_id, frequency))
 
-    def add_categories(self):
-        categories = set((category.category_name, category.video_category_id) for category in VideoCategory.query.all())
-        for category in categories:
-            document = Document(document_type='category',
-                                document_primary_key=category[1])
-            db.session.add(document)
-            db.session.commit()
+    # def add_categories(self):
+    #     categories = set((category.category_name, category.video_category_id) for category in VideoCategory.query.all())
+    #     for category in categories:
+    #         document = Document(document_type='category',
+    #                             document_primary_key=category[1])
+    #         db.session.add(document)
+    #         db.session.commit()
 
-            process_terms(category[0], document.document_id)
+    #         process_terms(category[0], document.document_id)
 
     def add_channels(self):
         channels = set(Channel.query.all())
@@ -496,14 +475,112 @@ class InvertedIndex(dict):
         return '<InvertedIndex containing {} terms.>'.format(len(self))
 
 
+def process_document(document_text, document_id):
+
+    terms = nltk.word_tokenize(document_text).lower() # list
+    all_document_info = []
+
+    for term in terms:
+        if term not in stopwords:
+            term = stemmer.stem(term)
+            frequency = term.count(document_text)
+            all_document_info.append((term, document_id, frequency))
+
+    return all_document_info
+
+
+def generate_inverted_index():
+    """One-time operation after seeding data to generate an inverted index of
+    terms, document ids, and frequencies."""
+
+    inverted_index = InvertedIndex()
+
+    documents_to_process = [('category', None),
+                            ('channel', (channel_title,
+                                         channel_description,
+                                         channel_tags)),
+                            ('video', (video_title,
+                                       video_description,
+                                       video_tags))]
+
+    # process category names
+    # set comprehension to get all tuple pairs for (category_name, video_category_id)
+    for category in set((category.category_name, 
+                         category.video_category_id) for category in VideoCategory.query.all()):
+        document = Document(document_type='category',
+                            document_primary_key=category[1])
+        db.session.add(document)
+        db.session.commit()
+
+        document_id = Document.query.filter(Document.document_type == 'category'
+                                   ).filter(Document.document_primary_key == category[1]
+                                   ).first()
+
+        all_document_info = process_document(category.category_name, document_id)
+
+        for term in all_document_info:
+            if term not in inverted_index: # add a new index entry
+                inverted_index[term_info[0]] = PostingsList((term_info[1], term_info[2]))
+            else: # add Posting to the end of the PostingsList
+                inverted_index[term_info[0]].append((term_info[1], term_info[2]))
+
+    print('Done adding categories to the inverted index.')
+
+    # process channels (titles, descriptions, tags)
+    # set comprehension to get all tuple pairs for (channel_subtype, channel_id)
+    all_channels = Channel.query.all()
+    for channel_subtype in [channel_title, channel_description, channel_tags]:
+        for channel in set((channel.channel_subtype,
+                            channel.channel_id) for channel in all_channels):
+
+            document = Document(document_type='channel',
+                                document_primary_key=channel[1])
+            db.session.add(document)
+            db.session.commit()
+
+            document_id = Document.query.filter(Document.document_type == 'channel'
+                                       ).filter(Document.document_primary_key == channel[1]
+                                       ).first()
+
+            all_document_info = process_document(channel.channel_subtype, document_id)
+            
+            for term in all_document_info:
+                if term not in inverted_index: # add a new index entry
+                    inverted_index[term_info[0]] = PostingsList((term_info[1], term_info[2]))
+                else: # add Posting to the end of the PostingsList
+                    inverted_index[term_info[0]].append((term_info[1], term_info[2]))
+    
+    print('Done adding channels to the inverted index.')
+
+    # process channels (titles, descriptions, tags)
+    # set comprehension to get all tuple pairs for (channel_subtype, channel_id)
+    all_videos = Video.query.all()
+    for video_subtype in [video_title, video_description, video_tags]:
+        for video in set((video.video_subtype,
+                          video.video_id) for video in all_videos):
+            
+            document = Document(document_type='video',
+                                document_primary_key=video[1])
+            db.session.add(document)
+            db.session.commit()
+
+            document_id = Document.query.filter(Document.document_type == 'video'
+                                       ).filter(Document.document_primary_key == video[1]
+                                       ).first()
+
+            all_document_info = process_document(video.video_subtype, document_id)
+
+            for term in all_document_info:
+                if term not in inverted_index: # add a new index entry
+                    inverted_index[term_info[0]] = PostingsList((term_info[1], term_info[2]))
+                else: # add Posting to the end of the PostingsList
+                    inverted_index[term_info[0]].append((term_info[1], term_info[2]))
+
+    print('Done adding channels to the inverted index.')
+
+    # To-do: pickle the index.
+
 ##### Helper functions
-
-
-def stringify_sqa_object(object):
-    """Assume object is a sqlalchemy.util._collections.result.
-    Return a string."""
-
-    return str(object)[1:-2]
 
 def make_int_from_sqa_object(object):
     """Assume object is a sqlalchemy.util._collections.result.
@@ -539,8 +616,8 @@ def index():
 
     videos_in_db = db.session.query(func.count(Video.video_id)).first()
     channels_in_db = db.session.query(func.count(Channel.channel_id)).first()
-    videos_in_db = stringify_sqa_object(videos_in_db)
-    channels_in_db = stringify_sqa_object(channels_in_db)
+    videos_in_db = make_int_from_sqa_object(videos_in_db)
+    channels_in_db = make_int_from_sqa_object(channels_in_db)
 
     return render_template('homepage.html', videos_in_db=videos_in_db,
                                             channels_in_db=channels_in_db)
@@ -558,38 +635,26 @@ def show_charts():
     return render_template('chart-tag.html')
 
 
-def construct_inverted_index():
-    pass
-
-
 @app.route('/search', methods=['GET', 'POST'])
 def display_search_results():
     """Display search results."""
 
     if request.method == 'POST':
+        print('hi')
 
         search_term = request.args.get('q')
+        print(search_term)
         search_results = {'channels': None,
                           'videos': None,
                           'tags': None,
                           'categories': None}
 
-        # search_results = [['Channels', ('UCe2ba_7LwQdNK5BKFSLm41Q', 'Tessa Brooks'), 
-        #                               ('UCzUV5283-l5c0oKRtyenj6Q', 'Mark Dice')],
-        #                  ['Tags', (938, 'dobre twins'), 
-        #                            (944, 'team ten')],
-        #                  ['Categories', (10, 'Music')],
-        #                  ['Videos', ('0EoGyT4f8Lc', 'Paris... The City Of Love ;) (Shameless Beauty Launch)'),
-        #                               ('vuA9G2RBwug', 'MARCH FASHION LOOKBOOK')]]
-
         if not search_results:
-            flash('No search results!')
-            return redirect('/')
+            search_results=None
 
-        else:
-            print(search_results)
-            return render_template('search-results.html', search_results=search_results,
-                                                          search_term=search_term)
+        print(search_results)
+        return render_template('search-results.html', search_results=search_results,
+                                                      search_term=search_term)
 
     else:
         pass
@@ -600,8 +665,8 @@ def about_page():
 
     videos_in_db = db.session.query(func.count(Video.video_id)).first()
     channels_in_db = db.session.query(func.count(Channel.channel_id)).first()
-    videos_in_db = stringify_sqa_object(videos_in_db)
-    channels_in_db = stringify_sqa_object(channels_in_db)
+    videos_in_db = make_int_from_sqa_object(videos_in_db)
+    channels_in_db = make_int_from_sqa_object(channels_in_db)
 
     return render_template('about.html', videos_in_db=videos_in_db,
                                          channels_in_db=channels_in_db)
@@ -626,19 +691,19 @@ def show_channels_page():
 
     for channel in random_channels:
         video = Video.query.filter(Video.channel_id == channel.channel_id
+                          ).filter(Video.thumbnail_url.isnot(None)
                           ).first()
         channel_videos.append(video)
 
-    random_channels = zip(random_channels, channel_videos)
+    random_channels = list(zip(random_channels, channel_videos))
 
-    print(random_channels)
     return render_template('channels.html',
                             random_channels=random_channels)
 
 
 @app.route('/explore/channels/<channel_id>')
 def show_specific_channel_page(channel_id):
-    """Show info about a creator's videos."""
+    """Show info about a specific YouTube channel."""
 
     # get channel data
     channel = Channel.query.get(channel_id)
@@ -646,19 +711,27 @@ def show_specific_channel_page(channel_id):
     channel_stats = ChannelStat.query.filter(ChannelStat.channel_id == channel_id
                                     ).order_by(ChannelStat.retrieved_at.desc()
                                     ).first()
+
     # get video data
     videos = Video.query.filter(Video.channel_id == channel_id
                        ).order_by(Video.published_at.desc()).all()
     demonetized_videos = Video.query.filter(Video.channel_id == channel_id
                                    ).filter(Video.is_monetized == False
+                                   ).order_by(Video.published_at.desc()
                                    ).all()
-    try:
-        demonetization_percentage = round(len(demonetized_videos)/len(videos) * 100)
-    except ZeroDivisionError:
-        print(ZeroDivisionError)
-        demonetization_percentage = 0
 
-    print(demonetized_videos)
+    if len(demonetized_videos) > 3:
+        demonetized_videos = demonetized_videos[:4]
+
+    try:
+        demonetization_percentage = len(demonetized_videos)/len(videos)
+    except ZeroDivisionError:
+        demonetization_percentage = 0
+    else:
+        if demonetization_percentage > 0 and demonetization_percentage < .01:
+            demonetization_percentage = 1
+        else:
+            demonetization_percentage = round(demonetization_percentage * 100)
 
     return render_template('channel.html',
                             channel=channel,
@@ -674,19 +747,19 @@ def show_videos_page():
     """Show a random selection of YouTube videos."""
 
     monetized_videos = RandomBag()
-    not_monetized_videos = RandomBag()
+    demonetized_videos = RandomBag()
 
     for video in Video.query.filter(Video.is_monetized == True).all():
         monetized_videos.insert(video)
-
     for video in Video.query.filter(Video.is_monetized == False).all():
-        not_monetized_videos.insert(video)
+        demonetized_videos.insert(video)
     
-    random_videos = random.shuffle(monetized_videos.get_random_elements(8) + 
-                                   not_monetized_videos.get_random_elements(8))
+    random_monetized_videos = monetized_videos.get_random_elements(8) 
+    random_demonetized_videos = demonetized_videos.get_random_elements(8)
 
     return render_template('videos.html',
-                            random_videos=random_videos)
+                            monetized_videos=random_monetized_videos,
+                            demonetized_videos=random_demonetized_videos)
 
 
 @app.route('/explore/videos/<video_id>')
@@ -709,7 +782,7 @@ def show_specific_video_page(video_id):
         nsfw_score = None
         colors = []
     text_analyses = TextAnalysis.query.filter(TextAnalysis.video_id == video_id).all()
-    text_analyses = [(text_analysis.textfield_id, 
+    text_analyses = [(text_analysis.textfield, 
                       text_analysis.sentiment_score, 
                       text_analysis.sentiment_magnitude) for text_analysis in text_analyses] # list comprehension
     if Tag.query.join(TagVideo).filter(TagVideo.video_id == video_id).first():
@@ -743,14 +816,67 @@ def show_categories_page():
                             categories=categories)
 
 
+@app.route('/category-data.json')
+def generate_category_chart_data():
+
+    colors = ['rgba(238, 39, 97, 1)', # pink #ee2761
+              'rgba(40, 37, 98, 1)', # purple #282562
+              'rgba(50, 178, 89, 1)', # green #32b259
+              'rgba(94, 200, 213, 1)', # blueberry #5ec8d5
+              'rgba(255, 242, 0, 1)', #yellow #fff200
+              'rgba(188, 0, 141, 1)', #magenta #BC008D
+              'rgba(43, 126, 195, 1)', # blue #2B7EC3
+              'rgba(255, 106, 42, 1)', # orange #FF6A2A
+              'rgba(33, 201, 133, 1)', # emerald #21C985
+              'rgba(255, 201, 0, 1)', # light yellow-orange #FFC900
+              'rgba(171, 230, 224, 1)', #pale blue #ABE6E0
+              'rgba(255, 204, 204, 1)', # pale pink #FFCCCC
+              'rgba(255, 242, 204, 1)', # pale yellow #FFF2CC
+              'rgba(203, 254, 203, 1)', # pale green #CBFECB
+              'rgba(218, 215, 217, 1)'] # grey #dad7d9
+
+    percent_demonetized = []
+
+    for category in VideoCategory.query.all():
+        all_videos = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)
+                              ).join(VideoCategory
+                              ).filter(VideoCategory.video_category_id
+                                       == category.video_category_id
+                              ).first())
+
+        demonetized_videos = make_int_from_sqa_object(
+                                db.session.query(func.count(Video.video_id)
+                                      ).join(VideoCategory
+                                      ).filter(VideoCategory.video_category_id
+                                               == category.video_category_id
+                                      ).filter(Video.is_monetized == False
+                                      ).first())
+
+        percent_demonetized.append((category.category_name.lower(), 
+                                    round(demonetized_videos/all_videos*100)))
+
+    percent_demonetized.sort(key=lambda x: (-x[1], x[0]))
+    category_names = list(map(lambda x: x[0], percent_demonetized))
+    percent_demonetized = list(map(lambda x: x[1], percent_demonetized))
+
+    data = {'labels': category_names,
+            'datasets': [{'label': '% demonetized',
+                          'backgroundColor': colors,
+                          'data': percent_demonetized}]}
+
+    return jsonify(data)
+
+
 @app.route('/explore/categories/<int:video_category_id>')
 def show_specific_category_page(video_category_id):
 
     category = VideoCategory.query.filter(VideoCategory.video_category_id == video_category_id).first()
 
-    videos_in_db = str(db.session.query(func.count(
-                        Video.video_id)).join(VideoCategory).filter(
-                        VideoCategory.video_category_id == video_category_id).first())[1:-2]
+    videos_in_db = make_int_from_sqa_object(
+                        db.session.query(func.count(Video.video_id)
+                                 ).join(VideoCategory
+                                 ).filter(VideoCategory.video_category_id == video_category_id
+                                 ).first())
 
     videos = RandomBag()
 
@@ -775,8 +901,9 @@ def show_tags_page():
     
     random_tags = tags.get_random_elements(80)
 
-    # tags = random.sample(Tag.query.all(), desired_items_on_page)
     tags = sorted(random_tags, key=lambda x: x.tag)
+
+    print(tags)
     return render_template('tags.html',
                             tags=random_tags)
 
@@ -785,17 +912,61 @@ def show_tags_page():
 def show_specific_tag_page(tag_id):
 
     tag = Tag.query.filter(Tag.tag_id == tag_id).first()
-    tag_videos = Video.query.join(TagVideo).filter(TagVideo.tag_id == tag_id).all()
+    tag_videos = Video.query.join(TagVideo
+                           ).filter(TagVideo.tag_id == tag_id
+                           ).all()
 
     if len(tag_videos) < 4:
         random_videos = tag_videos
     else:
-        random_videos = random.sample(tag_videos, 4)
+        tag_video_bag = RandomBag()
+        for tag_video in tag_videos:
+            tag_video_bag.insert(tag_video)
+
+        random_videos = tag_video_bag.get_random_elements(4)
 
     return render_template('tag.html',
                             tag=tag,
                             videos_in_db=len(tag_videos),
                             random_videos=random_videos)
+
+
+@app.route('/explore-tags-data.json')
+def generate_tag_chart_data():
+
+    all_tags = request.args.get('allTags')
+
+    for tag in Tag.query.join(TagVideo).all():
+
+
+        all_videos = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)
+                              ).join(VideoCategory
+                              ).filter(VideoCategory.video_category_id
+                                       == category.video_category_id
+                              ).first())
+
+        demonetized_videos = make_int_from_sqa_object(
+                                db.session.query(func.count(Video.video_id)
+                                      ).join(VideoCategory
+                                      ).filter(VideoCategory.video_category_id
+                                               == category.video_category_id
+                                      ).filter(Video.is_monetized == False
+                                      ).first())
+
+        percent_demonetized.append((category.category_name.lower(), 
+                                    round(demonetized_videos/all_videos*100)))
+
+    percent_demonetized.sort(key=lambda x: (-x[1], x[0]))
+    category_names = list(map(lambda x: x[0], percent_demonetized))
+    percent_demonetized = list(map(lambda x: x[1], percent_demonetized))
+
+    data = {'labels': category_names,
+            'datasets': [{'label': '% demonetized',
+                          'backgroundColor': colors,
+                          'data': percent_demonetized}]}
+
+
+    return jsonify(data)
 
 
 @app.route('/add-data', methods=['GET', 'POST'])
@@ -807,39 +978,49 @@ def add_data():
         video_id = request.form['video-id-input']
         video = Video.query.filter(Video.video_id == video_id).first()
 
-        monetization_status = request.form['monetizationStatus']
-        print(monetization_status)
+        monetization_status = request.form['monetizedRadio']
         if monetization_status == 'demonetized':
             is_monetized = False
         else:
             is_monetized = True
 
-        submitted_time = datetime.datetime.utcnow()
+        added_on = datetime.datetime.utcnow()
 
-        if video:
+        if video: # if the video is already in the db
             video.is_monetized = is_monetized
-            video.updated_at = submitted_time
+            addition = Addition(video_id=video_id,
+                                added_on=added_on,
+                                is_update=True)
+            db.session.add(addition)
             db.session.commit()
             flash("Successfully updated the video's monetization status!")
-            return
+        
+            return redirect('/add-data')
 
         else:
+            addition = Addition(video_id=video_id,
+                                added_on=added_on,
+                                is_update=False)
+            db.session.add(addition)
             video = Video(video_id=video_id,
-                          is_monetized=is_monetized,
-                          submitted_time=submitted_time)
+                          is_monetized=is_monetized)
             db.session.add(video)
             db.session.commit()
-            flash("Successfully added the video. Check it out or add another.") # tk add link
-            return
+            # flash('Successfully added the video. <a href="/explore/videos/{{ video_id }}" class="alert-link">Check it out</a> or add another.') # tk add link
+            
+            # call APIs to get other info
+            add_all_info_to_db(video_id)
+
+            return redirect('/add-data')
 
     else:
         return render_template('add-data.html')
 
 # Error-related routes
 
-# @app.errorhandler(404)
-# def page_not_found(error):
-#     return render_template('errors/404.html')
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('errors/404.html')
 
 
 # @app.errorhandler(500)
@@ -893,7 +1074,12 @@ def process_period_tag_query(tag):
     bqq = db.session.query(TagVideo).join(Tag).filter(Tag.tag == tag)
     tag_period_data = []
     for quarter in range(len(period)):
-        demonetized_vids = db.session.query(TagVideo).join(Tag).filter(Tag.tag == tag).join(Video).filter(Video.published_at >= period[quarter][0], Video.published_at < period[quarter][1]).filter(Video.is_monetized == False).count()
+        demonetized_vids = db.session.query(TagVideo
+                                    ).join(Tag).filter(Tag.tag == tag
+                                    ).join(Video
+                                    ).filter(Video.published_at >= period[quarter][0], Video.published_at < period[quarter][1]
+                                    ).filter(Video.is_monetized == False
+                                    ).count()
         all_vids = db.session.query(TagVideo).join(Tag).filter(Tag.tag == tag).join(Video).filter(Video.published_at >= period[quarter][0], Video.published_at < period[quarter][1]).count()
         if all_vids:
             tag_period_data.append(round(demonetized_vids/all_vids*100))
@@ -1292,9 +1478,9 @@ def check_database_for_duplicates():
     #                     ChannelStat).filter(
     #                     ChannelStat.total_subscribers > 1000000).first()
   
-
 if __name__ == '__main__':
     app.debug = True
+    app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
     app.jinja_env.auto_reload = app.debug
     connect_to_db(app)
     DebugToolbarExtension(app)

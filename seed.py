@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
+""" 
 @author: Hae-in Lim, haeinous@gmail.com
 """
 from sqlalchemy import func
@@ -16,7 +16,7 @@ from api_text import *
 
 
 # (1) Load static data tables establishee to maintain referential integrity
-#     for video categories, live broadcast ids, and countries.
+#     for video categories and countries.
 
 def load_video_category(video_category_filename):
     f = open(video_category_filename)
@@ -114,11 +114,12 @@ def populate_video_data():
 # (4) Populate image_analyses data by calling the Clarifai API.
 
 def populate_image_data():
-    """Populate the image_analyses table for videos with thumbnails."""
+    """Populate the image_analyses table for videos with thumbnail images."""
 
-    thumbnail_urls = [video.thumbnail_url for video in Video.query.all() if (video.video_title 
-                                                                             and video.thumbnail_url 
-                                                                             and not video.video_status)]
+    urls_in_db = set([video.thumbnail_url for video in Video.query.join(ImageAnalysis).all()])
+    all_urls = set([video.thumbnail_url for video in Video.query.filter(Video.video_status.is_(None)).filter(Video.video_title.isnot(None)).all()])
+    thumbnail_urls = all_urls - urls_in_db
+
     loops = len(thumbnail_urls)//128+1
     print('loops: ' + str(loops))
 
@@ -137,10 +138,11 @@ def populate_text_data():
     """Populate the text_analyses table for titles, tags, and descriptions."""
 
     channel_ids = [channel.channel_id for channel in Channel.query.all() if len(TextAnalysis.query.filter(TextAnalysis.channel_id == channel.channel_id).all()) < 1]
-    video_ids = [video.video_id for video in Video.query.all() if (len(TextAnalysis.query.filter(TextAnalysis.video_id == video.video_id
-                                                                                        ).filter(Video.video_status.is_(None)
-                                                                                        ).all()) < 3)]
     
+    all_potential_vids = set([video.video_id for video in Video.query.filter(Video.video_status.is_(None)).filter(Video.video_title.isnot(None)).all()])
+    already_in_db = set([video.video_id for video in Video.query.join(TextAnalysis).filter(Video.video_status.is_(None)).all()])
+    video_ids = list(all_potential_vids - already_in_db)
+
     for channel_id in channel_ids:
         analyze_sentiment(channel_id)
 
@@ -151,16 +153,16 @@ def populate_text_data():
 if __name__ == '__main__':
     connect_to_db(app)
 
-    video_category_filename = 'seed_data/video_category.csv'
-    country_filename = 'seed_data/country.csv'
-    load_video_category(video_category_filename)
-    load_country(country_filename)
+    # video_category_filename = 'seed_data/video_category.csv'
+    # country_filename = 'seed_data/country.csv'
+    # load_video_category(video_category_filename)
+    # load_country(country_filename)
 
-    channel_filename = 'seed_data/channel.csv'
-    load_channel(channel_filename)
+    # channel_filename = 'seed_data/channel.csv'
+    # load_channel(channel_filename)
 
-    video_filename = 'seed_data/video.csv'
-    load_video(video_filename)
+    # video_filename = 'seed_data/video.csv'
+    # load_video(video_filename)
 
     populate_video_data()
     populate_image_data()

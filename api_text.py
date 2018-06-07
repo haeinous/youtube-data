@@ -3,21 +3,22 @@
 
 """
 @author: Hae-in Lim, haeinous@gmail.com
-
+f
 """
-import os, sys, requests, httplib2, statistics, difflib
+import os, sys, requests, httplib2, statistics
 
 from model import connect_to_db, db, TextAnalysis, Video, Tag, TagVideo, Channel, TagChannel
 from sqlalchemy import exc
-
+ 
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError
 
 GOOGLE_KEY = os.environ.get('GOOGLE_KEY')
 NLP_URL = 'https://language.googleapis.com/v1/documents:analyzeSentiment'
 
-
 def call_nlp_api(text):
+    """Assume text is a string from one of a video or channel's textfields.
+    Call the NLP API and return the sentiment analysis."""
 
     discovery_url = 'https://{api}.googleapis.com/$discovery/rest?version={apiVersion}'
     service = discovery.build('language',   
@@ -31,9 +32,8 @@ def call_nlp_api(text):
                      'content': text},
                 'features': 
                     {'extractDocumentSentiment': True},
-                'encodingType': 'UTF8' if sys.maxunicode == 2047 else 'UTF32',
-               }
-        )
+                'encodingType': 'UTF8' if sys.maxunicode == 2047 else 'UTF32'
+                })
 
     try:
         nlp_response = service_request.execute()
@@ -45,7 +45,8 @@ def call_nlp_api(text):
 
 
 def calculate_variation(sentences):
-
+    """If the text field consists of multiple sentences, calculate standard 
+    deviation as well as the maximum and minim for the sentiment scores."""
     scores = []
 
     for sentence in sentences:
@@ -63,11 +64,25 @@ def add_to_db(nlp_response, youtube_id=None, textfield=None):
     Parse nlp_response and add data to the text_analyses table in db."""
 
     if 'error' in nlp_response:
-        return
-
+        if len(youtube_id) == 11:
+            text_analysis = TextAnalysis(video_id=youtube_id,
+                                         textfield='error')
+        else:
+            text_analysis = TextAnalysis(channel_id=youtube_id,
+                                         textfield='error')
+        db.session.add(text_analysis)
+        try:
+            db.session.commit()
+        except (Exception, exc.SQLAlchemyError, exc.InvalidRequestError, exc.IntegrityError) as e:
+            print(youtube_id + '\n' + str(e))
+            db.session.rollback()
+        
     sentiment_score = nlp_response['documentSentiment']['score']
     sentiment_magnitude = nlp_response['documentSentiment']['magnitude']
-    language_code = nlp_response['language']
+    if len(nlp_response['language']) < 5:
+        language_code = nlp_response['language']
+    else:
+        language_code = nlp_response['language'][:4]
 
     if len(nlp_response['sentences']) > 1:
         standard_deviation, maximum, minimum = calculate_variation(nlp_response['sentences'])
@@ -91,6 +106,7 @@ def add_to_db(nlp_response, youtube_id=None, textfield=None):
                                  sentiment_min_score=minimum,
                                  language_code=language_code)
     db.session.add(text_analysis)
+
     try:
         db.session.commit()
     except (Exception, exc.SQLAlchemyError, exc.InvalidRequestError, exc.IntegrityError) as e:
@@ -103,25 +119,46 @@ def analyze_sentiment(youtube_id):
     to the text_analyses table."""
 
     if len(youtube_id) == 11:
-        # Can I do unpacking with this?
-        video_title = Video.query.filter(Video.video_id == youtube_id).first().video_title
-        add_to_db(call_nlp_api(video_title), youtube_id, 'video_title')
+        # Determine which videos need to their titles analyzed
+        add_to_db(
+            call_nlp_api(
+                Video.query.filter(Video.video_id == youtube_id
+                          ).first(
+                          ).video_title), 
+                youtube_id, 
+                'video_title')
 
-        video_description = Video.query.filter(Video.video_id == youtube_id).first().video_description
-        add_to_db(call_nlp_api(video_description), youtube_id, 'video_description')
+        # Determine which videos need their descriptions analyzed
+        add_to_db(
+            call_nlp_api(
+                Video.query.filter(Video.video_id == youtube_id
+                          ).first(
+                          ).video_description), 
+                youtube_id, 
+                'video_description')
 
-        video_tag_query = Tag.query.join(TagVideo).filter(TagVideo.video_id == youtube_id).all()
-        if len(video_tag_query) > 5:
-            video_tags = str([tag.tag for tag in video_tag_query])[1:-1]
-            add_to_db(call_nlp_api(video_tags), youtube_id, 'video_tags')
+        # Determine which videos need their descriptions analyzed
+        # video_tag_query = Tag.query.join(TagVideo).filter(TagVideo.video_id == youtube_id).all()
+
+        # if len(video_tag_query) > 5:
+        #     video_tags = str([tag.tag for tag in video_tag_query])[1:-1]
+        #     add_to_db(call_nlp_api(video_tags), youtube_id, 'video_tags')
 
     else:
-        channel_description = Channel.query.filter(Channel.channel_id == youtube_id).first().channel_description
-        add_to_db(call_nlp_api(channel_description), youtube_id, 'channel_description')
-        channel_tag_query = Tag.query.join(TagChannel).filter(TagChannel.channel_id == youtube_id).all()
-        if len(channel_tag_query) > 5:
-            channel_tags = str([tag.tag for tag in channel_tag_query])[1:-1]
-            add_to_db(call_nlp_api(channel_tags), youtube_id, 'channel_tags')
+        # Analyze channel description
+        add_to_db(
+            call_nlp_api(
+                Channel.query.filter(Channel.channel_id == youtube_id
+                            ).first(
+                            ).channel_description), 
+                youtube_id, 
+                'channel_description')
+
+        # channel_tag_query = Tag.query.join(TagChannel).filter(TagChannel.channel_id == youtube_id).all()
+
+        # if len(channel_tag_query) > 5:
+        #     channel_tags = str([tag.tag for tag in channel_tag_query])[1:-1]
+        #     add_to_db(call_nlp_api(channel_tags), youtube_id, 'channel_tags')
 
 
 if __name__ == '__main__':

@@ -1,17 +1,38 @@
 {% extends 'base.html' %}
 
-{% block title %}Explore tags on YTD{% endblock %}
+{% block title %}explore tags | ytdc{% endblock %}
 
 {% block content %}
 
 <div class="container">
-  <div class="row" id="tags-row1">
-    <h1>Exploring tags</h1>
+  <div class="row align-items-center" id="tags-row1">
+    <h1>
+      tags
+    </h1>
   </div>
 
-  <div class="row" id="tags-row2">
+<!--   <div class="row justify-content-center" id="chart-row">
+    <div>
+      <h2>
+        video tags with the highest demonetization %
+      </h2>
+    </div>
+
+    <div class="canvas-container col-9" style="background-color: #d9f7fa;">
+      <canvas class="col" id="explore-tag-chart"></canvas>
+    </div> -->
+    <!-- /#chart-row -->
+  <!-- </div> -->
+
+  <div class="row justify-content-center">
+    <h2>
+      here are 80 random tags
+    </h2>
+  </div>
+
+  <div class="row" id="random-tag-container">
     {% for tag in tags %}
-      <div class="col-3">
+      <div class="col-3" id="tag-text">
         <a href="/explore/tags/{{ tag.tag_id }}">
           {{ tag.tag }}
         </a>
@@ -20,5 +41,48 @@
     {% endfor %}
   </div>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script type="text/javascript">
+
+  let ctxExploreTagChart = $('#explore-tag-chart').get(0).getContext('2d');
+
+  tagHtml = $('#random-tag-container').html()
+  console.log(tagHtml)
+
+  // window.onload = function() {
+  //   $.ajax({
+  //     url: '/explore-tags-data.json',
+  //     data: {'allTags': tagHtml},
+  //     type: 'GET'
+  //   })
+  //   .done(function(response) {
+  //     loadNewChart(response);
+  //   })
+  // }
+
+  function loadNewChart(response) {
+    exploreTagChart = new Chart(ctxExploreTagChart, {
+      type: 'horizontalBar',
+      data: response,
+      options: {responsive: true,
+                animation: false,
+                legend: {display: false,
+                         position: 'right'},
+                elements: {rectangle: {borderWidth: 0}},
+                title: {display: false},
+                scales: {xAxes: [{ticks: {min: 0,
+                                          callback: (label, index, labels) => {return label + '%'}}
+                      }]
+              }
+      }
+    })
+  }
+
+</script>
+
 
 {% endblock %}

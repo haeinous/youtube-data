@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 
-{% block title %}Channel profile: {{ channel.channel_title }}{% endblock %}
+{% block title %}{{ channel.channel_title }} channel profile | ytdc{% endblock %}
 
 {% block content %}
 
-<div class="container-fluid">
+<div class="container">
 
   <div class="row page-title" id="channel-row1">
     <h1>
-      <a href="https://www.youtube.com/channel/{{ channel.channel_id }}" id="youtube-url">
+      <a href="https://www.youtube.com/channel/{{ channel.channel_id }}" id="youtube-url" target="_blank">
         {{ channel.channel_title }}
       </a>
     </h1>
@@ -18,14 +18,14 @@
     <ul>
       {% if channel.created_at %}
         <li>
-          Channel created on {{ channel.created_at.strftime('%B %-d, %Y') }}
+          channel created on {{ channel.created_at.strftime('%B %-d, %Y') }}
         </li>
       {% endif %}
       <li>
-        Subscribers: {{ channel_stats.total_subscribers }}
+        subscribers: {{ '{:,}'.format(channel_stats.total_subscribers) }}
       </li>
       <li>
-        Views: {{ channel_stats.total_views }}
+        views: {{ '{:,}'.format(channel_stats.total_views) }}
       </li>
     </ul>
     <!-- /#channel-basic-info -->
@@ -34,20 +34,20 @@
   <div class="" id="video-detailed-info">
     <div class="row">
       <h2>
-        Videos
+        videos
       </h2>
     </div>
     
     <div class="row" id="">
       <ul>
         <li>
-          Total videos in the YTD database: {{ videos_in_db }}
+          total videos in the ytdc database: {{ '{:,}'.format(videos_in_db) }}
         </li>
         <li>
           {% if demonetization_percentage == 0 %}
-            None of the videos in the ytd database have been reported as demonetized.
+            none of the videos in the ytdc database have been reported as demonetized.
           {% else %}
-            {{ demonetization_percentage }}% are not monetized
+            {{ demonetization_percentage }}% of the videos in the ytdc database are not monetized
           {% endif %}
         </li>
       </ul>
@@ -57,15 +57,33 @@
   </div>
 
   {% if demonetization_percentage != 0 %}
+    <div class="row">
+      <h3>
+        {% if demonetized_videos|length != 1 %}
+          a few of {{ channel.channel_title }}&rsquo;s demonetized videos
+        {% else %}
+          {{ channel.channel_title }}&rsquo;s only demonetized video
+        {% endif %}
+      </h3>
+    </div>
+
     <div class="row" id="demonetized-video-container">
       {% for video in demonetized_videos %}
         <div class="col">
-          <h3>
-            {{ video.video_title }}
-          </h3>
-          <a href="/explore/videos/{{ video.video_id }}">
-            <!-- <img src="{{ video.thumbnail_url }}" class="figure-img img-fluid rounded" alt=""> -->
-          </a>
+
+          <figure class="figure">
+          
+            <figcaption class="figure-caption text-center">
+              <a href="/explore/videos/{{ video.video_id }}">
+                {{ video.video_title.lower() }}
+              </a>
+            </figcaption>
+          
+            <a href="/explore/videos/{{ video.video_id }}">
+              <img src="{{ video.thumbnail_url }}" class="figure-img img-fluid rounded" alt="">
+            </a>
+
+          </figure>
         </div>
       {% endfor %}
     </div>
@@ -73,10 +91,10 @@
 
   <div class="row" id="channel-video-graph">
     <h3>
-      Graph representation of {{ channel.channel_title }}'s videos by shared tags
+      graph representation of {{ channel.channel_title }}&rsquo;s videos by shared tags
     </h3>
     <div class="col svg-container" id="graph-svg-container">
-      <svg width="700" height="400" id="graph-svg" style="background-color: #f2feff"></svg>      
+      <svg width="700" height="400" id="graph-svg" style="background-color: #282562"></svg>      
     </div>
   </div>
 

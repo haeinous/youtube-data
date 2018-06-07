@@ -1,18 +1,34 @@
 {% extends 'base.html' %}
 
-{% block title %}Add data to YTD{% endblock %}
+{% block title %}add data | ytdc{% endblock %}
 
 {% block content %}
 
-<div class="container-fluid">
+<div class="container">
+
+  <!-- flash messages -->
+  <!-- {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-primary alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">
+            &times;
+          </span>
+        </button>
+      </div>
+    {% endif %}
+  {% endwith %} -->
+  <!-- flash messages -->
+
   <h1>
-    Add data about a video
+    add data about a video
   </h1>
 
   <div class="row lead" id="add-data-row1">
     
     <div class="col">
-      Our insights get better when we have more data! Thanks for contributing.
+      our insights get better when we have more data! thanks for contributing.
     </div>
   </div>
 
@@ -21,8 +37,8 @@
     <form action="/add-data" method="POST" id="add-to-database-action">
 
       <div class="form-group row" id="video-id-row">
-        <label class="col-sm-2 col-form-label" data-toggle="tooltip" data-placement="left" title="YouTube video IDs are 11 characters long and only consist of alphanumeric characters, underscores, and dashes.">
-          YouTube video ID
+        <label class="col-sm-2 col-form-label" data-toggle="tooltip" data-placement="left" title="youtube video ids are 11 characters long and only consist of alphanumeric characters, underscores, and dashes.">
+          youtube video id
         </label>
         
         <div class="col-sm-10">
@@ -33,17 +49,17 @@
         <!-- /#video-id-row -->
       </div>
 
-      <fieldset class="form-group" id="monetization-status">
+      <fieldset class="form-group" id="monetizationStatus">
         <div class="row">
           <legend class="col-form-label col-sm-2 pt-0">
-            Monetization status
+            monetization status
           </legend>
           <div class="col-sm-10">
 
             <div class="form-check">
               <input class="form-check-input" type="radio" name="monetizedRadio" id="clicked-monetization-true" value="monetized" required>
               <label class="form-check-label" for="gridRadios1">
-                Monetized
+                monetized
               </label>
               <!-- /.form-check -->
             </div>
@@ -51,7 +67,7 @@
             <div class="form-check">
               <input class="form-check-input" type="radio" name="monetizedRadio" id="clicked-monetization-false" value="demonetized" required>
               <label class="form-check-label" for="gridRadios2">
-                Not monetized
+                not monetized
               </label>
               <!-- /.form-check -->
             </div>
@@ -62,12 +78,13 @@
       </fieldset>
 
       <div class="form-group row" id="telling-the-truth">
-        <div class="col-sm-2"></div>
+        <div class="col-sm-2">
+        </div>
         <div class="col-sm-10">
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="gridCheck1" required>
             <label class="form-check-label" for="gridCheck1">
-              Cross my heart and kiss my elbow, I swear this information is true.
+              cross my heart and kiss my elbow, I swear this information is true.
             </label>
           </div>
         </div>
@@ -75,8 +92,9 @@
 
       <div class="form-group row">
         <div class="col-sm-10">
+          <!-- <button type="submit" class="btn btn-primary" id="submit-form-button" data-toggle="modal" data-target="#exampleModalCenter"> -->
           <button type="submit" class="btn btn-primary" id="submit-form-button" data-toggle="modal" data-target="#exampleModalCenter">
-            Add data
+            add data
           </button>
         </div>
       </div>
@@ -84,7 +102,7 @@
   </form>
   </div>
 
-  <div class="modal fade d-none modalMismatch" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+  <!-- <div class="modal fade d-none modalMismatch" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-header">
@@ -140,7 +158,7 @@
     </div>
   </div>
 
-</div>
+</div> -->
 
 {% endblock %}
 {% block scripts %}
@@ -150,8 +168,10 @@
   let videoId = $('#video-id-input').val();
   console.log(videoId);
 
-  let monetizationStatus = $('input[name=monetizedRadio]:checked').val();
+  let monetizationStatus = $('#clicked-monetization-true').prop('checked');
   console.log(monetizationStatus);
+
+  // let monetizationStatus = $('input[name=monetizedRadio]:checked').val();
 
   // 1. Validate videoId (length, legal characters)
   $('#video-id-input').on('blur', validate_video_id_input);
@@ -179,10 +199,10 @@
       data: {'videoId': videoId,
              'monetizationStatus': monetizationStatus}
     })
-  })
     .done(function(data) {
       displayModal(data);
     })
+  })
   
   function displayModal(data) {
     if (data.status === 1) {

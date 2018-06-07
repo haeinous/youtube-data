@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 
-{% block title %}Explore channels on YTD{% endblock %}
+{% block title %}explore channels | ytdc{% endblock %}
 
 {% block content %}
 
-<div class="container-fluid">
+<div class="container">
 
   <div class="row" id="channels-row1">
     <h1>
-      Channels
+      channels
     </h1>
   </div>
 
@@ -23,10 +23,11 @@
               </a>
             </figcaption>
             
-            <a href="https://www.youtube.com/watch?v={{ channel[1].video_id }}" target="_blank">
+            <a href="/explore/channels/{{ channel[0].channel_id }}">
               <img src="{{ channel[1].thumbnail_url }}" class="figure-img img-fluid rounded" alt="">
             </a>
           </figure>
+          
         <br>
       </div>
     {% endfor %}

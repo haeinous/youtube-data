@@ -1,51 +1,95 @@
 {% extends 'base.html' %}
 
-{% block title %}Explore videos on YTD{% endblock %}
-
+{% block title %}explore videos | ytdc{% endblock %}
 
 {% block content %}
 
 <div class="container">
 
-  <div class="row" id="videos-row1">
+  <div class="row align-items-center" id="videos-row1">
     <h1>
-      Exploring video data
+      exploring video data
     </h1>
     <!-- /#videos-row1 -->
   </div>
 
+<!--   <div class="row justify-content-center" id="chart-row">
+    <div>
+      <h2>
+       some video insights
+      </h2>
+    </div>
+    <br>
+    <div class="canvas-container col-9" style="background-color: #d9f7fa;">
+      <canvas id="video-chart"></canvas>
+    </div>
+  </div>
+ -->
   <div class="row" id="video-container-row2">
-    {% for video in random_videos %}
 
-      <div class="col-3 mr-auto video">
+    <div class="col-6 mr-auto video">
+      <div>
+        <h3>
+          monetized videos
+        </h3>
+      </div>
+      
+      {% for video in monetized_videos %}
+        <div class="col">
+          <figure>
+            <figcaption>
+              <a href="/explore/videos/{{ video.video_id }}">
+                {{ video.video_title.lower() }}
+                <h5 class="badge">
+                  <span class="badge badge-success">
+                    monetized
+                  </span>
+                </h5>
+              </a>
+            </figcaption>
 
-        <div class="video-container">
-          <a href="/explore/videos/{{ video.video_id }}">
-            {{ video.video_title }}
-          </a>
+            <a href="/explore/videos/{{ video.video_id }}">
+              <img src="{{ video.thumbnail_url }}" class="figure-img img-fluid rounded" alt="">
+            </a>
+          </figure>
         </div>
 
+      {% endfor %}
+
+      <div class="col-6 mr-auto video">
+        <div>
+          <h3>
+            demonetized videos
+          </h3>
+        </div>
+
+        {% for video in demonetized_videos %}        
+          <div class="col">
+            <figure>
+              <figcaption>
+                <a href="/explore/videos/{{ video.video_id }}">
+                  {{ video.video_title.lower() }}
+                  <h5 class="badge">
+                    <span class="badge badge-danger">
+                      demonetized
+                    </span>
+                  </h5>
+                </a>
+              </figcaption>
+              <a href="/explore/videos/{{ video.video_id }}">
+                <img src="{{ video.thumbnail_url }}" class="figure-img img-fluid rounded" alt="">
+              </a>
+            </figure>
+          </div>
+        {% endfor %}
+
+      </div>
         <div class="chart-container chart">
-          <canvas>
-          </canvas>
+          <canvas></canvas>
         </div>
-
-        <h5 class="badge">
-          {% if video.is_monetized == False %}
-            <span class="badge badge-danger">
-              Demonetized
-            </span>
-          {% else %}
-            <span class="badge badge-success">
-              Monetized
-            </span>
-          {% endif %}
-        </h5>
-        <!-- /.badge -->
 
       </div>
 
-    {% endfor %}
     
   </div>
 
