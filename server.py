@@ -9,7 +9,7 @@
 import datetime, random, collections, re, nltk
 from nltk.stem.snowball import EnglishStemmer
 from jinja2 import StrictUndefined
-from flask import Flask, render_template, request, flash, redirect, session, jsonify
+from flask import Flask, render_template, request, flash, redirect, session, jsonify, Markup
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy import func
 
@@ -757,9 +757,11 @@ def show_videos_page():
     random_monetized_videos = monetized_videos.get_random_elements(8) 
     random_demonetized_videos = demonetized_videos.get_random_elements(8)
 
+    random_videos = random_monetized_videos + random_demonetized_videos
+    random.shuffle(random_videos)
+
     return render_template('videos.html',
-                            monetized_videos=random_monetized_videos,
-                            demonetized_videos=random_demonetized_videos)
+                            random_videos=random_videos)
 
 
 @app.route('/explore/videos/<video_id>')
@@ -1006,7 +1008,10 @@ def add_data():
                           is_monetized=is_monetized)
             db.session.add(video)
             db.session.commit()
-            # flash('Successfully added the video. <a href="/explore/videos/{{ video_id }}" class="alert-link">Check it out</a> or add another.') # tk add link
+            flash(Markup('''<div class="alert alert-success alert-dismissible" role="alert">
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                Successfully added the video. <a href="/explore/videos/''' + video_id + '''" class="alert-link">Check it out</a> or add another.
+                            </div>''')) # tk add link
             
             # call APIs to get other info
             add_all_info_to_db(video_id)

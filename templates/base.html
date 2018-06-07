@@ -19,9 +19,12 @@
     html {
       position: relative;
       min-height: 100%;
-    }
-    html, body{
       font-family: sans-serif;
+    }
+
+    body{
+      font-family: sans-serif;
+      padding-bottom: 100px;
     }
 
     nav {
@@ -41,7 +44,6 @@
       left: 0;
       bottom: 0;
       right: 0;
-
     }
 
     #homepage-about {
@@ -128,24 +130,21 @@
   </nav>
 <!-- end navbar -->
 
-<!-- error message block -->
-  <div class="error d-none" id="error-message-container"> <!-- default is to not show the error message -->
-    <div class="jumbotron jumbotron-fluid">
-      <div class="container">
-        <h1 class="display-4">
-          uh-oh!
-        </h1>
-        <p class="lead">
-          there was a problem. in the meantime, check out some other cool stuff we have.
-        </p>
-        <a href="/explore" class="btn btn-primary btn-lg" href="#" role="button">
-          let's explore
-        </a>
-      </div>
-    </div>
-  </div>
+<!-- flash messages -->
 
-<!-- end error message block -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  <!-- Categories: success (green), info (blue), warning (yellow), danger (red) -->
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <!-- <strong>Title</strong> --> {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<!-- end flash messages -->
 
   {% block content %}
   {% endblock %}
@@ -164,15 +163,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/js/select2.min.js"></script>
   <script type="text/javascript">
     "use strict";
-
-  // Event handler for removing error message (it does not work. why?)
-  window.addEventListener('unload', function(event) {
-    $('#error-message-container').addClass('d-none');
-      });
-
-    $(function() {
-      $('[data-toggle="tooltip"]').tooltip();
-    });
     
   </script>
   {% block scripts %}
