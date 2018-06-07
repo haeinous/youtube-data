@@ -33,10 +33,12 @@
 
   <div class="row" id="categories-row2">
     {% for category in categories %}
-      <div class="col-sm-6 col-md-4 col-lg-3">
-        <a href="/explore/categories/{{ category.video_category_id }}">
-          {{ category.category_name.lower() }}
-        </a>
+      <div class="col-sm-6 col-md-4 col-lg-3 text-center">
+        <button type="button" class="btn btn-outline-primary btn-lg text-center m-3">
+          <a href="/explore/categories/{{ category.video_category_id }}">
+            {{ category.category_name.lower() }}
+          </a>
+        </button>
         <br>
       </div>
     {% endfor %}
