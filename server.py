@@ -592,6 +592,49 @@ def show_charts():
     return render_template('chart-tag.html')
 
 
+@app.route('/new-chart-tag', methods=['GET', 'POST'])
+def show_new_chart():
+
+    return render_template('new-chart-tag.html')
+
+
+def calculate_demonetization_percentage_by_tag(tag):
+    """Given a tag, return the percentage of videos with that tag that have
+    been demonetized."""
+
+    tag = tag.lower().strip()
+
+    all_videos = TagVideo.query.join(Tag
+                              ).filter(Tag.tag == tag
+                              ).all()
+    demonetized_videos = TagVideo.query.join(Tag
+                                ).filter(Tag.tag == tag
+                                ).join(Video
+                                ).filter(Video.is_monetized == False
+                                ).all()
+
+    return round(len(demonetized_videos)/len(all_videos)*100)
+
+@app.route('/get-tag-data.json')
+def generate_tag_data_json():
+    """Query the database the retrieve tag demonetization data and
+    return a json string."""
+
+    tags = request.args.get('initialTags')
+    print(tags)
+
+    json_response = {'labels': [],
+                     'datasets': [{'backgroundColor': [], # populate on client side
+                                   'data': []}]}
+    for tag in tags:
+        json_response['labels'].append(tag)
+        demonetization_percentage = calculate_demonetization_percentage_by_tag(tag)
+        json_response['datasets'][0]['data'].append(demonetization_percentage) 
+    
+    print(json_response)
+    return jsonify(json_response)
+
+
 @app.route('/search', methods=['GET', 'POST'])
 def display_search_results():
     """Display search results."""
@@ -1081,36 +1124,36 @@ def create_initial_tag_data_json():
     return jsonify(data)
 
 
-@app.route('/get-tag-data.json')
-def create_tag_data_json():
-    """Query the database the retrieve relevant tag demonetization data and
-    return a json string."""
+# @app.route('/get-tag-data.json')
+# def create_tag_data_json():
+#     """Query the database the retrieve relevant tag demonetization data and
+#     return a json string."""
 
-    colors = ['rgba(238, 39, 97, 1)', # pink
-              'rgba(40, 37, 98, 1)', # purple
-              'rgba(50, 178, 89, 1)', # green
-              'rgba(94, 200, 213, 1)', # blue
-              'rgba(255, 242, 0, 1)'] # yellow
+#     colors = ['rgba(238, 39, 97, 1)', # pink
+#               'rgba(40, 37, 98, 1)', # purple
+#               'rgba(50, 178, 89, 1)', # green
+#               'rgba(94, 200, 213, 1)', # blue
+#               'rgba(255, 242, 0, 1)'] # yellow
 
-    tag = request.args.get('tag-search-box')
+#     tag = request.args.get('tag-search-box')
 
-    data_to_add = {'type': 'line',
-                   'fill': False}
-    # Add necessary Chart.js datapoints
-    data_to_add['label'] = tag
-    data_to_add['borderColor'] = random.sample(colors, 1)
-    data_to_add['data'] = process_period_tag_query(tag)
+#     data_to_add = {'type': 'line',
+#                    'fill': False}
+#     # Add necessary Chart.js datapoints
+#     data_to_add['label'] = tag
+#     data_to_add['borderColor'] = random.sample(colors, 1)
+#     data_to_add['data'] = process_period_tag_query(tag)
 
-    data = {'labels': ['q1_2017', # this is what we're passing to the front end
-                       'q2_2017', 
-                       'q3_2017', 
-                       'q4_2017', 
-                       'q1_2018',
-                       'q2_2018'],
-            'datasets': []
-            }
+#     data = {'labels': ['q1_2017', # this is what we're passing to the front end
+#                        'q2_2017', 
+#                        'q3_2017', 
+#                        'q4_2017', 
+#                        'q1_2018',
+#                        'q2_2018'],
+#             'datasets': []
+#             }
             
-    return jsonify(data)
+#     return jsonify(data)
 
 
 @app.route('/check-database.json')

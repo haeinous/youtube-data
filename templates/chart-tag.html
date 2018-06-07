@@ -3,7 +3,14 @@
 
 <div class="container">
 
-  <div class="row justify-content-start" id="tag-displays-container">
+  <div class="row" id="chart-row2">
+    <h1>
+      demonetization by tags
+    </h1>
+  </div>
+
+
+  <div class="row justify-content-start m-4" id="tag-displays-container">
 
     <div class="col tag-display" id="tag-display1" style="background-color: #ee2761;">
       <div class="tag-text" id="tag-text1"><!--
@@ -78,13 +85,6 @@
     <!-- /.row justify-content-start -->
   </div>
 
-
-  <div class="row" id="chart-row2">
-    <h1>
-      Demonetization by tags
-    </h1>
-  </div>
-
   <div class="row justify-content-center" id="chart-row2">
     <div class="canvas-container col-9" style="background-color: #d9f7fa;">
       <canvas id="tag-chart"></canvas>
@@ -124,7 +124,7 @@
   let tagsInUse = new Object();
   console.log(tagsInUse);
 
-  let options = {responsive: true, // Chart.js default options
+  let options = {responsive: true,
                  animation: false,
                  title: {display: false}, 
                  tooltips: {mode: 'index',
@@ -136,48 +136,47 @@
                  }}
   
   // 2. Load chart upon visiting the page
-
   
   window.onload = function() {
     $.ajax({
       url: '/initial-tag-data.json',
       type: 'GET',
     })
-    .done(function(data) {
-      loadNewChart(data);
+    .done(function(response) {
+      loadNewChart(response);
     })
-    .done(function(data) {
-      updateTagsInUse(data);
+    .done(function(response) {
+      updateTagsInUse(response);
     })
-    .done(function(data) {
-      updateTagDisplay(data);
+    .done(function(response) {
+      updateTagDisplay(response);
     })
   }
 
-  function loadNewChart(data) {
+  function loadNewChart(response) {
     tagChart = new Chart(ctxTagChart, {
       type: 'line',
-      data: data,
+      data: response,
       options: options
     });
   }
 
-  function updateTagsInUse(data) {
-    for (let item of Object.entries(data['datasets'])) {
+  function updateTagsInUse(response) {
+    for (let item of Object.entries(response['datasets'])) {
       tagsInUse[item[1].label] = item[1].borderColor;
     }
   }
 
-  function updateTagDisplay(data) {
+  function updateTagDisplay(response) {
     let totalTags = Object.keys(tagsInUse).length;
-    for (let item of Object.entries(data['datasets'])) {
+    for (let item of Object.entries(response['datasets'])) {
       $('.tag-text').text(item[1].label);
       console.log(item);
     }
   }
 
-  // function updateTagDisplay(data) {
-  //   for (let item of Object.entries(data['datasets'])) {
+  // function updateTagDisplay(response) {
+  //   for (let item of Object.entries(response['datasets'])) {
   //     $('tag-displays-container').append('<div class="col tag-display" id="tag-display1" style="background-color: #ee2761;">\
   //     <div class="tag-text" id="tag-text1"> \
   //       \
@@ -199,16 +198,16 @@
     $.ajax({
       url: '/autocomplete-trie.json',
     })
-    .done(function(data) {
-      populateAllTags(data);
+    .done(function(response) {
+      populateAllTags(response);
     })
   }
 
   // tk check against server.py's create_tag_list function.
   // let allTags = []
 
-  // function populateAllTags(data) {
-  //   for (item in data) {
+  // function populateAllTags(response) {
+  //   for (item in response) {
   //     console.log(item);
   //     let wordSoFar = item.value;
   //     if (!item.children) {
@@ -269,20 +268,20 @@
 
   $('#tag-search-box').on('keyup', displaySuggestedTags);
 
-  function displaySuggestedTags(data) {
+  function displaySuggestedTags(response) {
     let inputVal = $('#tag-search-box').val();
     // if (inputVal.length > 2) {
       $.ajax({
         url: '/autocomplete.json',
         data: {'tagInput': inputVal}
       })
-      .done(function(data) {
-        parseTagData(data);
+      .done(function(response) {
+        parseTagData(response);
       })
   }
 
-  function parseTagData(data) {
-    let suggestions = Object.entries(data);
+  function parseTagData(response) {
+    let suggestions = Object.entries(response);
     suggestions.sort((a, b) => (b[1] - a[1])); // sort by tag frequency
     populateSuggestions(suggestions);
   }
@@ -298,25 +297,25 @@
     $('#suggested-tags').html(suggestedTagsHtml);
   }
 
-  function displaySuggestedTags(data) {
+  function displaySuggestedTags(response) {
     let inputVal = $('#tag-search-box').val();
     if (inputVal.length > 2) {
       $.ajax({
         url: '/autocomplete-trie.json',
         data: {'tagInput': inputVal}
       })
-      .done(function(data) {
-        parseTrie(data);
+      .done(function(response) {
+        parseTrie(response);
       })
   }
 
-  // function parseTrieData(data) {
+  // function parseTrieData(response) {
   //   let allTags = [];
-  //   if (data.frequency != 0) {
-  //     data.data
+  //   if (response.frequency != 0) {
+  //     response.data
   //   }
-  //   for (let node in data.children) {
-  //     let child = data.children[node];
+  //   for (let node in response.children) {
+  //     let child = response.children[node];
   //     let newTag = 
   //   }
 
@@ -348,14 +347,14 @@
       url: '/initial-tag-data.json',
       type: 'GET',
     })
-    .done(function(data) {
-      loadNewChart(data);
+    .done(function(response) {
+      loadNewChart(response);
     })
-    .done(function(data) {
-      updateTagsInUse(data);
+    .done(function(response) {
+      updateTagsInUse(response);
     })
-    .done(function(data) {
-      updateTagDisplay(data);
+    .done(function(response) {
+      updateTagDisplay(response);
     })
 
 

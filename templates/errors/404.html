@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}404 not found | ytdc{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="error-template">
+        <h1>
+          404 not found
+        </h1>
+        <div class="error-details">
+          hmm, it looks like the page you requested doesn't exist. here, have a random graph:
+        </div>
+        <div id="404-error-graph">
+          tk insert random graph here
+        </div>
+
+        <div class="error-actions">
+          <a href="/" class="btn btn-primary btn-lg"><!-- <span class="glyphicon glyphicon-home"></span> -->
+              take me home </a>
+          <a href="/explore" class="btn btn-default btn-lg"><!-- <span class="glyphicon glyphicon-envelope"></span> --> explore more data </a>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+<!-- Other ideas:
+https://codepen.io/sqfreakz/pen/GJRJOY
+https://codepen.io/SkyHyzer/pen/XjkBPE
+ -->

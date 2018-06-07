@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container">
+
+  <div class="row lead" id="chart-row2">
+    <h1>
+      demonetization by tags
+    </h1>
+    <p>
+      some video topics are more likely to get you demonetized than others. want to drill down and see some details?
+    </p>
+    <!-- /.lead -->
+  </div>
+
+  <div class="row text-center" id="">
+    <div class="col">
+      <div class="" id="tag-display-container">
+        <!-- this is where the divs go -->      
+      </div>      
+    </div>
+
+  </div>
+
+  <div class="row justify-content-center" id="chart-row">
+    <div class="canvas-container col-9" style="background-color: #d9f7fa;">
+      <canvas id="demonetization-by-tag-chart"></canvas>      
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script type="text/javascript">
+
+  // (1) Establish initial variables.
+
+  let ctxTagChart = $('#demonetization-by-tag-chart').get(0).getContext('2d');
+
+  let rgbColors = ['rgba(238, 39, 97, 1)', // pink
+                   'rgba(40, 37, 98, 1)', // purple
+                   'rgba(50, 178, 89, 1)', // green
+                   'rgba(94, 200, 213, 1)']; // blue
+
+  let hexColors = ['ee2761', // pink
+                   '282562', // purple
+                   '32b259', // green
+                   '5ec8d5'] // blue
+
+  let options = {responsive: true,
+                 animation: false,
+                 title: {display: false}, 
+                 tooltips: {mode: 'index',
+                            intersect: true},
+                 elements: {point: {pointStyle: 'circle'}},
+                 scales: {yAxes: [{ticks: {min: 0,
+                                           callback: (label, index, labels) => {return label + '%'}},
+                     }],
+                 }}
+
+  let initialTagExamples = ['donald trump', 'hillary clinton', 'bernie sanders']
+
+  // (2.1) Load chart when you land on the page.
+
+  window.onload = function() {
+    console.log('hi');
+    console.log(initialTagExamples);
+    $.ajax({
+      url: '/get-tag-data.json',
+      data: {'initialTags': initialTagExamples},
+      type: 'GET'
+    })
+    .done(function loadNewChart(response) {
+      tagChart = new Chart(ctxTagChart, {
+        type: 'bar',
+        data: response,
+        options: options
+      });
+    })
+  }
+
+  // (2.2) Populate tag display area.
+
+  window.onload = function() {
+    let initialHtml = '';
+    for (let example of initialTagExamples) {
+      let hexColor = hexColors.shift();
+        initialHtml += `<div class="col tag-display" style="background-color: #${hexColor};">
+          <div class="tag-text">${example}</div>
+          <button type="button" class="close remove-tag" aria-label="close" aria-hidden="true">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>`;
+    }
+    let searchBoxHtml = `<div class="col tag-search-container" style="position: relative; display: inline-block; background-color: #fff200;">
+      <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search for tags">
+      <div id="suggested-tag-container">
+        <ul class="dropdown-menu" id="suggested-tags" style="background-color: #fff5f8;" role="menu"></ul>
+      </div>
+    </div>`;
+    $('#tag-display-container').append(initialHtml + searchBoxHtml);
+  }
+
+  // (3) Set up autocomplete.
+
+
+
+
+</script>
+
+{% endblock %}
