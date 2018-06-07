@@ -3,15 +3,15 @@
 {% block title %}the youtube data collective | ytdc{% endblock %}
 
 {% block content %}
-<div class="container" id="homepage-block">
+<div class="container">
   <div class="row" id="homepage-row1">
     <h1 id="homepage-title">
-      ytdc
+      youtube data collective | ytdc
     </h1>
   </div>
 
-  <div class="row" id="homepage-row2">
-    <p class="big" id="homepage-about">
+  <div class="row justify-content-md-center" id="homepage-row2">
+    <p class="col-11" id="homepage-about">
       the youtube data collective, better known as ytdc, crowdsources information from youtube creators about which of their videos get demonetized. we currently have information on <strong>{{ '{:,}'.format(videos_in_db) }}</strong> videos from <strong>{{ channels_in_db }}</strong> channels.
       <a href="/about">
         read more &raquo;
@@ -19,52 +19,75 @@
     </p>
   </div>
 
-  <div class="row align-items-center" id="homepage-row4">
-    <form action="/search" method="get" data-toggle="validator" role="form" class="form-inline">   
-      <div class="form-group">
-        <input name="search" type="text" class="form-control input-lg" aria-label="..." placeholder="search for something">
-      </div>
+  <div class="row align-items-center" id="homepage-search-container">
+    <div class="col">
+      <form action="/search" method="get" data-toggle="validator" role="form" class="form-inline">   
+        <div class="form-group">
+          <input name="search" type="text" class="form-control input-lg" aria-label="..." placeholder="search">
+        </div>
 
-      <div class="form-group">
-        <span class="input-group-btn">
-          <button type="submit" class="btn btn-default  btn-search">
-            search
-          </button>
-        </span>
-      </div>
-    </form>
+        <div class="form-group">
+          <span class="input-group-btn">
+            <button type="submit" class="btn btn-default  btn-search">
+              search
+            </button>
+          </span>
+        </div>
+      </form>
+    </div>
     <!-- /#homepage-row4 -->
   </div>
 
 
+  <div class="container" id="homepage-chart-container">
+    <div class="row align-items-center">
+      <div class="col-sm-10 col-md-7 col-lg-5">
+        <div class="card homepage-card1">
+          <h5 class="card-title text-center">
+            a cool title
+          </h5>
+          <div class="canvas-container">
+            <canvas class="col" style="background-color: #d9f7fa;"></canvas>
+          </div>
+        </div>
+      </div>
 
-  <div class="row block" id="homepage-row3">
-    <div class="col" id="homepage-row3-col1">
-      <h3>Graph1</h3>
-      <canvas id="homepage-canvas1"></canvas>
-    </div>
+      <div class="col-sm-10 col-md-7 col-lg-5">
+        <div class="card homepage-card2">
+          <h5 class="card-title text-center">
+            a cool title
+          </h5>
+          <div class="canvas-container">
+            <canvas class="col" style="background-color: #d9f7fa;"></canvas>
+          </div>
+        </div>
+      </div>
 
-    <div class="col" id="homepage-row3-col2">
-      <h3>Graph2</h3>
-      <canvas id="homepage-canvas2" style="background-color: #32b259"></canvas>
+      <div class="col-sm-10 col-md-7 col-lg-5">
+        <div class="card homepage-card3">
+          <h5 class="card-title text-center">
+            a cool title
+          </h5>
+          <div class="canvas-container">
+            <canvas class="col" style="background-color: #d9f7fa;"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-10 col-md-7 col-lg-5">
+        <div class="card homepage-card4">
+          <h5 class="card-title text-center">
+            a cool title
+          </h5>
+          <div class="canvas-container">
+            <canvas class="col" style="background-color: #d9f7fa;"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+  
 
-
-  <div class="row block" id="homepage-row5">
-    <div class="col" id="homepage-row5-col1">
-      <h3>Graph3</h3>
-      <canvas id="homepage-canvas3" style="background-color: #5ec8d5"></canvas>
-    </div>
-
-    <div class="col" id="homepage-row5-col2">
-      <h3>Graph4</h3>
-      <canvas id="homepage-canvas4" style="background-color: #fff200"></canvas>
-    </div>
-    <!-- /#homepage-row5 -->
-  </div>
-
-  <!-- /#homepage-block -->
 </div>
 
 {% endblock %}

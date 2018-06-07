@@ -980,9 +980,9 @@ def page_not_found(error):
     return render_template('errors/404.html')
 
 
-# @app.errorhandler(500)
-# def internal_error(error):
-#     return render_template('errors/500.html') #tk need to create this
+@app.errorhandler(500)
+def internal_error(error):
+    return render_template('errors/500.html')
 
 
 ##### JSON routes
