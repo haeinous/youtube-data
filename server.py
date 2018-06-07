@@ -717,6 +717,7 @@ def show_specific_channel_page(channel_id):
                        ).order_by(Video.published_at.desc()).all()
     demonetized_videos = Video.query.filter(Video.channel_id == channel_id
                                    ).filter(Video.is_monetized == False
+                                   ).filter(Video.video_status.is_(None)
                                    ).order_by(Video.published_at.desc()
                                    ).all()
 

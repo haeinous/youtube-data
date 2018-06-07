@@ -18,7 +18,7 @@ class FlaskTestsBasic(TestCase):
         """Test homepage."""
 
         result = self.client.get('/')
-        self.assertIn('read more »', result.data)
+        self.assertIn('read more &raquo;', result.data)
 
 
 class FlaskTestsDatabase(TestCase):
@@ -30,7 +30,7 @@ class FlaskTestsDatabase(TestCase):
         self.client = app.test_client()
         app.config['TESTING'] = True
 
-        connect_to_db(app, 'postgresql:///youtube')
+        connect_to_db(app, 'postgresql:///testdb')
         db.create_all()
         example_data()
 
@@ -70,7 +70,7 @@ class FlaskTestsAjax(TestCase):
         self.client = app.test_client()
         app.config['TESTING'] = True
 
-        connect_to_db(app, 'postgresql:///youtube')
+        connect_to_db(app, 'postgresql:///testdb')
         db.create_all()
         example_data()
 
@@ -80,11 +80,14 @@ class FlaskTestsAjax(TestCase):
         db.session.close()
         db.drop_all()
 
-    def test_autocomplete_min_length(self):
-        """Test that jQuery isn't sending any searches that are
-        shorter than three words."""
 
-        result = self.
+
+##############
+# Tests that connect to API: create fake JSON and make sure app is
+# parsing it correctly.
+
+
+
 
 
 

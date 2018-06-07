@@ -455,11 +455,11 @@ class Person(db.Model):
 #####################################################################
 # Helper functions
 
-def connect_to_db(app):
+def connect_to_db(app, uri='postgresql:///youtube'):
     """Connect database to the Flask app."""
 
     # Configure to use PostgreSQL.
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///youtube'
+    app.config['SQLALCHEMY_DATABASE_URI'] = uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.app = app
     db.init_app(app)
