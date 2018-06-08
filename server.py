@@ -6,7 +6,7 @@
 
 """
 
-import datetime, random, collections, re, nltk
+import datetime, random, collections, re, nltk, pickle
 from nltk.stem.snowball import EnglishStemmer
 from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session, jsonify, Markup
@@ -536,6 +536,20 @@ def generate_inverted_index():
     return inverted_index
 
     # To-do: pickle the index.
+
+def pickle_index(filename):
+    """Dump the inverted index into a pickle so it doesn't need
+    to be regenerated every time."""
+
+    with open(filename, 'wb') as f:
+        pickle.dump(inverted_index, f)
+
+
+def pickle_load(filename):
+    """Load the pickled inverted index to add an entry."""
+    with open(filename, 'rb') as f:
+        inverted_index = pickle.load(f)
+
 
 ##### Helper functions
 

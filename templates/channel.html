@@ -67,16 +67,9 @@
       </h3>
     </div>
 
-  <div class="row" id="category-row5">
-    <h3>
-      videos in this category
-    </h3>
-  </div>
-
-    <div class="row" id="demonetized-video-container">
+    <div class="row card-group" id="demonetized-video-container">
       {% for video in demonetized_videos %}
-        <div class="col-sm-6 col-md-4 col-lg-3">
-          <div class="card">
+          <div class="card col-sm-6 col-md-4 col-lg-3">
             <a href="/explore/videos/{{ video.video_id }}">
               <img class="card-img-top" src="{{ video.thumbnail_url }}" alt="">
             </a>
@@ -96,7 +89,6 @@
             </div>
             <!-- /.card -->
           </div>
-        </div>     
       {% endfor %}
     </div>  
 

@@ -12,9 +12,9 @@
   </div>
   <div class="row" id="tag-row2">
     {% if videos_in_db == 1 %}
-      There is only one video tagged with &ldquo;{{ tag.tag }}&rdquo; in the ytdc database.
+      there is only one video tagged with &ldquo;{{ tag.tag }}&rdquo; in the ytdc database.
     {% else %}
-      There are {{ '{:,}'.format(videos_in_db) }} videos tagged with &ldquo;{{ tag.tag }}&rdquo; in the ytdc database.
+      there are {{ '{:,}'.format(videos_in_db) }} videos tagged with &ldquo;{{ tag.tag }}&rdquo; in the ytdc database.
     {% endif %}
   </div>
 
@@ -43,36 +43,36 @@
 
   <div class="row" id="tag-row6">
 
-    {% for video in random_videos %}
-      <div class="col-sm-6 col-md-4 col-lg-3">
-        <div class="card">
-          <a href="/explore/videos/{{ video.video_id }}">
-            <img class="card-img-top" src="{{ video.thumbnail_url }}" alt="">
-          </a>
-          <div class="card-body">
-            <p class="card-text">
-              <span>                
-                <a href="/explore/videos/{{ video.video_id }}">
-                  {{ video.video_title.lower() }}
-                </a>
-                <span class="badge">
-                  {% if video.is_monetized == False %}
-                    <span class="badge badge-danger">
-                      demonetized
-                    </span>
-                  {% else %}
-                    <span class="badge badge-success">
-                      monetized
-                    </span>
-                  {% endif %}
+    <div class="card-group">
+      {% for video in random_videos %}
+          <div class="card col-sm-6 col-md-4 col-lg-3">
+            <a href="/explore/videos/{{ video.video_id }}">
+              <img class="card-img-top" src="{{ video.thumbnail_url }}" alt="">
+            </a>
+            <div class="card-body">
+              <p class="card-text">
+                <span>                
+                  <a href="/explore/videos/{{ video.video_id }}">
+                    {{ video.video_title.lower() }}
+                  </a>
+                  <span class="badge">
+                    {% if video.is_monetized == False %}
+                      <span class="badge badge-danger">
+                        demonetized
+                      </span>
+                    {% else %}
+                      <span class="badge badge-success">
+                        monetized
+                      </span>
+                    {% endif %}
+                  </span>
                 </span>
-              </span>
-            </p>
-          </div>
-          <!-- /.card -->
-        </div>
-      </div>     
-    {% endfor %}
+              </p>
+            </div>
+            <!-- /.card -->
+        </div>     
+      {% endfor %}
+    </div>
 
   </div>  
 
