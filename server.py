@@ -649,6 +649,50 @@ def generate_tag_data_json():
     return jsonify(json_response)
 
 
+@app.route('/get-individual-tag-data.json')
+def generate_tag_data_for_individual_tag():
+    """Given an individual tag, load demonetization data and # of videos using it."""
+
+    tag = request.args.get('tag')
+    print(tag)
+
+    tag_id = TagVideo.query.filter(Tag.tag == tag).first().tag_id
+
+    total_videos = db.session.query(TagVideo
+                            ).join(Tag
+                            ).filter(Tag.tag == tag
+                            ).count()
+    print(total_videos)
+
+    demonetized_videos = db.session.query(TagVideo
+                                  ).join(Tag
+                                  ).filter(Tag.tag == tag
+                                  ).join(Video
+                                  ).filter(Video.is_monetized == False
+                                  ).count()
+
+
+    len(TagVideo.query.filter(TagVideo.tag_id == tag_id
+                                          ).join(Video
+                                          ).filter(Video.is_monetized == False
+                                          ).all())
+    print(demonetized_videos)
+    percent_demonetized = round(demonetized_videos/total_videos * 100)
+
+    json_response = {'labels': [tag],
+                     'datasets': [{'label': '% monetized',
+                                   'backgroundColor': 'rgba(50, 178, 89, 1)',
+                                   'data': [100-percent_demonetized]},
+                                  {'label': '% demonetized',
+                                   'backgroundColor': 'rgba(238, 39, 97, 1)',
+                                   'data': [percent_demonetized]}
+                                 ],
+                     'total_videos': total_videos}
+
+    print(json_response)
+    return jsonify(json_response)
+
+
 @app.route('/search', methods=['GET', 'POST'])
 def display_search_results():
     """Display search results."""
@@ -787,7 +831,10 @@ def show_specific_video_page(video_id):
     thumbnail_url = video.thumbnail_url
 
     # Update the video_stats table with the most up-to-date info
-    add_video_stats_data(parse_video_data(get_info_by_youtube_id(video_id)))    
+    try:
+        add_video_stats_data(parse_video_data(get_info_by_youtube_id(video_id)))    
+    except:
+        pass
     video_stats = VideoStat.query.filter(VideoStat.video_id == video_id).first()
 
     channel = Channel.query.join(Video).filter(Video.video_id == video_id).first()
@@ -918,9 +965,6 @@ def show_tags_page():
     
     random_tags = tags.get_random_elements(80)
 
-    tags = sorted(random_tags, key=lambda x: x.tag)
-
-    print(tags)
     return render_template('tags.html',
                             tags=random_tags)
 
@@ -986,55 +1030,6 @@ def generate_tag_chart_data():
     return jsonify(data)
 
 
-@app.route('/add-data', methods=['GET', 'POST'])
-def add_data():
-    """Allow users to contribute additional creator data."""
-
-    if request.method == 'POST':
-
-        video_id = request.form['video-id-input']
-        video = Video.query.filter(Video.video_id == video_id).first()
-
-        monetization_status = request.form['monetizedRadio']
-        if monetization_status == 'demonetized':
-            is_monetized = False
-        else:
-            is_monetized = True
-
-        added_on = datetime.datetime.utcnow()
-
-        if video: # if the video is already in the db
-            video.is_monetized = is_monetized
-            addition = Addition(video_id=video_id,
-                                added_on=added_on,
-                                is_update=True)
-            db.session.add(addition)
-            db.session.commit()
-            flash("Successfully updated the video's monetization status!")
-        
-            return redirect('/add-data')
-
-        else:
-            addition = Addition(video_id=video_id,
-                                added_on=added_on,
-                                is_update=False)
-            db.session.add(addition)
-            video = Video(video_id=video_id,
-                          is_monetized=is_monetized)
-            db.session.add(video)
-            db.session.commit()
-            flash(Markup('''<div class="alert alert-success alert-dismissible" role="alert">
-                                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                Successfully added the video. <a href="/explore/videos/''' + video_id + '''" class="alert-link">Check it out</a> or add another.
-                            </div>''')) # tk add link
-            
-            # call APIs to get other info
-            add_all_info_to_db(video_id)
-
-            return redirect('/add-data')
-
-    else:
-        return render_template('add-data.html')
 
 # Error-related routes
 
@@ -1176,46 +1171,6 @@ def create_initial_tag_data_json():
 #     return jsonify(data)
 
 
-@app.route('/check-database.json')
-def check_user_submission():
-    """Check the database to see if the user-submitted video is already in the
-    database, and if so, whether the monetization status is the same.
-    """
-
-    video_id = request.args.get('videoId')
-    monetized = request.args.get('monetizationStatus') #boolean
-    
-    if Video.query.filter(Video.video_id == video_id).first(): # if it exists
-        if Video.query.filter(Video.is_monetized == True):
-            database_status = 1
-        else:
-            database_status = 2
-    else:
-        database_status = 0
-        # flash message directly?
-
-    data = {'status': 
-            database_status} # 0 if new video, 1 if existing + same monetization status, 2 if existing and different monetization status
-    print(data)
-    return jsonify(data)
-
-
-@app.route('/change-ad-status.json')
-def change_ad_status_in_db():
-    """Update the video's monetization status in the database based on user feedback."""
-
-    video_id = request.form['video-id-input']
-
-    video = Video.query.filter(Video.video_id == video_id).first()
-    if video.is_monetized == False:
-        video.is_monetized = True
-    else:
-        video.is_monetized = False
-
-    db.session.commit()
-    flash("The video's ad status was successfully updated.") # tk add link
-
-
 def count_tag_frequency(tag_item):
     """Assume Count how many times a tag_related_item (tag_id or tag) appears
     in the TagVideo table."""
@@ -1294,10 +1249,42 @@ def trie_to_dict(node):
             'children': trie_dict}
 
 
+def get_tag_frequency(word):
+    """Get tag frequency for a certain word from the db."""
+
+    frequency_in_videos = db.session.query(func.count(TagVideo.tag_video_id)
+                            ).join(Tag
+                            ).filter(Tag.tag == word
+                            ).first()
+    frequency_in_images = db.session.query(func.count(TagImage.tag_image_id)
+                            ).join(Tag
+                            ).filter(Tag.tag == word
+                            ).first()
+
+    return make_int_from_sqa_object(frequency_in_videos) + make_int_from_sqa_object(frequency_in_images)
+    # by definition, there shouldn't be any tags whose frequency is zero.
+
+
+@app.route('/autocomplete-trie.json')
+def construct_tag_trie():
+    """Return a jsonified dictionary representation of a trie for all
+    tags in the database."""
+
+    tag_trie = Trie()
+
+    for tag in Tag.query.all():
+        tag_trie.add_word(tag.tag, get_tag_frequency(tag.tag))
+
+    tag_trie_dict = trie_to_dict(tag_trie.root)
+
+    return jsonify(tag_trie_dict)
+
+
 # to be translated into JavaScript in chart-tag.html
 def create_tag_list(trie_dict, previous):
-    """Assume trie_dict is a dictionary of characters descended from the root node(not included).
-    Return a sorted list of tags to display to autosuggest.
+    """
+    Assume trie_dict is a dictionary representation of the tag trie.
+    Return a list of all possible tags and their frequencies.
 
     >>> a_dict = {'a': {'freq': 1, 'children': {}}}
     >>> create_tag_list(a_dict, '')
@@ -1342,94 +1329,120 @@ def create_tag_list(trie_dict, previous):
     >>> create_tag_list(multi_level_dict, '')
     [['a',1],['an',2],['and',3],['be',2],['bee',3],['bet',3],['being',5],['bog',3],['bong',4]]
     """ 
+    all_tags = []
 
-    all_words = []
+    for char, info in trie_dict.items():  
+        if not previous:
+            previous = ''
+            if info['freq']:
+                all_tags.append((char, info['freq']))
+            for key, value in info['children'].items():
+                for item in create_tag_list({key: value}, char):
+                    all_tags.append(item)
+        else:
+            if info['freq']:
+                all_tags.append((previous+char, info['freq']))
+            for key, value in info['children'].items():
+                for item in create_tag_list({key: value}, (previous+char)):
+                    all_tags.append(item)
 
-    print('previous=' + previous)
-    print('trie_dict.items(): ' + str(trie_dict.items()))
-    print('len=' + str(len(trie_dict.items())))
-    for k, v in trie_dict.items():
-        print('previous+k={}, v={}'.format(previous+k, v))
+    return all_tags
+
+
+##################################
+# from /add-data
+##################################
+
+@app.route('/add-data', methods=['GET', 'POST'])
+def add_data():
+    """Allow users to contribute additional creator data."""
+
+    if request.method == 'POST':
+
+        video_id = request.form['video-id-input']
+        video = Video.query.filter(Video.video_id == video_id).first()
+
+        monetization_status = request.form['monetizedRadio']
+        if monetization_status == 'demonetized':
+            is_monetized = False
+        else:
+            is_monetized = True
+
+        added_on = datetime.datetime.utcnow()
+
+        if video: # if the video is already in the db
+            video.is_monetized = is_monetized
+            addition = Addition(video_id=video_id,
+                                added_on=added_on,
+                                is_update=True)
+            db.session.add(addition)
+            db.session.commit()
+            flash("Successfully updated the video's monetization status!")
         
-        if not previous: # if previous is ''
-            print("previous=''")
-            if v['freq']:
-                all_words.append([previous + (previous+k), 
-                                  v['freq']])
-                print('(1) all_words=' + str(all_words))
+            return redirect('/add-data')
 
-            for key, value in v['children'].items():
-                # print("v['children']= " + str(v['children']) + ' len=' + str(len(v['children'])))
-                print("1. {key: value}=" + str({key: value}) + '\nprevious+k=' + (previous+k))
-                for item in create_tag_list({key: value}, previous + (previous+k)):
-                    all_words.append(item)
-                    print('(2) all_words=' + str(all_words))
+        else:
+            addition = Addition(video_id=video_id,
+                                added_on=added_on,
+                                is_update=False)
+            db.session.add(addition)
+            video = Video(video_id=video_id,
+                          is_monetized=is_monetized)
+            db.session.add(video)
+            db.session.commit()
+            flash(Markup('''<div class="alert alert-success alert-dismissible" role="alert">
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                Successfully added the video. <a href="/explore/videos/''' + video_id + '''" class="alert-link">Check it out</a> or add another.
+                            </div>''')) # tk add link
+            
+            # call APIs to get other info
+            add_all_info_to_db(video_id)
 
-        else: # if there's a value in previous
-            print("previous=<something>")
-            if v['freq']:
-                print('AAAA previous+k=' + previous+k)
-                print("AAAA v['freq']=" + str(v['freq']))
-                all_words.extend([previous+k, 
-                                  v['freq']])
-                print('(3) all_words=' + str(all_words))
+            return redirect('/add-data')
 
-            for key, value in v['children'].items():
-                # print("v['children']= " + str(v['children']) + ' len=' + str(len(v['children'])))
-                print("2. {key: value}=" + str({key: value}) + '\nprevious+k=' + (previous+k))
-                for item in create_tag_list({key: value}, (previous+k)):
-                    all_words.append(create_tag_list({key: value}, (previous+k)))
-                    print('(4) all_words=' + str(all_words))
-
-    return all_words
-    # tk need to figure out how to get rid of multiple brackets + sort
-    # return sorted(all_words, key=lambda x: x[1]) 
-
-
-def get_tag_frequency(word):
-    """Get tag frequency for a certain word from the db."""
-
-    frequency_in_videos = db.session.query(func.count(TagVideo.tag_video_id)
-                            ).join(Tag
-                            ).filter(Tag.tag == word
-                            ).first()
-
-    frequency_in_images = db.session.query(func.count(TagImage.tag_image_id)
-                            ).join(Tag
-                            ).filter(Tag.tag == word
-                            ).first()
-
-    return frequency_in_videos + frequency_in_images # need to make an integer from query object
-    # There shouldn't be any tags whose frequency is zero.
-
-@app.route('/autocomplete-trie.json')
-def construct_tag_trie():
-    """Return a jsonified dictionary representation of a trie for all the
-    tags in the database."""
-
-    trie = Trie()
-
-    for tag in Tag.query.all():
-        trie.add_word(tag.tag, get_tag_frequency(tag.tag))
-
-    # turn trie into a dictionary so it can be jsonified
-    trie_dict = trie_to_dict(trie.root)
-    print(trie_dict)
-    return jsonify(trie_dict)
+    else:
+        return render_template('add-data.html')
 
 
 @app.route('/check-database.json')
-def check_database_for_duplicates():
+def check_user_submission():
+    """Check the database to see if the user-submitted video is already in the
+    database, and if so, whether the monetization status is the same.
+    """
 
-    video_id = request.args.get('video-id-input')
+    video_id = request.args.get('videoId')
+    monetized = request.args.get('monetizationStatus') #boolean
+    
+    if Video.query.filter(Video.video_id == video_id).first(): # if it exists
+        if Video.query.filter(Video.is_monetized == True):
+            database_status = 1
+        else:
+            database_status = 2
+    else:
+        database_status = 0
+        # flash message directly?
+
+    data = {'status': 
+            database_status} # 0 if new video, 1 if existing + same monetization status, 2 if existing and different monetization status
+    print(data)
+    return jsonify(data)
+
+
+@app.route('/change-ad-status.json')
+def change_ad_status_in_db():
+    """Update the video's monetization status in the database based on user feedback."""
+
+    video_id = request.form['video-id-input']
+
     video = Video.query.filter(Video.video_id == video_id).first()
-    video_info = {}
+    if video.is_monetized == False:
+        video.is_monetized = True
+    else:
+        video.is_monetized = False
 
-    if video:
-        video_info['in_database'] = True
-        video_info['is_monetized'] = video.is_monetized
+    db.session.commit()
+    flash("The video's ad status was successfully updated.") # tk add link
 
-    return jsonify(video_info)
 
 # - - - - - - - - - by channel size - - - - - - - - - -
 # chartjs_default_data = {}

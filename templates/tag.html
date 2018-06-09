@@ -19,11 +19,8 @@
   </div>
 
   <div class="row" id="tag-row4">
-    <div class="col" id="tag-row4-col1">
-      <canvas></canvas>      
-    </div>
-    <div class="col" id="tag-row4-col2">
-      <canvas></canvas>    
+    <div class="col-9" id="tag-row4-col1">
+      <canvas id="single-tag-demonetization" style="height: 110px;"></canvas>      
     </div>
   </div>
   
@@ -79,5 +76,63 @@
 </div>
 
 </div>
+
+{% endblock %}
+
+{% block scripts%}
+
+<script type="text/javascript">
+  
+  // (1) Establish initial variables.
+
+  let ctxTag = $('#single-tag-demonetization').get(0).getContext('2d');
+
+  let rgbColors = ['rgba(238, 39, 97, 1)', // pink
+                   'rgba(40, 37, 98, 1)', // purple
+                   'rgba(50, 178, 89, 1)', // green
+                   'rgba(94, 200, 213, 1)']; // blue
+
+  let hexColors = ['ee2761', // pink
+                   '282562', // purple
+                   '32b259', // green
+                   '5ec8d5'] // blue
+
+  let options = {responsive: true,
+                 animation: false,
+                 legend: {display: true},
+                 title: {display: false}, 
+                 maintainAspectRatio: false,
+                 tooltips: {mode: 'index',
+                            intersect: true},
+                 elements: {point: {pointStyle: 'circle'}},
+                 scales: {xAxes: [{stacked: true}],
+                          yAxes: [{stacked: true}]
+                 }}
+
+  tag = $('h1').text().trim().slice(1, -1);
+
+  // (2.1) Load chart when you land on the page.
+
+  window.onload = function() {
+    $.ajax({
+      url: '/get-individual-tag-data.json',
+      data: {'tag': tag},
+      type: 'GET'
+    })
+    .done(function loadNewChart(response) {
+      var total_videos = response['total_videos'];
+      delete response['total_videos'];
+      tagChart = new Chart(ctxTag, {
+        type: 'horizontalBar',
+        data: response,
+        options: options
+      });
+    })
+  }
+
+
+
+</script>
+
 
 {% endblock %}

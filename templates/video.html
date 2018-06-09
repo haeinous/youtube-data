@@ -33,6 +33,26 @@
     <!-- /#video-row2 -->
   </div>
 
+<!--   <div class="row table-inside" id="basic-info-and-iframe">
+    <div class="col-sm-12 col-lg-5">
+      <table class="display table table-striped table-bordered table-sm">
+        <thead>
+          <tr>
+            <th scope="col"></th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="col-sm-12 col-lg-6">
+      
+    </div>
+  </div>
+ -->
   <div class="row table-inside" id="video-row3">
     <table id="video-details-table" class="display table table-striped table-bordered table-sm">
       <thead>
@@ -134,16 +154,18 @@
           </td>
           <td></td>
         </tr>
-        <tr>
-          <th scope="row">
-            colors
-          </th>
-          <td colspan="2">
-            {% for color in colors %}
-              <div id="color-square" style="width: 20px; height: 20px; background-color: {{ color }};" data-toggle="tooltip" data-placement="left" title="{{ color }}"></div>
-            {% endfor %}
-          </td>
-        <tr>
+        {% if colors %}
+          <tr>
+            <th scope="row">
+              colors
+            </th>
+            <td colspan="2">
+              {% for color in colors %}
+                <div id="color-square" style="width: 20px; height: 20px; background-color: {{ color }};" data-toggle="tooltip" data-placement="left" title="{{ color }}"></div>
+              {% endfor %}
+            </td>
+          <tr>
+        {% endif %}
           <td colspan="3"></td>
         </tr>
         <tr>
@@ -170,7 +192,7 @@
         {% for text_analysis in text_analyses %}
 
         <tr>
-          {% if text_analysis[0] == 1 %}
+          {% if text_analysis[0] == 'video_title' %}
             <th scope="row">
               title sentiment
             </th>
@@ -194,14 +216,14 @@
               </div>
             </td>
             <td></td>
-          {% elif text_analysis[0] == 2 %}
+          {% elif text_analysis[0] == 'video_description' %}
             <th scope="row">
               description sentiment
             </th>
             <td>
               <div id="description-sentiment-score" data-toggle="tooltip" data-placement="left" title="sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
                 {% if text_analysis[1] < 0 %}
-                  Score: 
+                  score: 
                   <span class="negative" style="color: red;">
                     {{ text_analysis[1] }}
                   </span>
@@ -217,7 +239,7 @@
               </div>
             </td>
             <td></td>
-          {% elif text_analysis[0] == 3 %}
+          {% elif text_analysis[0] == 'video_tags' %}
             <th scope="row">
               tag sentiment
             </th>
