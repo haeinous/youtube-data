@@ -285,8 +285,7 @@ def generate_video_graph(channel_id):
 def generate_video_graph_by_shared_tags():
     """Return JSON to allow D3 to illustrate shared tags and monetization status."""
 
-    data = {'nodes': [],
-            'links': []}
+    data = {'nodes': [], 'links': []}
 
     channel_id = request.args.get('channelId')
 
@@ -308,7 +307,7 @@ def generate_video_graph_by_shared_tags():
                                       'value': all_vertices[vertex].neighbors[neighbor]})
                 processed_pairs.add((vertex, neighbor.name))
                 processed_pairs.add((neighbor.name, vertex))
-    # print(data)
+
     return jsonify(data)
 
 
@@ -341,10 +340,7 @@ class PostingsList:
     def print_list(self):
         """Print data for all postings."""
         current = self.head
-
         while current:
-            print('type type')
-            print(type(current))
             print(current)
             current = current.next
 
@@ -356,6 +352,12 @@ class PostingsList:
             i += 1
             current = current.next
         return i
+
+    def __iter__(self):
+        current = self.head
+        while current is not None:
+            yield current
+            current = current.next
 
     def __repr__(self):
         return '<PostingsList with {} postings>'.format(len(self))
@@ -370,16 +372,18 @@ class Posting:
         self.next = None
 
     def __repr__(self):
-        return '<Posting: data={}, next={}>'.format(self.data, 
-                                                    self.next)
-
+        if self.next:
+            return '<Posting: data={}>'.format(self.data)
+        else:
+            return '<Posting: data={}, next={}>'.format(self.data, 
+                                                        self.next)
 
 class InvertedIndex(dict):
     """Inverted index data structure, consisting of a dictionary of all the unique 
     words pointing to a singly linked list of the documents in which it appears."""
 
-    # Example: {('word', 3): [(1, 2), (3, 1), (5, 1)],
-    #           ('hello', 2): [(3, 1), (4, 2)]}
+    # Example: {('word'): [(1, 2), (3, 1), (5, 1)],
+    #           ('hello'): [(3, 1), (4, 2)]}
     # The term 'word' appears 4 times across 3 documents (doc_id 1, 3, and 5). It 
     # appears twice in doc 1. 
 
@@ -491,17 +495,26 @@ def categorize_document(document):
 def index_document(document_text, document_id):
 
     stopwords = set(nltk.corpus.stopwords.words('english'))
+
+    for punctuation in '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~':
+        stopwords.add(punctuation)
+
+    other = ['https', 'http', 'www'] # tk fill this out
+    for word in other:
+        stopwords.add(word)
+
     stemmer = EnglishStemmer()
 
     terms = [term.lower() for term in nltk.word_tokenize(document_text)] # list
     all_document_info = []
+    terms = [stemmer.stem(term) for term in terms]
+    unique_terms = set(terms)
 
-    for term in terms:
+    for term in unique_terms:
         if term not in stopwords:
-            term = stemmer.stem(term)
-            frequency = term.count(document_text)
+            frequency = terms.count(term)
             all_document_info.append((term, document_id, frequency))
-    print('- - - all document info - - -')
+
     print(all_document_info)
     return all_document_info
 
@@ -511,7 +524,7 @@ def generate_inverted_index():
     terms, document ids, and frequencies."""
 
     inverted_index = InvertedIndex()
-    print(inverted_index)
+
     all_documents = (set(VideoCategory.query.all()) | 
                      set(Channel.query.all()) | 
                      set(Video.query.filter(Video.video_status.is_(None)).all()))
@@ -527,15 +540,12 @@ def generate_inverted_index():
                 inverted_index[term_info[0]] = PostingsList((term_info[1], term_info[2]))
             else: # add Posting to the end of the PostingsList (a linked list)
                 inverted_index[term_info[0]].append((term_info[1], term_info[2]))
-        print('- ' * 20 + 'start ' + '- ' * 20)
-        print(str(i) + ': ' + str(inverted_index))
-        print('- ' * 20 + 'end ' + '- ' * 20)
         i += 1
 
-    print('Done adding channels to the inverted index.')
-    return inverted_index
+    with open('inverted_index.pickle', 'wb') as f:
+        pickle.dump(inverted_index, f)
 
-    # To-do: pickle the index.
+    return inverted_index
 
 def pickle_index(filename):
     """Dump the inverted index into a pickle so it doesn't need
@@ -549,6 +559,74 @@ def pickle_load(filename):
     """Load the pickled inverted index to add an entry."""
     with open(filename, 'rb') as f:
         inverted_index = pickle.load(f)
+
+
+def process_term(search_query):
+    """Process a term so it can be added to the index."""
+
+    search_query = nltk.word_tokenize(search_query).lower()
+    if search_query not in stopwords:
+        search_query = stemmer.stem(search_query)
+
+
+@app.route('/search', methods=['GET', 'POST'])
+def display_search_results():
+    """Display search results."""
+
+    search_results = {'channels': [],
+                      'videos': [],
+                      'categories': []}
+
+    if request.method == 'GET':
+
+        search_term = request.args.get('q')
+
+        # (1) process_search_query (lowercase, stemming etc)
+
+        # (2) unpickle index
+        with open('inverted_index.pickle', 'rb') as f:
+            inverted_index = pickle.load(f)
+            print(inverted_index[search_term])
+
+        # (3) search the inverted_index
+            try:
+                postings = [posting for posting in inverted_index[search_term]]
+                print('postings: ')
+                print(postings)
+
+            # (3.1) return 'no results' if nothing is found
+            except:
+                print('no results')
+                postings = [] # search term not found
+                return render_template('search-results.html', search_results=search_results,
+                                                              search_term=search_term)
+
+        # (4) sort the inverted index by term frequency
+        if postings: # if it's not empty
+            postings.sort(key=lambda x: -x.data[1])
+
+        # (5) populate the search_results dictionary        
+
+        for posting in postings:
+            document = Document.query.filter(Document.document_id == posting.data[0]).first()
+            document_primary_key = document.document_primary_key
+
+            if len(document_primary_key) == 11:
+                video = Video.query.filter(Video.video_id == document_primary_key).first()
+                search_results['videos'].append(video)
+            elif len(document_primary_key) == 24:
+                channel = Channel.query.filter(Channel.channel_id == document_primary_key).first()
+                search_results['channels'].append(channel)
+            else:
+                category = VideoCategory.query.filter(VideoCategory.video_category_id == document_primary_key).first()
+                search_results['categories'].append(category)
+
+        print('search results')
+        print(search_results)
+        return render_template('search.html', search_results=search_results,
+                                              search_term=search_term)
+    else:
+        pass
 
 
 ##### Helper functions
@@ -585,10 +663,12 @@ def format_timedelta(timedelta_object):
 def index():
     """Homepage."""
 
-    videos_in_db = db.session.query(func.count(Video.video_id)).first()
-    channels_in_db = db.session.query(func.count(Channel.channel_id)).first()
-    videos_in_db = make_int_from_sqa_object(videos_in_db)
-    channels_in_db = make_int_from_sqa_object(channels_in_db)
+    videos_in_db = make_int_from_sqa_object(
+                        db.session.query(func.count(Video.video_id)
+                                 ).first())
+    channels_in_db = make_int_from_sqa_object(
+                        db.session.query(func.count(Channel.channel_id)
+                                 ).first())
 
     return render_template('homepage.html', videos_in_db=videos_in_db,
                                             channels_in_db=channels_in_db)
@@ -977,7 +1057,7 @@ def show_specific_tag_page(tag_id):
                            ).filter(TagVideo.tag_id == tag_id
                            ).all()
 
-    if len(tag_videos) < 4:
+    if len(tag_videos) < 5:
         random_videos = tag_videos
     else:
         tag_video_bag = RandomBag()
@@ -998,14 +1078,11 @@ def generate_tag_chart_data():
     all_tags = request.args.get('allTags')
 
     for tag in Tag.query.join(TagVideo).all():
-
-
         all_videos = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)
                               ).join(VideoCategory
                               ).filter(VideoCategory.video_category_id
                                        == category.video_category_id
                               ).first())
-
         demonetized_videos = make_int_from_sqa_object(
                                 db.session.query(func.count(Video.video_id)
                                       ).join(VideoCategory
@@ -1013,7 +1090,6 @@ def generate_tag_chart_data():
                                                == category.video_category_id
                                       ).filter(Video.is_monetized == False
                                       ).first())
-
         percent_demonetized.append((category.category_name.lower(), 
                                     round(demonetized_videos/all_videos*100)))
 
@@ -1026,13 +1102,10 @@ def generate_tag_chart_data():
                           'backgroundColor': colors,
                           'data': percent_demonetized}]}
 
-
     return jsonify(data)
 
 
-
 # Error-related routes
-
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('errors/404.html')
@@ -1263,6 +1336,7 @@ def get_tag_frequency(word):
 
     return make_int_from_sqa_object(frequency_in_videos) + make_int_from_sqa_object(frequency_in_images)
     # by definition, there shouldn't be any tags whose frequency is zero.
+
 
 def construct_tag_trie():
     """Construct a trie for all tags in the seed database (only needs to be done
