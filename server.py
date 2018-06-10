@@ -1264,24 +1264,37 @@ def get_tag_frequency(word):
     return make_int_from_sqa_object(frequency_in_videos) + make_int_from_sqa_object(frequency_in_images)
     # by definition, there shouldn't be any tags whose frequency is zero.
 
-
-@app.route('/autocomplete-trie.json')
 def construct_tag_trie():
-    """Return a jsonified dictionary representation of a trie for all
-    tags in the database."""
+    """Construct a trie for all tags in the seed database (only needs to be done
+    once)."""
 
     tag_trie = Trie()
 
     for tag in Tag.query.all():
+        tag_freq = get_tag_frequency(tag.tag)
         tag_trie.add_word(tag.tag, get_tag_frequency(tag.tag))
+        print('added {} with frequency {}'.format(tag.tag, tag_freq))
 
     tag_trie_dict = trie_to_dict(tag_trie.root)
+
+    pickle_out = open('tag_trie_dict.pickle', 'wb')
+    pickle.dump(tag_trie_dict, pickle_out)
+    pickle_out.close()
+
+
+@app.route('/autocomplete-trie.json')
+def return_tag_trie():
+    """Return a jsonified dictionary representation of a trie for all
+    tags in the database."""
+
+    pickle_in = open('tag_trie_dict.pickle', 'rb')
+    tag_trie_dict = pickle.load(pickle_in)
 
     return jsonify(tag_trie_dict)
 
 
 # to be translated into JavaScript in chart-tag.html
-def create_tag_list(trie_dict, previous):
+def create_tag_list(trie_dict, previous=None):
     """
     Assume trie_dict is a dictionary representation of the tag trie.
     Return a list of all possible tags and their frequencies.
@@ -1345,6 +1358,14 @@ def create_tag_list(trie_dict, previous):
             for key, value in info['children'].items():
                 for item in create_tag_list({key: value}, (previous+char)):
                     all_tags.append(item)
+
+    return all_tags
+
+def sort_tags_by_frequency(all_tags):
+    """Assume all_tags is a list of all tags and their frequencies.
+    Sort tags by frequency, then by tag length."""
+
+    all_tags.sort(key=lambda x: (-x[1], x[0]))
 
     return all_tags
 
