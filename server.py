@@ -706,9 +706,10 @@ def generate_tag_data_json():
     """Query the database the retrieve tag demonetization data and
     return a json string."""
 
-    tags = request.args.get('initialTags')
+    tags = request.args.get('tags')
 
     if not tags:
+        print('not tag')
         tags = ['donald trump', 'hillary clinton', 'bernie sanders']
 
     json_response = {'labels': [],

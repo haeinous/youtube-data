@@ -107,7 +107,7 @@
       <div class="col align-middle" id="tag-search-container">
         <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search for tags">
         <div id="suggested-tag-container">
-          <ul class="dropdown-menu" id="suggested-tags" style="background-color: #fff5f8;" role="menu">
+          <ul class="" id="suggested-tags" style="background-color: #fff5f8;" role="menu">
           </ul>
         </div>
       </div>
@@ -184,6 +184,7 @@
                  }}
 
   let initialTagExamples = ['donald trump', 'hillary clinton', 'bernie sanders']
+  let currentTags = [['donald trump'], ['hillary clinton'], ['bernie sanders']]
 
   let tagText = [$('#tag-text1').text(),
                  $('#tag-text2').text(),
@@ -215,11 +216,9 @@
   // (2.1) Load chart when you land on the page.
 
   window.onload = function() {
-    console.log('hi');
-    console.log(initialTagExamples);
     $.ajax({
       url: '/get-tag-data.json',
-      data: {'initialTags': initialTagExamples},
+      data: {'tags': initialTagExamples},
       type: 'GET'
     })
     .done(function (response) {
@@ -230,6 +229,9 @@
     })
     .done(function(response) {
       loadChart(response);
+    })
+    .done(function(response) {
+      updateCurrentTags(response);
     })
   }
 
@@ -270,6 +272,12 @@
     })
   }
 
+  function updateCurrentTags(response) {
+    for (let i = 0; i < 3; i++) {
+      currentTags[i].push(response['datasets'][i]['data']);
+    }
+  }
+
   // (2.4) Load autocomplete trie.
 
   tagTrie = loadTagTrie();
@@ -280,7 +288,7 @@
     })
   }
   
-  // (4) Set up autocomplete.
+  // (3) Set up autocomplete.
 
   $('#tag-search-box').on('keyup', displaySuggestedTags);
 
@@ -288,37 +296,21 @@
     let inputVal = $('#tag-search-box').val();
     let sortedTagArray = parseTags(inputVal);
     if (sortedTagArray === null) { // null or undefined?
-      $('#suggested-tags').html('No results found.');
+      $('#suggested-tags').append('<p>No results found.</p>');
     } else {
       let suggestedTagsHtml = '';
       for (let tag in sortedTagArray.slice(0, 8)) { // tk will slicing raise indexerror-type thing if there are fewer than 8 tags?
-        suggestedTagsHtml += '<li class="clickable-suggestions"><a>' + tag[0] + '</a></li>';
+        suggestedTagsHtml += `<li class="clickable-suggestions" id="tag-${tag[0]}"><a>${tag[0]}</a></li>`;
       }
-      $('#suggested-tags').html(suggestedTagsHtml);
+      $('#suggested-tags').append(suggestedTagsHtml);
     }
   }
 
   function parseTags(inputVal) {
-    // (a) Find prefix node
-    let prefix = inputVal;
-    
-    getAllWords(tagTrie, prefix);
-
-
-    // (b) Get all words starting with prefix
-    let sortedTagArray = sortArray();
-    return sortedTagArray
-  }
-
-  function test(trie, prefix) {
-    let allTags = [];
-    if (Object.keys(trie)[0] === '') {
-      trie = trie[''];
-      for (let char of prefix) {
-        trie = trie['children'][char];
-        console.log(trie);
-      }
-    }
+    // (a) Get all words starting with prefix   
+    let allTags = getAllWords(tagTrie, inputVal);
+    allTags.sort((a,b) => (b[1] - a[1]));
+    return allTags
   }
 
   function getAllWords(trieObject, prefix) {
@@ -330,7 +322,7 @@
       }
     }
     for (let item of Object.entries(trieObject)) {
-      console.log('item:');
+      console.log('item:'); // things stopped working here.
       console.log(item);
       if (item[1]['freq']) {
         console.log('tuple:');
@@ -348,7 +340,60 @@
     return allTags
   }
 
-  allTags.sort((a,b) => (b[1] - a[1]));
+  // (4) Add tag.
+
+  // (4.1) Upon clicking a tag, add it to the chart
+
+  $('.suggested-tag-dropdown').on('click', addTag);
+
+  function addTag() {
+    let newTag = $(this).text().trim();
+    $.ajax({
+      url: '/get-tag-data.json',
+      data: {'tags': newTag}
+    })
+    .done(function(response) {
+      addTagToChart(response);
+    })
+    .done(function(response) {
+      addTagToDisplay(response);
+    })
+  }
+
+  function addTagToChart(response) {
+    tagChart.data.labels.push(newTag);
+    tagChart.data.datasets.forEach(dataset => {
+      dataset.data.push(response['datasets'][0]['data']);
+    });
+    tagChart.update();
+  }
+
+  // (4.2) Add it to the tagDisplay
+
+  function addTagToDisplay(response) {
+    currentTags.push([newTag, response['datasets'][0]['data']]);
+  }
+
+  function updateChart() {
+    let data = {'labels': [],
+                'datasets': []}
+    
+    for (let i of currentTags.length) {
+      data['labels'].push(currentTags[i][0]);
+      let datasetTemplate = {'backgroundColor': [],
+                             'data': []}
+      datasetTemplate['data'].push(currentTags[i][1]);
+      datasetTemplate['backgroundColor'].push()
+      data['datasets'].push(currentTags[i][1]);
+    }
+    console.log(data);
+    
+    tagChart = new Chart(ctxTagChart, {
+      type: 'line',
+      data: data,
+      options: options
+    });
+  }
 
 
   // (7) Remove tags.
@@ -368,7 +413,7 @@
     });
     tagChart.update();
     // (c) update chart colors
-
+    currentTags.splice(tagId, 1); // removes tag at index[tagId]
   }
 
   function updateColors() {
