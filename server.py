@@ -25,6 +25,11 @@ app.secret_key = 'ABC'
 # Raises an error when using an undefined variable in Jinja.
 app.jinja_env.undefined = StrictUndefined
 
+# Construct tag trie
+construct_tag_trie()
+
+# Construct inverted index
+
 ##### classes
 
 class Trie:
@@ -1235,18 +1240,18 @@ def count_tag_frequency(tag_item):
     return tag_frequencies
 
 
-@app.route('/autocomplete.json')
-def autocomplete_search():
-    tag = request.args.get('tagInput')
-    try:
-        tag = tag.lower().strip()
-    except AttributeError: # if tags are non-alphabet
-        print('AttributeError: ' + tag)
-    finally:
-        tag_search = Tag.query.filter(Tag.tag.like(str(tag) + '%')).all() # tag_search is a list of Tag objects
-        data = dict(zip(map(lambda x: x.tag, tag_search), count_tag_frequency(tag_search)))
-        print(data)
-        return jsonify(data)
+# @app.route('/autocomplete.json')
+# def autocomplete_search():
+#     tag = request.args.get('tagInput')
+#     try:
+#         tag = tag.lower().strip()
+#     except AttributeError: # if tags are non-alphabet
+#         print('AttributeError: ' + tag)
+#     finally:
+#         tag_search = Tag.query.filter(Tag.tag.like(str(tag) + '%')).all() # tag_search is a list of Tag objects
+#         data = dict(zip(map(lambda x: x.tag, tag_search), count_tag_frequency(tag_search)))
+#         print(data)
+#         return jsonify(data)
 
 
 def trie_to_dict(node):
@@ -1316,16 +1321,22 @@ def construct_tag_trie():
     """Construct a trie for all tags in the seed database (only needs to be done
     once)."""
 
-    tag_trie = Trie()
+    complete_tag_trie = Trie()
+    smaller_tag_trie = Trie()
 
     for tag in Tag.query.all():
         tag_freq = get_tag_frequency(tag.tag)
-        tag_trie.add_word(tag.tag, get_tag_frequency(tag.tag))
+        complete_tag_trie.add_word(tag.tag, tag_freq)
+        if len(tag.tag) < 18 and tag.tag.count(' ') < 4:
+            smaller_tag_trie.add_word(tag.tag, tag_freq)
 
-    tag_trie_dict = trie_to_dict(tag_trie.root)
+    tag_trie_dict = trie_to_dict(smaller_tag_trie.root)
 
     with open('tag_trie_dict.pickle', 'wb') as f:
         pickle.dump(tag_trie_dict, f)
+
+    with open('complete_tag_trie.pickle', 'wb') as f:
+        pickle.dump(complete_tag_trie, f)
 
 
 @app.route('/autocomplete-trie.json')
@@ -1333,8 +1344,8 @@ def return_tag_trie():
     """Return a jsonified dictionary representation of a trie for all
     tags in the database."""
 
-    pickle_in = open('tag_trie_dict.pickle', 'rb')
-    tag_trie_dict = pickle.load(pickle_in)
+    with open('tag_trie_dict.pickle', 'rb') as f:
+        tag_trie_dict = pickle.load(f)
 
     return jsonify(tag_trie_dict)
 

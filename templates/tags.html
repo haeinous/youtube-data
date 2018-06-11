@@ -287,7 +287,7 @@
   function displaySuggestedTags() {
     let inputVal = $('#tag-search-box').val();
     let sortedTagArray = parseTags(inputVal);
-    if (sortedTagArray !== null) {
+    if (sortedTagArray === null) { // null or undefined?
       $('#suggested-tags').html('No results found.');
     } else {
       let suggestedTagsHtml = '';
