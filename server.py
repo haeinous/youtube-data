@@ -1324,13 +1324,11 @@ def construct_tag_trie():
     for tag in Tag.query.all():
         tag_freq = get_tag_frequency(tag.tag)
         tag_trie.add_word(tag.tag, get_tag_frequency(tag.tag))
-        print('added {} with frequency {}'.format(tag.tag, tag_freq))
 
     tag_trie_dict = trie_to_dict(tag_trie.root)
 
-    pickle_out = open('tag_trie_dict.pickle', 'wb')
-    pickle.dump(tag_trie_dict, pickle_out)
-    pickle_out.close()
+    with open('tag_trie_dict.pickle', 'wb') as f:
+        pickle.dump(tag_trie_dict, f)
 
 
 @app.route('/autocomplete-trie.json')
@@ -1449,7 +1447,10 @@ def add_data():
                                 is_update=True)
             db.session.add(addition)
             db.session.commit()
-            flash("Successfully updated the video's monetization status!")
+            flash(Markup('''<div class="alert alert-success alert-dismissible" role="alert">
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                Successfully updated the video's monetization status. <a href="/explore/videos/''' + video_id + '''" class="alert-link">Check it out</a> or add another.
+                            </div>'''))
         
             return redirect('/add-data')
 
@@ -1465,7 +1466,7 @@ def add_data():
             flash(Markup('''<div class="alert alert-success alert-dismissible" role="alert">
                                 <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                                 Successfully added the video. <a href="/explore/videos/''' + video_id + '''" class="alert-link">Check it out</a> or add another.
-                            </div>''')) # tk add link
+                            </div>'''))
             
             # call APIs to get other info
             add_all_info_to_db(video_id)
