@@ -879,16 +879,16 @@ def show_specific_video_page(video_id):
         add_video_stats_data(parse_video_data(get_info_by_youtube_id(video_id)))    
     except:
         pass
-    video_stats = VideoStat.query.filter(VideoStat.video_id == video_id).first()
+    video_stats = VideoStat.query.filter(VideoStat.video_id == video_id
+                                ).order_by(VideoStat.retrieved_at.desc()
+                                ).first()
 
     channel = Channel.query.join(Video).filter(Video.video_id == video_id).first()
     image_analysis = ImageAnalysis.query.filter(ImageAnalysis.video_id == video_id).first()
     if image_analysis:
         nsfw_score = round(image_analysis.nsfw_score)
-        colors = [color.hex_code for color in ColorImage.query.filter(ColorImage.image_analysis_id == image_analysis.image_analysis_id).all()]
     else:
         nsfw_score = None
-        colors = []
     text_analyses = TextAnalysis.query.filter(TextAnalysis.video_id == video_id).all()
     text_analyses = [(text_analysis.textfield, 
                       text_analysis.sentiment_score, 
@@ -908,7 +908,6 @@ def show_specific_video_page(video_id):
                             channel=channel,
                             image_analysis=image_analysis,
                             nsfw_score=nsfw_score,
-                            colors=colors,
                             text_analyses=text_analyses,
                             tags=tags,
                             category=category,
@@ -991,7 +990,7 @@ def show_specific_category_page(video_category_id):
     for video in Video.query.filter(Video.video_category_id == video_category_id).all():
         videos.insert(video)
     
-    random_videos = videos.get_random_elements(8)
+    random_videos = videos.get_random_elements(16)
 
     return render_template('category.html',
                             category=category,

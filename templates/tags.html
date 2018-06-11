@@ -123,7 +123,7 @@
 
   <!-- chart -->
   <div class="row justify-content-center" id="chart-row">
-    <div class="col" id="canvas-container">
+    <div class="col-10" id="canvas-container">
       <canvas id="demonetization-by-tag-chart"></canvas>      
     </div>
   </div>
@@ -372,22 +372,25 @@
 
   function addTagToDisplay(response) {
     currentTags.push([newTag, response['datasets'][0]['data']]);
+    updateChart();
   }
 
+  // Function that applies to multiple sections (adding + removing)
   function updateChart() {
     let data = {'labels': [],
                 'datasets': []}
     
-    for (let i of currentTags.length) {
+    for (let i = 0; i < currentTags.length; i++) {
       data['labels'].push(currentTags[i][0]);
       let datasetTemplate = {'backgroundColor': [],
                              'data': []}
-      datasetTemplate['data'].push(currentTags[i][1]);
+      datasetTemplate['data'][i].push(currentTags[i][1]);
       datasetTemplate['backgroundColor'].push()
       data['datasets'].push(currentTags[i][1]);
     }
     console.log(data);
-    
+
+    // is creating a new chart going to work?
     tagChart = new Chart(ctxTagChart, {
       type: 'line',
       data: data,
@@ -395,8 +398,7 @@
     });
   }
 
-
-  // (7) Remove tags.
+  // (5) Remove tags.
 
   $('.remove-tag').on('click', removeTag);
 
@@ -405,24 +407,11 @@
     let tagId = $(this).attr('id');
     tagId = tagId.slice(-1);
     $('#tag-display' + tagId).hide();
-    // (b) remove data from chart
-    let tagIndex = tagId-1;
-    tagChart.data.labels.splice(tagIndex, 1);
-    tagChart.data.datasets.forEach(dataset => {
-      dataset.data.splice(tagIndex, 1)
-    });
-    tagChart.update();
-    // (c) update chart colors
+    // (b) remove tag from currentTags
     currentTags.splice(tagId, 1); // removes tag at index[tagId]
+    // (c) update chart data & colors
+    updateChart();    
   }
-
-  function updateColors() {
-    for (let tag of tagText) {
-
-    }
-  }
-
-
 
 
 </script>
