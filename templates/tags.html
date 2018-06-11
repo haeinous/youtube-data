@@ -123,7 +123,7 @@
 
   <!-- chart -->
   <div class="row justify-content-center" id="chart-row">
-    <div class="col" id="canvas-container" style="background-color: #d9f7fa;">
+    <div class="col" id="canvas-container">
       <canvas id="demonetization-by-tag-chart"></canvas>      
     </div>
   </div>
@@ -252,28 +252,16 @@
   $('.remove-tag').on('click', removeTag);
 
   function removeTag() {
-    console.log('remove');
     let tagId = $(this).attr('id');
     tagId = tagId.slice(-1);
-    console.log(tagId);
     $('#tag-display' + tagId).hide();
-
-    let tagTextId = '#tag' + tagId;
-    tag = $(tagTextId).text().trim();
-
-    removeTagFromChart(tag); 
+    let tagIndex = tagId-1;
+    tagChart.data.labels.splice(tagIndex, 1);
+    tagChart.data.datasets.forEach(dataset => {
+      dataset.data.splice(tagIndex, 1)
+    });
+    tagChart.update();
   }
-
-  function removeTagFromChart(tag) { // remove chart visualization
-    let dataArray = tagChart.data.datasets;
-    for (let item of dataArray) {
-      if (item.label === tag) {
-        dataArray.splice(item, 1);
-      }
-    }
-    tagChart.update()
-  }
-
 
 </script>
 
