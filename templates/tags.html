@@ -185,15 +185,16 @@
 
   let initialTagExamples = ['donald trump', 'hillary clinton', 'bernie sanders']
 
+  let tagText = [$('#tag-text1').text(),
+                 $('#tag-text2').text(),
+                 $('#tag-text3').text(),
+                 $('#tag-text4').text(),
+                 $('#tag-text5').text()];
+
   // (1.2) Conditional logic
 
   function countTagsDisplayed() {
     let i = 0;
-    let tagText = [$('#tag-text1').text(),
-                   $('#tag-text2').text(),
-                   $('#tag-text3').text(),
-                   $('#tag-text4').text(),
-                   $('#tag-text5').text()];
     for (let tag of tagText) {
       if (tag) {
         i += 1
@@ -221,20 +222,36 @@
       data: {'initialTags': initialTagExamples},
       type: 'GET'
     })
-    .done(function loadNewChart(response) {
-      response['datasets'][0]['backgroundColor'] = rgbColors.slice(0, 3);
-      initializeTagDisplay();
-      tagChart = new Chart(ctxTagChart, {
-        type: 'bar',
-        data: response,
-        options: options
-      });
+    .done(function (response) {
+      loadChart(response);
+    })
+    .done(function(response) {
+      initializeTagDisplay(response);
+    })
+    .done(function(response) {
+      loadChart(response);
     })
   }
 
+  // window.onload = function() {
+  //   $.when(
+  //     // Get tag data from server
+  //     $.ajax({
+  //       url: '/get-tag-data.json',
+  //       data: {'initalTags': initialTagExamples}
+  //     }),
+
+  //     // Load the chart
+
+  //     ).then(function() {
+  //       // Do the things the function needs to do
+  //     })
+  // }
+
+
   // (2.2) Populate tag display area.
 
-  function initializeTagDisplay() {
+  function initializeTagDisplay(response) {
     $('#tag-text1').text(initialTagExamples[0]);
     $('#tag-text2').text(initialTagExamples[1]);
     $('#tag-text3').text(initialTagExamples[2]);
@@ -242,8 +259,59 @@
     $('#close-button5').hide();
   }
 
+  // (2.3) Create chart.
 
-  // (3) Set up autocomplete.
+  function loadChart(response) {
+    response['datasets'][0]['backgroundColor'] = rgbColors.slice(0, 3);
+    tagChart = new Chart(ctxTagChart, {
+      type: 'bar',
+      data: response,
+      options: options
+    })
+  }
+
+  // (2.4) Load autocomplete trie.
+
+  tagTrie = loadTagTrie();
+
+  function loadTagTrie() {
+    $.ajax({
+      url: '/autocomplete-trie.json'
+    })
+  }
+  
+  // (4) Set up autocomplete.
+
+  $('#tag-search-box').on('keyup', displaySuggestedTags);
+
+  function displaySuggestedTags() {
+    let inputVal = $('#tag-search-box').val();
+    let sortedTagArray = parseTags(inputVal);
+    if (sortedTagArray !== null) {
+      $('#suggested-tags').html('No results found.');
+    } else {
+      let suggestedTagsHtml = '';
+      for (let tag in sortedTagArray.slice(0, 8)) { // tk will slicing raise indexerror-type thing if there are fewer than 8 tags?
+        suggestedTagsHtml += '<li class="clickable-suggestions"><a>' + tag[0] + '</a></li>';
+      }
+      $('#suggested-tags').html(suggestedTagsHtml);
+    }
+  }
+
+  function parseTags(inputVal) {
+    // (a) Find prefix node
+
+
+    // (b) Get all words starting with prefix
+    let sortedTagArray = sortArray();
+    return sortedTagArray
+  }
+
+  function sortArray() {
+    // (c) Sort the words based on frequency
+    suggestions.sort((a, b) => (b[1] - a[1])); // sort by tag frequency
+    return sortedTagArray
+  }
 
 
 
@@ -252,16 +320,29 @@
   $('.remove-tag').on('click', removeTag);
 
   function removeTag() {
+    // (a) hide the tag display
     let tagId = $(this).attr('id');
     tagId = tagId.slice(-1);
     $('#tag-display' + tagId).hide();
+    // (b) remove data from chart
     let tagIndex = tagId-1;
     tagChart.data.labels.splice(tagIndex, 1);
     tagChart.data.datasets.forEach(dataset => {
       dataset.data.splice(tagIndex, 1)
     });
     tagChart.update();
+    // (c) update chart colors
+
   }
+
+  function updateColors() {
+    for (let tag of tagText) {
+
+    }
+  }
+
+
+
 
 </script>
 
