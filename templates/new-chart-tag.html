@@ -13,13 +13,8 @@
     <!-- /.lead -->
   </div>
 
-  <div class="row text-center" id="">
-    <div class="col">
-      <div class="" id="tag-display-container">
-        <!-- this is where the divs go -->      
-      </div>      
-    </div>
-
+  <div class="row text-center" id="tag-display-container">
+    <!-- this is where the divs go -->      
   </div>
 
   <div class="row justify-content-center" id="chart-row">
@@ -88,14 +83,16 @@
     let initialHtml = '';
     for (let example of initialTagExamples) {
       let hexColor = hexColors.shift();
-        initialHtml += `<div class="col tag-display" style="background-color: #${hexColor};">
-          <div class="tag-text">${example}</div>
-          <button type="button" class="close remove-tag" aria-label="close" aria-hidden="true">
-            <span aria-hidden="true">&times;</span>
-          </button>
+        initialHtml += `<div class="tag-display align-middle" style="background-color: #${hexColor};">
+          <div class="col-11 tag-text">${example}</div>
+          <div class="col-1">
+            <button type="button" class="close remove-tag" aria-label="close" aria-hidden="true">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
         </div>`;
     }
-    let searchBoxHtml = `<div class="col tag-search-container" style="position: relative; display: inline-block; background-color: #fff200;">
+    let searchBoxHtml = `<div class="col tag-search-container align-middle" style="position: relative; display: inline-block; background-color: #fff200;">
       <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search for tags">
       <div id="suggested-tag-container">
         <ul class="dropdown-menu" id="suggested-tags" style="background-color: #fff5f8;" role="menu"></ul>
