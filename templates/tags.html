@@ -105,7 +105,7 @@
 
       <!-- tag search container -->
       <div class="col align-middle" id="tag-search-container">
-        <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search for tags">
+        <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search tags">
         <div id="suggested-tag-container">
           <ul class="" id="suggested-tags" style="background-color: #fff5f8;" role="menu">
           </ul>
@@ -173,13 +173,16 @@
 
   let options = {responsive: true,
                  animation: false,
-                 legend: {display: false},
+                 legend: {display: false,
+                          defaultFontColor: 'black'},
                  title: {display: false}, 
                  tooltips: {mode: 'index',
                             intersect: true},
                  elements: {point: {pointStyle: 'circle'}},
                  scales: {yAxes: [{ticks: {min: 0,
-                                           callback: (label, index, labels) => {return label + '%'}},
+                                           callback: (label, index, labels) => {return label + '%'},
+                                   scaleLabel: {fontFamily: 'Raleway',
+                                                fontColor: 'black'}},
                      }],
                  }}
 
@@ -231,6 +234,8 @@
       loadChart(response);
     })
     .done(function(response) {
+      console.log('hi');
+      console.log(response);
       updateCurrentTags(response);
     })
   }
@@ -273,9 +278,11 @@
   }
 
   function updateCurrentTags(response) {
+    debugger;
     for (let i = 0; i < 3; i++) {
       currentTags[i].push(response['datasets'][i]['data']);
     }
+    console.log(currentTags);
   }
 
   // (2.4) Load autocomplete trie.
@@ -377,6 +384,7 @@
 
   // Function that applies to multiple sections (adding + removing)
   function updateChart() {
+    debugger;
     let data = {'labels': [],
                 'datasets': []}
     

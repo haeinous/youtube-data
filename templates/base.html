@@ -47,9 +47,13 @@
       background: #d9f7fa; 
     }
 
-    .navbar{
+    .navbar {
       width: 100%;
       background: #f7f8f9;
+    }
+
+    .navbar-text {
+      font-size: 1.2em;
     }
 
     .footer {
@@ -89,6 +93,10 @@
 
     .tag-text {
       color: white;
+      font-size: 1.3em;
+      text-align: center;
+      height: 30px;
+      line-height: 30px;
     }
 
     .alert-success {
@@ -127,6 +135,23 @@
       text-align: center;
     }
 
+    .close {
+      color: #ffffff;
+      text-shadow: none;
+    }
+
+    .btn-primary {
+      color: #ffffff;
+      background-color: #ee2761;
+      border-color: #ee2761;
+    }
+
+    .btn-primary:hover .btn-primary:active {
+      color: #ffffff;
+      background-color: #af1e48;
+      border-color: #af1e48;
+    }
+
 
   </style>
 </head>
@@ -145,21 +170,21 @@
     <div class="collapse navbar-collapse" id="navbar-template">
       <ul class="navbar-nav mr-auto">
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="/explore/" id="dropdown-all" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <a class="nav-link dropdown-toggle navbar-text" href="/explore/" id="dropdown-all" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             explore
           </a>
 
           <div class="dropdown-menu" aria-labelledby="dropdown-all">
-            <a class="dropdown-item" href="/explore/channels/">
+            <a class="dropdown-item navbar-text" href="/explore/channels/">
               channels
             </a>
-            <a class="dropdown-item" href="/explore/tags/">
+            <a class="dropdown-item navbar-text" href="/explore/tags/">
               tags
             </a>
-            <a class="dropdown-item" href="/explore/categories/">
+            <a class="dropdown-item navbar-text" href="/explore/categories/">
               categories
             </a>
-            <a class="dropdown-item" href="/explore/videos/">
+            <a class="dropdown-item navbar-text" href="/explore/videos/">
               videos
             </a>
             <!-- /.dropdown-menu -->
@@ -168,13 +193,13 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="/add-data">
+          <a class="nav-link navbar-text" href="/add-data">
             add data
           </a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="/about">
+          <a class="nav-link navbar-text" href="/about">
             about
           </a>
         </li>
@@ -183,7 +208,7 @@
 
       <form action="/search" method="GET" class="form-inline my-2 my-lg-0">
         <input class="form-control mr-sm-2" type="text" placeholder="search" aria-label="search" id="search-form-input" name="q">
-        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">
+        <button class="btn btn-outline-success my-2 my-sm-0 navbar-text" type="submit">
           search
         </button>
       </form>
