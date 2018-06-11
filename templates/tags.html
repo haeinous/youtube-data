@@ -11,18 +11,124 @@
     </h1>
   </div>
 
-<!--   <div class="row justify-content-center" id="chart-row">
-    <div>
-      <h2>
-        video tags with the highest demonetization %
-      </h2>
-    </div>
+  <div class="row justify-content-center">
+    <h2>
+      demonetization by tag
+    </h2>
+  </div>
 
-    <div class="canvas-container col-9" style="background-color: #d9f7fa;">
-      <canvas class="col" id="explore-tag-chart"></canvas>
-    </div> -->
-    <!-- /#chart-row -->
-  <!-- </div> -->
+  <!-- tag display area -->
+  <div class="row text-center" id="tag-display-container">
+
+    <!-- tag-display1 -->
+    <div class="col tag-display" id="tag-display1" style="background-color: #ee2761;">
+      <div class="row">        
+        <div class="col-10 tag-text" id="tag-text1"><!-- 
+          tag-text1 
+     --></div>
+        <div class="col-1">
+          <button type="button" class="close remove-tag" aria-label="close" aria-hidden="true" id="close-button1">
+            <span aria-hidden="true">
+              &times;
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- end tag-display1 -->
+
+    <!-- tag-display2 -->
+    <div class="col tag-display" id="tag-display2" style="background-color: #282562;">
+      <div>        
+        <div class="col-10 tag-text" id="tag-text2"><!-- 
+          tag-text2
+     --></div>
+        <div class="col-1">
+          <button type="button" class="close remove-tag" aria-label="close" aria-hidden="true" id="close-button2">
+            <span aria-hidden="true">
+              &times;
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- end tag-display2 -->
+
+    <!-- tag-display3 -->
+    <div class="col tag-display" id="tag-display3" style="background-color: #32b259;">
+      <div>        
+        <div class="col-10 tag-text" id="tag-text3"><!-- 
+          tag-text3 
+     --></div>
+        <div class="col-1">
+          <button type="button" class="close remove-tag" aria-label="close" aria-hidden="true" id="close-button3">
+            <span aria-hidden="true">
+              &times;
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- end tag-display3 -->
+
+    <!-- tag-display4 -->
+    <div class="col tag-display" id="tag-display4" style="background-color: #5ec8d5;">
+      <div>        
+        <div class="col-10 tag-text" id="tag-text4"><!-- 
+          tag-text4 
+     --></div>
+        <div class="col-1">
+          <button type="button" class="close remove-tag" aria-label="close" aria-hidden="true" id="close-button4">
+            <span aria-hidden="true">
+              &times;
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- end tag-display4 -->
+
+    <!-- tag-display5 -->
+    <div class="col tag-display" id="tag-display5" style="background-color: #fff200;">
+      <div>        
+        <div class="col-10 tag-text" id="tag-text5"><!-- 
+          tag-text5
+     --></div>
+        <div class="col-1">
+          <button type="button" class="close remove-tag" aria-label="close" aria-hidden="true" id="close-button5">
+            <span aria-hidden="true">
+              &times;
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- tag search container -->
+      <div class="col align-middle" id="tag-search-container">
+        <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search for tags">
+        <div id="suggested-tag-container">
+          <ul class="dropdown-menu" id="suggested-tags" style="background-color: #fff5f8;" role="menu">
+          </ul>
+        </div>
+      </div>
+      <!-- end tag search container -->
+
+    </div>
+    <!-- end tag-display5 -->
+
+
+  </div>
+  <!-- end tag display area -->
+
+
+  <!-- chart -->
+  <div class="row justify-content-center" id="chart-row">
+    <div class="col" id="canvas-container" style="background-color: #d9f7fa;">
+      <canvas id="demonetization-by-tag-chart"></canvas>      
+    </div>
+  </div>
+  <!-- end chart -->
+
 
   <div class="row justify-content-center">
     <h2>
@@ -40,6 +146,7 @@
       </div>
     {% endfor %}
   </div>
+
 </div>
 
 {% endblock %}
@@ -48,39 +155,125 @@
 
 <script type="text/javascript">
 
-  let ctxExploreTagChart = $('#explore-tag-chart').get(0).getContext('2d');
+  // (1.1) Establish initial variables.
 
-  tagHtml = $('#random-tag-container').html()
-  console.log(tagHtml)
+  let ctxTagChart = $('#demonetization-by-tag-chart').get(0).getContext('2d');
 
-  // window.onload = function() {
-  //   $.ajax({
-  //     url: '/explore-tags-data.json',
-  //     data: {'allTags': tagHtml},
-  //     type: 'GET'
-  //   })
-  //   .done(function(response) {
-  //     loadNewChart(response);
-  //   })
-  // }
+  let rgbColors = ['rgba(238, 39, 97, 1)', // pink
+                   'rgba(40, 37, 98, 1)', // purple
+                   'rgba(50, 178, 89, 1)', // green
+                   'rgba(94, 200, 213, 1)', // blueberry
+                   'rgba(255, 242, 0, 1)']; // yellow
 
-  function loadNewChart(response) {
-    exploreTagChart = new Chart(ctxExploreTagChart, {
-      type: 'horizontalBar',
-      data: response,
-      options: {responsive: true,
-                animation: false,
-                legend: {display: false,
-                         position: 'right'},
-                elements: {rectangle: {borderWidth: 0}},
-                title: {display: false},
-                scales: {xAxes: [{ticks: {min: 0,
-                                          callback: (label, index, labels) => {return label + '%'}}
-                      }]
-              }
+  let hexColors = ['ee2761', // pink
+                   '282562', // purple
+                   '32b259', // green
+                   '5ec8d5', // blueberry
+                   'fff200'] // yellow
+
+  let options = {responsive: true,
+                 animation: false,
+                 legend: {display: false},
+                 title: {display: false}, 
+                 tooltips: {mode: 'index',
+                            intersect: true},
+                 elements: {point: {pointStyle: 'circle'}},
+                 scales: {yAxes: [{ticks: {min: 0,
+                                           callback: (label, index, labels) => {return label + '%'}},
+                     }],
+                 }}
+
+  let initialTagExamples = ['donald trump', 'hillary clinton', 'bernie sanders']
+
+  // (1.2) Conditional logic
+
+  function countTagsDisplayed() {
+    let i = 0;
+    let tagText = [$('#tag-text1').text(),
+                   $('#tag-text2').text(),
+                   $('#tag-text3').text(),
+                   $('#tag-text4').text(),
+                   $('#tag-text5').text()];
+    for (let tag of tagText) {
+      if (tag) {
+        i += 1
       }
+    }
+    return i
+  }
+
+  let countTagsNow = countTagsDisplayed();
+  console.log(countTagsNow);
+
+  if (countTagsNow === 5) {
+    $('#tag-search-container').hide();
+    $('#close-button5').show();
+  }
+
+
+  // (2.1) Load chart when you land on the page.
+
+  window.onload = function() {
+    console.log('hi');
+    console.log(initialTagExamples);
+    $.ajax({
+      url: '/get-tag-data.json',
+      data: {'initialTags': initialTagExamples},
+      type: 'GET'
+    })
+    .done(function loadNewChart(response) {
+      response['datasets'][0]['backgroundColor'] = rgbColors.slice(0, 3);
+      initializeTagDisplay();
+      tagChart = new Chart(ctxTagChart, {
+        type: 'bar',
+        data: response,
+        options: options
+      });
     })
   }
+
+  // (2.2) Populate tag display area.
+
+  function initializeTagDisplay() {
+    $('#tag-text1').text(initialTagExamples[0]);
+    $('#tag-text2').text(initialTagExamples[1]);
+    $('#tag-text3').text(initialTagExamples[2]);
+    $('#tag-display4').hide();
+    $('#close-button5').hide();
+  }
+
+
+  // (3) Set up autocomplete.
+
+
+
+  // (7) Remove tags.
+
+  $('.remove-tag').on('click', removeTag);
+
+  function removeTag() {
+    console.log('remove');
+    let tagId = $(this).attr('id');
+    tagId = tagId.slice(-1);
+    console.log(tagId);
+    $('#tag-display' + tagId).hide();
+
+    let tagTextId = '#tag' + tagId;
+    tag = $(tagTextId).text().trim();
+
+    removeTagFromChart(tag); 
+  }
+
+  function removeTagFromChart(tag) { // remove chart visualization
+    let dataArray = tagChart.data.datasets;
+    for (let item of dataArray) {
+      if (item.label === tag) {
+        dataArray.splice(item, 1);
+      }
+    }
+    tagChart.update()
+  }
+
 
 </script>
 

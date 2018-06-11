@@ -718,7 +718,9 @@ def generate_tag_data_json():
     return a json string."""
 
     tags = request.args.get('initialTags')
-    print(tags)
+
+    if not tags:
+        tags = ['donald trump', 'hillary clinton', 'bernie sanders']
 
     json_response = {'labels': [],
                      'datasets': [{'backgroundColor': [], # populate on client side
@@ -737,15 +739,12 @@ def generate_tag_data_for_individual_tag():
     """Given an individual tag, load demonetization data and # of videos using it."""
 
     tag = request.args.get('tag')
-    print(tag)
-
     tag_id = TagVideo.query.filter(Tag.tag == tag).first().tag_id
 
     total_videos = db.session.query(TagVideo
                             ).join(Tag
                             ).filter(Tag.tag == tag
                             ).count()
-    print(total_videos)
 
     demonetized_videos = db.session.query(TagVideo
                                   ).join(Tag
@@ -754,12 +753,11 @@ def generate_tag_data_for_individual_tag():
                                   ).filter(Video.is_monetized == False
                                   ).count()
 
-
     len(TagVideo.query.filter(TagVideo.tag_id == tag_id
                                           ).join(Video
                                           ).filter(Video.is_monetized == False
                                           ).all())
-    print(demonetized_videos)
+
     percent_demonetized = round(demonetized_videos/total_videos * 100)
 
     json_response = {'labels': [tag],
@@ -772,7 +770,6 @@ def generate_tag_data_for_individual_tag():
                                  ],
                      'total_videos': total_videos}
 
-    print(json_response)
     return jsonify(json_response)
 
 
