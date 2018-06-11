@@ -5,11 +5,9 @@ clarifai==2.2.3
 click==6.7
 configparser==3.5.0
 decorator==4.3.0
-elasticsearch==6.2.0
 Flask==1.0.2
 Flask-DebugToolbar==0.10.1
 Flask-SQLAlchemy==2.3.2
-Flask-WTF==0.14.2
 future==0.16.0
 google-api-python-client==1.6.7
 httplib2==0.11.3
@@ -29,11 +27,9 @@ requests==2.18.4
 rsa==3.4.2
 six==1.11.0
 SQLAlchemy==1.2.7
-SQLAlchemy-Searchable==1.0.3
 SQLAlchemy-Utils==0.33.3
 uritemplate==3.0.0
 urllib3==1.22
 user-agent==0.1.9
 validators==0.12.1
 Werkzeug==0.14.1
-WTForms==2.1

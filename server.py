@@ -6,7 +6,7 @@
 
 """
 
-import datetime, random, collections, re, nltk, pickle
+import datetime, random, collections, re, nltk, pickle, sys
 from nltk.stem.snowball import EnglishStemmer
 from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session, jsonify, Markup
@@ -530,6 +530,9 @@ def generate_inverted_index():
                      set(Video.query.filter(Video.video_status.is_(None)).all()))
     i = 0
     for document in all_documents:
+        if i%50 == 0:
+            print('done with {} things'.format(i))
+
         document_id, document_primary_key, document_text = create_document_id(categorize_document(document))
 
         if document_id: # is not None
@@ -773,38 +776,12 @@ def generate_tag_data_for_individual_tag():
     return jsonify(json_response)
 
 
-@app.route('/search', methods=['GET', 'POST'])
-def display_search_results():
-    """Display search results."""
-
-    if request.method == 'POST':
-        print('hi')
-
-        search_term = request.args.get('q')
-        print(search_term)
-        search_results = {'channels': None,
-                          'videos': None,
-                          'tags': None,
-                          'categories': None}
-
-        if not search_results:
-            search_results=None
-
-        print(search_results)
-        return render_template('search-results.html', search_results=search_results,
-                                                      search_term=search_term)
-
-    else:
-        pass
-
 @app.route('/about')
 def about_page():
     """About page."""
 
-    videos_in_db = db.session.query(func.count(Video.video_id)).first()
-    channels_in_db = db.session.query(func.count(Channel.channel_id)).first()
-    videos_in_db = make_int_from_sqa_object(videos_in_db)
-    channels_in_db = make_int_from_sqa_object(channels_in_db)
+    videos_in_db = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)).first())
+    channels_in_db = make_int_from_sqa_object(db.session.query(func.count(Channel.channel_id)).first())
 
     return render_template('about.html', videos_in_db=videos_in_db,
                                          channels_in_db=channels_in_db)
@@ -920,7 +897,7 @@ def show_specific_video_page(video_id):
     channel = Channel.query.join(Video).filter(Video.video_id == video_id).first()
     image_analysis = ImageAnalysis.query.filter(ImageAnalysis.video_id == video_id).first()
     if image_analysis:
-        nsfw_score = round(image_analysis.nsfw_score * 100)
+        nsfw_score = round(image_analysis.nsfw_score)
         colors = [color.hex_code for color in ColorImage.query.filter(ColorImage.image_analysis_id == image_analysis.image_analysis_id).all()]
     else:
         nsfw_score = None
