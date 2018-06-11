@@ -25,9 +25,6 @@ app.secret_key = 'ABC'
 # Raises an error when using an undefined variable in Jinja.
 app.jinja_env.undefined = StrictUndefined
 
-# Construct tag trie
-construct_tag_trie()
-
 # Construct inverted index
 
 ##### classes
@@ -554,19 +551,6 @@ def generate_inverted_index():
         pickle.dump(inverted_index, f)
 
     return inverted_index
-
-def pickle_index(filename):
-    """Dump the inverted index into a pickle so it doesn't need
-    to be regenerated every time."""
-
-    with open(filename, 'wb') as f:
-        pickle.dump(inverted_index, f)
-
-
-def pickle_load(filename):
-    """Load the pickled inverted index to add an entry."""
-    with open(filename, 'rb') as f:
-        inverted_index = pickle.load(f)
 
 
 def process_term(search_query):
@@ -1318,8 +1302,9 @@ def get_tag_frequency(word):
 
 
 def construct_tag_trie():
-    """Construct a trie for all tags in the seed database (only needs to be done
-    once)."""
+    """Construct a complete tag trie for all tags in the seed database (only needs 
+    to be done once). Construct a smaller list of qualified tags and convert it into
+    a dictionary for easy retrieval."""
 
     complete_tag_trie = Trie()
     smaller_tag_trie = Trie()
@@ -1341,7 +1326,7 @@ def construct_tag_trie():
 
 @app.route('/autocomplete-trie.json')
 def return_tag_trie():
-    """Return a jsonified dictionary representation of a trie for all
+    """Return a jsonified dictionary representation of a trie for all qualified
     tags in the database."""
 
     with open('tag_trie_dict.pickle', 'rb') as f:

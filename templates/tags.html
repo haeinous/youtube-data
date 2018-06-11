@@ -300,6 +300,9 @@
 
   function parseTags(inputVal) {
     // (a) Find prefix node
+    let prefix = inputVal;
+    
+    getAllWords(tagTrie, prefix);
 
 
     // (b) Get all words starting with prefix
@@ -307,12 +310,45 @@
     return sortedTagArray
   }
 
-  function sortArray() {
-    // (c) Sort the words based on frequency
-    suggestions.sort((a, b) => (b[1] - a[1])); // sort by tag frequency
-    return sortedTagArray
+  function test(trie, prefix) {
+    let allTags = [];
+    if (Object.keys(trie)[0] === '') {
+      trie = trie[''];
+      for (let char of prefix) {
+        trie = trie['children'][char];
+        console.log(trie);
+      }
+    }
   }
 
+  function getAllWords(trieObject, prefix) {
+    let allTags = [];
+    if (Object.keys(trieObject)[0] === '') { // if it's the first recursive loop
+      trieObject = trieObject[''];
+      for (let char of prefix) {
+      trieObject = trieObject['children'][char];
+      }
+    }
+    for (let item of Object.entries(trieObject)) {
+      console.log('item:');
+      console.log(item);
+      if (item[1]['freq']) {
+        console.log('tuple:');
+        console.log((prefix+item[0], item[1]['freq']));
+        allTags.push((prefix+item[0], item[1]['freq']));
+      }
+      for (let child of Object.entries(item[1]['children'])) {
+        console.log(child);
+        for (let wordInfo in getAllWords(child, prefix+item[0])) {
+        // for (let wordInfo in getAllWords({child[0]: child[1]}, prefix+item[0])) {
+          allTags.push(wordInfo);
+        }
+      }
+    }
+    return allTags
+  }
+
+  allTags.sort((a,b) => (b[1] - a[1]));
 
 
   // (7) Remove tags.
