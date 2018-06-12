@@ -6,8 +6,7 @@
 
 """
 
-import datetime, random, collections, re, nltk, pickle, sys
-from nltk.stem.snowball import EnglishStemmer
+import datetime, random, collections, re, pickle, sys
 from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session, jsonify, Markup
 from flask_debugtoolbar import DebugToolbarExtension
@@ -16,6 +15,7 @@ from sqlalchemy import func
 from model import *
 from api_youtube import *
 from all_api_calls import *
+from inverted_index import *
 
 app = Flask(__name__)
 
@@ -24,8 +24,6 @@ app.secret_key = 'ABC'
 
 # Raises an error when using an undefined variable in Jinja.
 app.jinja_env.undefined = StrictUndefined
-
-# Construct inverted index
 
 ##### classes
 
@@ -184,10 +182,10 @@ class Graph:
 def calculate_percent_demonetized(channel_id):
     """Given a channel_id, return the % of videos in that channel that are demonetized."""
 
-    all_videos = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)
+    all_videos = make_integer(db.session.query(func.count(Video.video_id)
                                                    ).filter(Video.channel_id == channel_id
                                                    ).first())
-    demonetized_videos = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)
+    demonetized_videos = make_integer(db.session.query(func.count(Video.video_id)
                                                            ).filter(Video.channel_id == channel_id
                                                            ).filter(Video.is_monetized == False
                                                            ).first())
@@ -314,244 +312,20 @@ def generate_video_graph_by_shared_tags():
 
 
 ###################################
+# See inverted_index.py for details on the InvertedIndex, PostingsList, and Posting classes.
+###################################
 
 
-class PostingsList:
-    """A singly linked list to store the postings list."""
-
-    def __init__(self, data=None):
-        """data is a tuple with two elements: the unique doc_id and frequency."""
-        if data:
-            self.head = Posting(data)
-            self.tail = self.head
-        else:
-            self.head = None
-            self.tail = None
-
-    def append(self, data):
-        """Append a posting to the end of a linked list."""
-        new_posting = Posting(data)
-
-        if not self.head: # if the head is empty
-            self.head = new_posting
-        else:
-            self.tail.next = new_posting      
-        self.tail = new_posting
-        new_posting.next = None
-
-    def print_list(self):
-        """Print data for all postings."""
-        current = self.head
-        while current:
-            print(current)
-            current = current.next
-
-    def __len__(self):
-        i = 0
-        current = self.head
-
-        while current:
-            i += 1
-            current = current.next
-        return i
-
-    def __iter__(self):
-        current = self.head
-        while current is not None:
-            yield current
-            current = current.next
-
-    def __repr__(self):
-        return '<PostingsList with {} postings>'.format(len(self))
-
-
-class Posting:
-    """A node in PostingsList, a singly linked list."""
-
-    def __init__(self, data):
-        """data is a tuple with two elements: the unique doc_id and frequency."""
-        self.data = data
-        self.next = None
-
-    def __repr__(self):
-        if self.next:
-            return '<Posting: data={}>'.format(self.data)
-        else:
-            return '<Posting: data={}, next={}>'.format(self.data, 
-                                                        self.next)
-
-class InvertedIndex(dict):
-    """Inverted index data structure, consisting of a dictionary of all the unique 
-    words pointing to a singly linked list of the documents in which it appears."""
-
-    # Example: {('word'): [(1, 2), (3, 1), (5, 1)],
-    #           ('hello'): [(3, 1), (4, 2)]}
-    # The term 'word' appears 4 times across 3 documents (doc_id 1, 3, and 5). It 
-    # appears twice in doc 1. 
-
-    def __init__(self):
-        """The nltk module provides a tokenizer function, word stemmer, as well
-        as a list of ignored words for English."""
-        self.index = collections.defaultdict(list)
-
-    def process_terms(self, document, document_id):
-        """Process a term so it can be added to the index."""
-
-        term = nltk.word_tokenize(document).lower()
-        if term not in self.stopwords:
-            term = self.stemmer.stem(term)
-            frequency = term.count(document)
-            if term not in self.index:
-                self.index[term] = PostingsList((document_id, frequency))
-            else:
-                self.index[term].append((document_id, frequency))
-
-    def print(self):
-        """Print the inverted index."""
-        print(dict(self.items()))
-
-    def search(self, term):
-        """Given a search term, return a list of documents containing it."""
-        pass
-
-    def __missing__(self, term):
-        """Similar to defaultdict(list), it adds the term to the index and indicates
-        that there are no matching documents."""
-        self[term] = []
-
-        return self[term]
-
-    def __repr__(self):
-        return '<InvertedIndex containing {} terms:\n{}>'.format(len(self),
-                                                                 dict(self.items()))
-
-
-def create_document_id(document_info):
-    """Assume document_info is a tuple containing the document_type,
-    document_primary_key, and document_text. Create and return a new document_id 
-    in the documents table."""
-
-    if not document_info:
-        return (None, None, None)
-
-    document = Document(document_type=document_info[0],
-                        document_primary_key=document_info[1])
-    db.session.add(document)
-
-    try:
-        db.session.commit()
-    except:
-        print('error creating document ID for {}'.format(document_info[1]))
-        return (None, None, None)
-
-    document_id = Document.query.filter(Document.document_type == document_info[0]
-                               ).filter(Document.document_primary_key == document_info[1]
-                               ).first(
-                               ).document_id
-
-    return (document_id, document_info[1], document_info[2])
-
-def categorize_document(document):
-    """Determine document type."""
-
-    if isinstance(document, VideoCategory):
-        print(document)
-        document_type = 'category'
-        document_primary_key = str(document.video_category_id)
-        document_text = document.category_name
-
-        return (document_type, document_primary_key, document_text)
-
-    elif isinstance(document, Channel):
-        print(document)
-        document_type = 'channel'
-        document_primary_key = document.channel_id
-        
-        channel_title = document.channel_title
-        channel_description = document.channel_description
-        
-        if channel_title and channel_description:
-            document_text = channel_title + '\n' + channel_description
-            print(document_text)
-            return (document_type, document_primary_key, document_text)
-        else:
-            return None
-
-    elif isinstance(document, Video):
-        print(document)
-        document_type = 'video'
-        document_primary_key = document.video_id
-        
-        video_title = document.video_title
-        video_description = document.video_description
-        
-        if video_title and video_description:
-            document_text = video_title + '\n' + video_description
-            print(document_text)
-            return (document_type, document_primary_key, document_text)
-        else:
-            return None
-
-        return (document_type, document_primary_key, document_text)
-
-def index_document(document_text, document_id):
-
-    stopwords = set(nltk.corpus.stopwords.words('english'))
-    stemmer = EnglishStemmer()
-
-    terms = [term.lower() for term in nltk.word_tokenize(document_text)] # list
-    terms = [stemmer.stem(term) for term in terms if has_at_least_one_alphanum(term)] # remove terms without a single alphanumeric character
-    unique_terms = set(terms)
-
-    for term in unique_terms:
-        if term not in stopwords:
-            frequency = terms.count(term)
-            all_document_info.append((term, document_id, frequency))
-
-    print(all_document_info)
-    return all_document_info
-
-
-def generate_inverted_index():
-    """One-time operation after seeding data to generate an inverted index of
-    terms, document ids, and frequencies."""
-
-    inverted_index = InvertedIndex()
-
-
-    all_documents = (VideoCategory.query.all() 
-                     + Channel.query.all() 
-                     + Video.query.filter(Video.video_status.is_(None)).all())
-
-    i = 0
-    for document in all_documents:
-        if i%50 == 0:
-            print('done with {} out of {} things'.format(i, len(all_documents)))
-
-        document_id, document_primary_key, document_text = create_document_id(categorize_document(document))
-
-        if document_id: # is not None
-            all_document_info = index_document(document_text, document_id)
-        
-        for term_info in all_document_info:
-            if term_info[0] not in inverted_index: # add a new index entry
-                inverted_index[term_info[0]] = PostingsList((term_info[1], term_info[2]))
-            else: # add Posting to the end of the PostingsList (a linked list)
-                inverted_index[term_info[0]].append((term_info[1], term_info[2]))
-        i += 1
-
-    with open('inverted_index.pickle', 'wb') as f:
-        pickle.dump(inverted_index, f)
-
-    return inverted_index
-
-
-def process_term(search_query):
+def process_search_query(search_query):
     """Process a term so it can be added to the index."""
 
     search_query = nltk.word_tokenize(search_query).lower()
     if search_query not in stopwords:
         search_query = stemmer.stem(search_query)
+
+    # add other variations?
+
+    return token
 
 
 @app.route('/search', methods=['GET', 'POST'])
@@ -567,6 +341,8 @@ def display_search_results():
         search_term = request.args.get('q')
 
         # (1) process_search_query (lowercase, stemming etc)
+
+        token = process_search_query()
 
         # (2) unpickle index
         with open('inverted_index.pickle', 'rb') as f:
@@ -616,7 +392,7 @@ def display_search_results():
 
 ##### Helper functions
 
-def make_int_from_sqa_object(object):
+def make_integer(sqlalchemy_object):
     """Assume object is a sqlalchemy.util._collections.result.
     Return an int."""
 
@@ -648,12 +424,10 @@ def format_timedelta(timedelta_object):
 def index():
     """Homepage."""
 
-    videos_in_db = make_int_from_sqa_object(
-                        db.session.query(func.count(Video.video_id)
-                                 ).first())
-    channels_in_db = make_int_from_sqa_object(
-                        db.session.query(func.count(Channel.channel_id)
-                                 ).first())
+    videos_in_db = make_integer(db.session.query(func.count(Video.video_id)
+                                         ).first())
+    channels_in_db = make_integer(db.session.query(func.count(Channel.channel_id)
+                                           ).first())
 
     return render_template('homepage.html', videos_in_db=videos_in_db,
                                             channels_in_db=channels_in_db)
@@ -760,8 +534,10 @@ def generate_tag_data_for_individual_tag():
 def about_page():
     """About page."""
 
-    videos_in_db = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)).first())
-    channels_in_db = make_int_from_sqa_object(db.session.query(func.count(Channel.channel_id)).first())
+    videos_in_db = make_integer(db.session.query(func.count(Video.video_id)
+                                         ).first())
+    channels_in_db = make_integer(db.session.query(func.count(Channel.channel_id)
+                                           ).first())
 
     return render_template('about.html', videos_in_db=videos_in_db,
                                          channels_in_db=channels_in_db)
@@ -852,9 +628,7 @@ def show_videos_page():
     
     random_monetized_videos = monetized_videos.get_random_elements(8) 
     random_demonetized_videos = demonetized_videos.get_random_elements(8)
-
-    random_videos = random_monetized_videos + random_demonetized_videos
-    random.shuffle(random_videos)
+    random_videos = list(zip(random_monetized_videos, random_demonetized_videos))
 
     return render_template('videos.html',
                             random_videos=random_videos)
@@ -871,7 +645,9 @@ def show_specific_video_page(video_id):
     try:
         add_video_stats_data(parse_video_data(get_info_by_youtube_id(video_id)))    
     except:
-        pass
+        continue
+
+    # Get video_stats
     video_stats = VideoStat.query.filter(VideoStat.video_id == video_id
                                 ).order_by(VideoStat.retrieved_at.desc()
                                 ).first()
@@ -938,13 +714,13 @@ def generate_category_chart_data():
     percent_demonetized = []
 
     for category in VideoCategory.query.all():
-        all_videos = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)
+        all_videos = make_integer(db.session.query(func.count(Video.video_id)
                               ).join(VideoCategory
                               ).filter(VideoCategory.video_category_id
                                        == category.video_category_id
                               ).first())
 
-        demonetized_videos = make_int_from_sqa_object(
+        demonetized_videos = make_integer(
                                 db.session.query(func.count(Video.video_id)
                                       ).join(VideoCategory
                                       ).filter(VideoCategory.video_category_id
@@ -972,7 +748,7 @@ def show_specific_category_page(video_category_id):
 
     category = VideoCategory.query.filter(VideoCategory.video_category_id == video_category_id).first()
 
-    videos_in_db = make_int_from_sqa_object(
+    videos_in_db = make_integer(
                         db.session.query(func.count(Video.video_id)
                                  ).join(VideoCategory
                                  ).filter(VideoCategory.video_category_id == video_category_id
@@ -1034,12 +810,12 @@ def generate_tag_chart_data():
     all_tags = request.args.get('allTags')
 
     for tag in Tag.query.join(TagVideo).all():
-        all_videos = make_int_from_sqa_object(db.session.query(func.count(Video.video_id)
+        all_videos = make_integer(db.session.query(func.count(Video.video_id)
                               ).join(VideoCategory
                               ).filter(VideoCategory.video_category_id
                                        == category.video_category_id
                               ).first())
-        demonetized_videos = make_int_from_sqa_object(
+        demonetized_videos = make_integer(
                                 db.session.query(func.count(Video.video_id)
                                       ).join(VideoCategory
                                       ).filter(VideoCategory.video_category_id
@@ -1117,6 +893,7 @@ def process_period_tag_query(tag):
 
     bqq = db.session.query(TagVideo).join(Tag).filter(Tag.tag == tag)
     tag_period_data = []
+
     for quarter in range(len(period)):
         demonetized_vids = db.session.query(TagVideo
                                     ).join(Tag).filter(Tag.tag == tag
@@ -1217,20 +994,6 @@ def count_tag_frequency(tag_item):
     return tag_frequencies
 
 
-# @app.route('/autocomplete.json')
-# def autocomplete_search():
-#     tag = request.args.get('tagInput')
-#     try:
-#         tag = tag.lower().strip()
-#     except AttributeError: # if tags are non-alphabet
-#         print('AttributeError: ' + tag)
-#     finally:
-#         tag_search = Tag.query.filter(Tag.tag.like(str(tag) + '%')).all() # tag_search is a list of Tag objects
-#         data = dict(zip(map(lambda x: x.tag, tag_search), count_tag_frequency(tag_search)))
-#         print(data)
-#         return jsonify(data)
-
-
 def trie_to_dict(node):
     """Assume node is the root node of a trie.
     Return a nested dictionary to be converted to JSON.
@@ -1287,7 +1050,7 @@ def get_tag_frequency(word):
                             ).filter(Tag.tag == word
                             ).first()
 
-    return make_int_from_sqa_object(frequency_in_videos) + make_int_from_sqa_object(frequency_in_images)
+    return make_integer(frequency_in_videos) + make_integer(frequency_in_images)
     # by definition, there shouldn't be any tags whose frequency is zero.
 
 
@@ -1295,6 +1058,7 @@ def construct_tag_trie():
     """Construct a complete tag trie for all tags in the seed database (only needs 
     to be done once). Construct a smaller list of qualified tags and convert it into
     a dictionary for easy retrieval."""
+    sys.setrecursionlimit(10000) # exceed the default max recursion limit
 
     complete_tag_trie = Trie()
     smaller_tag_trie = Trie()
@@ -1312,6 +1076,8 @@ def construct_tag_trie():
 
     with open('complete_tag_trie.pickle', 'wb') as f:
         pickle.dump(complete_tag_trie, f)
+
+    return tag_trie_dict
 
 
 @app.route('/autocomplete-trie.json')
@@ -1595,6 +1361,20 @@ def change_ad_status_in_db():
     #                     ChannelStat).filter(
     #                     ChannelStat.total_subscribers > 1000000).first()
   
+# @app.route('/autocomplete.json')
+# def autocomplete_search():
+#     tag = request.args.get('tagInput')
+#     try:
+#         tag = tag.lower().strip()
+#     except AttributeError: # if tags are non-alphabet
+#         print('AttributeError: ' + tag)
+#     finally:
+#         tag_search = Tag.query.filter(Tag.tag.like(str(tag) + '%')).all() # tag_search is a list of Tag objects
+#         data = dict(zip(map(lambda x: x.tag, tag_search), count_tag_frequency(tag_search)))
+#         print(data)
+#         return jsonify(data)
+
+
 if __name__ == '__main__':
     app.debug = True
     app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False

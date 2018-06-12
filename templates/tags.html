@@ -208,6 +208,7 @@
   }
 
   let countTagsNow = countTagsDisplayed();
+  console.log('countTagsNow:');
   console.log(countTagsNow);
 
   if (countTagsNow === 5) {
@@ -243,24 +244,7 @@
       url: '/autocomplete-trie.json',
     })
     .done(response => {window.tagTrie = response})
-    .done(console.log(window.tagTrie))
   }
-
-  // window.onload = function() {
-  //   $.when(
-  //     // Get tag data from server
-  //     $.ajax({
-  //       url: '/get-tag-data.json',
-  //       data: {'initalTags': initialTagExamples}
-  //     }),
-
-  //     // Load the chart
-
-  //     ).then(function() {
-  //       // Do the things the function needs to do
-  //     })
-  // }
-
 
   // (2.2) Populate tag display area.
 
@@ -312,7 +296,7 @@
       $('#suggested-tags').append('<p>No results found.</p>');
     } else {
       let suggestedTagsHtml = '';
-      for (let tag in sortedTagArray.slice(0, 8)) { // tk will slicing raise indexerror-type thing if there are fewer than 8 tags?
+      for (let tag in sortedTagArray.slice(0, 8)) { // slicing does not raise indexerror if fewer than 8 tags.
         suggestedTagsHtml += `<li class="clickable-suggestions" id="tag-${tag[0]}"><a>${tag[0]}</a></li>`;
       }
       $('#suggested-tags').append(suggestedTagsHtml);
@@ -328,25 +312,39 @@
 
   // messy
   function getAllWords(trieObject, prefix) {
-    // debugger;
     let allTags = [];
     if (Object.keys(trieObject)[0] === '') { // if it's the first recursive loop
       modifiedTrieObject = trieObject[''];
       for (let char of prefix) {
       modifiedTrieObject = modifiedTrieObject['children'][char];
       }
-      console.log('modifiedTrieObject: ')
-      console.log(modifiedTrieObject);
+      // console.log('modifiedTrieObject: ')
+      // console.log(modifiedTrieObject);
     }
     for (let item of Object.entries(modifiedTrieObject)) {
-      console.log('item: ')
-      console.log(item);
-      console.log('item[1]');
-      console.log(item[1]);
-      console.log('item[1][freq]');
-      console.log(item[1]['freq']);
+      // console.log('item: ')
+      // console.log(item);
+      // console.log('item[1]');
+      // console.log(item[1]);
+      for (let charNode of Object.entries(item[1])) {
+        // console.log('charNode:')
+        // console.log(charNode)
+        if (charNode[1]['freq']) { // if it has a value
+          // console.log("charNode[1]['freq']:");
+          // console.log(charNode[1]['freq']);
+          // console.log('prefix+charNode[0]:')
+          // console.log(prefix+charNode[0])
+          // console.log("[prefix+charNode[0], charNode[1]['freq']]");
+          // console.log([prefix+charNode[0], charNode[1]['freq']]);
+          allTags.push([prefix+charNode[0], charNode[1]['freq']]);
+          // console.log(allTags)
+        }
+        for (charNode[1]['children']) {
+          console.log("charNode[1]['children']");
+          console.log(charNode[1]['children']);
+        }
+      }
       if (item[1]['freq']) {
-        console.log('tuple:');
         console.log((prefix+item[0], item[1]['freq']));
         allTags.push((prefix+item[0], item[1]['freq']));
       }
@@ -360,6 +358,40 @@
     }
     return allTags
   }
+
+  // clean
+  function getAllWords(trieObject, prefix) {
+    let allTags = [];
+    if (Object.keys(trieObject)[0] === '') { // if it's the first recursive loop
+      modifiedTrieObject = trieObject[''];
+      for (let char of prefix) {
+      modifiedTrieObject = modifiedTrieObject['children'][char];
+      }
+    }
+    for (let item of Object.entries(modifiedTrieObject)) {
+      for (let charNode of Object.entries(item[1])) {
+        if (charNode[1]['freq']) { // if freq !== 0, ie it's a word end
+          allTags.push([prefix+charNode[0], charNode[1]['freq']]);
+        }
+        for (charNode[1]['children']) {
+          console.log("charNode[1]['children']");
+          console.log(charNode[1]['children']);
+        }
+      }
+      if (item[1]['freq']) {
+        console.log((prefix+item[0], item[1]['freq']));
+        allTags.push((prefix+item[0], item[1]['freq']));
+      }
+      for (let child of Object.entries(item[1]['children'])) {
+        console.log(child);
+        for (let wordInfo in getAllWords(child, prefix+item[0])) {
+          allTags.push(wordInfo);
+        }
+      }
+    }
+    return allTags
+  }
+
 
   // clean
   // function getAllWords(trieObject, prefix) {
