@@ -497,19 +497,10 @@ def categorize_document(document):
 def index_document(document_text, document_id):
 
     stopwords = set(nltk.corpus.stopwords.words('english'))
-
-    for punctuation in '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~':
-        stopwords.add(punctuation)
-
-    other = ['https', 'http', 'www'] # tk fill this out
-    for word in other:
-        stopwords.add(word)
-
     stemmer = EnglishStemmer()
 
     terms = [term.lower() for term in nltk.word_tokenize(document_text)] # list
-    all_document_info = []
-    terms = [stemmer.stem(term) for term in terms]
+    terms = [stemmer.stem(term) for term in terms if has_at_least_one_alphanum(term)] # remove terms without a single alphanumeric character
     unique_terms = set(terms)
 
     for term in unique_terms:
@@ -527,13 +518,15 @@ def generate_inverted_index():
 
     inverted_index = InvertedIndex()
 
-    all_documents = (set(VideoCategory.query.all()) | 
-                     set(Channel.query.all()) | 
-                     set(Video.query.filter(Video.video_status.is_(None)).all()))
+
+    all_documents = (VideoCategory.query.all() 
+                     + Channel.query.all() 
+                     + Video.query.filter(Video.video_status.is_(None)).all())
+
     i = 0
     for document in all_documents:
         if i%50 == 0:
-            print('done with {} things'.format(i))
+            print('done with {} out of {} things'.format(i, len(all_documents)))
 
         document_id, document_primary_key, document_text = create_document_id(categorize_document(document))
 
@@ -1267,8 +1260,7 @@ def trie_to_dict(node):
     """
 
     if not node.children: # leaf node (no children)
-        return {'freq': node.freq,
-                'children': {} }
+        return {'freq': node.freq, 'children': {} }
 
     trie_dict = {}
     for node_char in node.children:
@@ -1276,13 +1268,11 @@ def trie_to_dict(node):
         trie_dict[node_char] = trie_to_dict(node.children[node_char])
 
     if not node.value: # root node scenario
-        return {'': {'freq': 0,
-                     'children': trie_dict}}
+        return {'': {'freq': 0, 'children': trie_dict}}
 
     # Q: Is it more pythonic to use else or just start with the return statement?
     # print('non-leaf-node recursion')
-    return {'freq': node.freq,
-            'children': trie_dict}
+    return {'freq': node.freq, 'children': trie_dict}
 
 
 def get_tag_frequency(word):
@@ -1329,8 +1319,36 @@ def return_tag_trie():
     """Return a jsonified dictionary representation of a trie for all qualified
     tags in the database."""
 
-    with open('tag_trie_dict.pickle', 'rb') as f:
-        tag_trie_dict = pickle.load(f)
+    # with open('tag_trie_dict.pickle', 'rb') as f:
+    #     tag_trie_dict = pickle.load(f)
+
+    tag_trie_dict = {'': {'children': {'a': {'children': {'n': {'children': {'g': {'children': {'e': {'children': {'r': {'children': {},
+            'freq': 2}},
+          'freq': 0},
+         'r': {'children': {'y': {'children': {}, 'freq': 3}}, 'freq': 0}},
+        'freq': 0},
+       't': {'children': {}, 'freq': 2}},
+      'freq': 2}},
+    'freq': 5},
+   'b': {'children': {'a': {'children': {'r': {'children': {'k': {'children': {},
+          'freq': 1},
+         'n': {'children': {'s': {'children': {'t': {'children': {'o': {'children': {'r': {'children': {'m': {'children': {},
+                    'freq': 1}},
+                  'freq': 0}},
+                'freq': 0}},
+              'freq': 0}},
+            'freq': 0}},
+          'freq': 1}},
+        'freq': 2}},
+      'freq': 0},
+     'e': {'children': {'e': {'children': {}, 'freq': 2},
+       'i': {'children': {'n': {'children': {'g': {'children': {}, 'freq': 2}},
+          'freq': 0}},
+        'freq': 0},
+       't': {'children': {}, 'freq': 1}},
+      'freq': 2}},
+    'freq': 0}},
+  'freq': 0}}
 
     return jsonify(tag_trie_dict)
 

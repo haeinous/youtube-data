@@ -218,6 +218,8 @@
 
   // (2.1) Load chart when you land on the page.
 
+  window.tagTrie = [];
+
   window.onload = function() {
     $.ajax({
       url: '/get-tag-data.json',
@@ -234,10 +236,14 @@
       loadChart(response);
     })
     .done(function(response) {
-      console.log('hi');
-      console.log(response);
       updateCurrentTags(response);
     })
+
+    $.ajax({
+      url: '/autocomplete-trie.json',
+    })
+    .done(response => {window.tagTrie = response})
+    .done(console.log(window.tagTrie))
   }
 
   // window.onload = function() {
@@ -278,22 +284,22 @@
   }
 
   function updateCurrentTags(response) {
-    debugger;
+    // debugger;
     for (let i = 0; i < 3; i++) {
       currentTags[i].push(response['datasets'][i]['data']);
     }
-    console.log(currentTags);
+    // console.log(currentTags);
   }
 
   // (2.4) Load autocomplete trie.
 
-  tagTrie = loadTagTrie();
+  // tagTrie = loadTagTrie();
 
-  function loadTagTrie() {
-    $.ajax({
-      url: '/autocomplete-trie.json'
-    })
-  }
+  // function loadTagTrie() {
+  //   $.ajax({
+  //     url: '/autocomplete-trie.json'
+  //   })
+  // }
   
   // (3) Set up autocomplete.
 
@@ -320,17 +326,25 @@
     return allTags
   }
 
+  // messy
   function getAllWords(trieObject, prefix) {
+    // debugger;
     let allTags = [];
     if (Object.keys(trieObject)[0] === '') { // if it's the first recursive loop
-      trieObject = trieObject[''];
+      modifiedTrieObject = trieObject[''];
       for (let char of prefix) {
-      trieObject = trieObject['children'][char];
+      modifiedTrieObject = modifiedTrieObject['children'][char];
       }
+      console.log('modifiedTrieObject: ')
+      console.log(modifiedTrieObject);
     }
-    for (let item of Object.entries(trieObject)) {
-      console.log('item:'); // things stopped working here.
+    for (let item of Object.entries(modifiedTrieObject)) {
+      console.log('item: ')
       console.log(item);
+      console.log('item[1]');
+      console.log(item[1]);
+      console.log('item[1][freq]');
+      console.log(item[1]['freq']);
       if (item[1]['freq']) {
         console.log('tuple:');
         console.log((prefix+item[0], item[1]['freq']));
@@ -346,6 +360,29 @@
     }
     return allTags
   }
+
+  // clean
+  // function getAllWords(trieObject, prefix) {
+  //   let allTags = [];
+  //   if (Object.keys(trieObject)[0] === '') { // if it's the first recursive loop
+  //     modifiedTrieObject = trieObject[''];
+  //     for (let char of prefix) {
+  //     modifiedTrieObject = modifiedTrieObject['children'][char];
+  //     }
+  //   }
+  //   for (let item of Object.entries(modifiedTrieObject)) {
+  //     if (item[1]['freq']) {
+  //       allTags.push((prefix+item[0], item[1]['freq']));
+  //     }
+  //     for (let child of Object.entries(item[1]['children'])) {
+  //       for (let wordInfo in getAllWords(child, prefix+item[0])) {
+  //       // for (let wordInfo in getAllWords({child[0]: child[1]}, prefix+item[0])) {
+  //         allTags.push(wordInfo);
+  //       }
+  //     }
+  //   }
+  //   return allTags
+  // }
 
   // (4) Add tag.
 
@@ -384,7 +421,7 @@
 
   // Function that applies to multiple sections (adding + removing)
   function updateChart() {
-    debugger;
+    // debugger;
     let data = {'labels': [],
                 'datasets': []}
     
