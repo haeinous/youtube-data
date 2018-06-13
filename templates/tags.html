@@ -291,7 +291,7 @@
 
   function displaySuggestedTags() {
     let inputVal = $('#tag-search-box').val();
-    let sortedTagArray = parseTags(inputVal);
+    let sortedTagArray = sortTags(inputVal);
     if (sortedTagArray === null) { // null or undefined?
       $('#suggested-tags').append('<p>No results found.</p>');
     } else {
@@ -303,7 +303,11 @@
     }
   }
 
-  function parseTags(inputVal) {
+  function updateSuggestedTags() {
+    // is this necessary?
+  }
+
+  function sortTags(inputVal) {
     // (a) Get all words starting with prefix   
     let allTags = getAllWords(tagTrie, inputVal);
     allTags.sort((a,b) => (b[1] - a[1]));
@@ -311,17 +315,77 @@
   }
 
   // messy
-  function getAllWords(trieObject, prefix) {
-    let allTags = [];
-    if (Object.keys(trieObject)[0] === '') { // if it's the first recursive loop
-      modifiedTrieObject = trieObject[''];
-      for (let char of prefix) {
-      modifiedTrieObject = modifiedTrieObject['children'][char];
-      }
-      // console.log('modifiedTrieObject: ')
-      // console.log(modifiedTrieObject);
+
+  // helper funcs
+  // (1) does it have children
+
+  function hasChildren(node) {
+    let nodeChildren = Object.entries(node)[0][1].children;
+    if (Object.keys(nodeChildren).length === 0) {
+      return false
     }
-    for (let item of Object.entries(modifiedTrieObject)) {
+    else {
+      return true
+    }
+  }
+
+  // (2) how many children
+
+  function hasChildren(node) {
+    let nodeChildren = Object.entries(node)[0][1].children;
+    let numChildren = Object.keys(nodeChildren).length;
+    return numChildren
+  }
+
+  // (3) is it a word
+
+  function isWord(node) {
+    let freq = Object.entries(node)[0][1].freq;
+    if (freq !== 0) {
+      return true
+    }
+    else {
+      return false
+    }
+  }
+
+  // (4) get frequency
+
+  function getFrequency(node) {
+    let freq = Object.entries(node)[0][1].freq;
+      return freq
+  }
+
+
+
+  // actual func
+  function getAllWords(trieNode, prefix) {
+    let allTags = [];
+    let nodeKeys = Object.keys(trieNode); // array that's [''] for root; ['a','b'] (for example) for subnodes
+
+    if (nodeKeys[0] === '') { // if root node i.e. first recursive loop
+      // ##### whatever needs to be done
+
+    }
+    else {
+
+    }
+
+
+
+
+
+    // (1) if it's the first recursive loop
+    if (Object.keys(trie)[0] === '') { 
+      let modTrie = trie[''];
+      for (let char of prefix) {
+      modTrie = modTrie['children'][char];
+      }
+      console.log('modTrie: ')
+      console.log(modTrie);
+    }
+    // (2) does it have children?
+    for (let item of Object.entries(modTrie)) {
       // console.log('item: ')
       // console.log(item);
       // console.log('item[1]');
@@ -392,29 +456,6 @@
     return allTags
   }
 
-
-  // clean
-  // function getAllWords(trieObject, prefix) {
-  //   let allTags = [];
-  //   if (Object.keys(trieObject)[0] === '') { // if it's the first recursive loop
-  //     modifiedTrieObject = trieObject[''];
-  //     for (let char of prefix) {
-  //     modifiedTrieObject = modifiedTrieObject['children'][char];
-  //     }
-  //   }
-  //   for (let item of Object.entries(modifiedTrieObject)) {
-  //     if (item[1]['freq']) {
-  //       allTags.push((prefix+item[0], item[1]['freq']));
-  //     }
-  //     for (let child of Object.entries(item[1]['children'])) {
-  //       for (let wordInfo in getAllWords(child, prefix+item[0])) {
-  //       // for (let wordInfo in getAllWords({child[0]: child[1]}, prefix+item[0])) {
-  //         allTags.push(wordInfo);
-  //       }
-  //     }
-  //   }
-  //   return allTags
-  // }
 
   // (4) Add tag.
 

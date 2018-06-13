@@ -33,6 +33,9 @@ class Trie:
         self.root = TrieNode('')
 
     def add_word(self, word, freq):
+        """Adds word to a trie if it doesn't exist, creating new nodes or 
+        updating frequencies where necessary."""
+
         current = self.root
 
         for char in word:
@@ -43,9 +46,24 @@ class Trie:
                 current = current.children[char]
 
         current.freq = freq
-    
+
+    def find_prefix_node(self, prefix):
+        """Given a prefix string, return the trie node of the prefix's last 
+        character, False if it does not exist."""
+
+        current = self.root
+
+        for char in prefix:
+            if char in current.children:
+                current = current.children[char]
+            else:
+                return False
+
+        return current
+
     def __repr__(self):
         return '<Trie root={}>'.format(self.root)
+
 
 class TrieNode:
     """A trie node containing one character of a word. If self.freq == 0, it
@@ -61,10 +79,29 @@ class TrieNode:
         child_node = TrieNode(value)
         self.children[value] = child_node
 
+    def list_words(self, previous=None):
+        """Return a list of all valid words under and including the trie node;
+        return [] if it does not exist."""
+
+        all_words = []
+
+        if not previous: # if it's the first recursive loop
+            previous = ''
+
+        if trie_node.freq:
+            all_words.append((previous, trie_node.freq))
+
+        for char, node in trie_node.children.items():
+            for word_and_freq in list_words(node, previous=previous+char):
+                all_words.append(word_and_freq)
+
+        return all_words
+
     def __repr__(self):
-        return '<TrieNode value={}, freq={}, children={}>'.format(self.value,
-                                                                  self.freq,
-                                                                  self.children)
+        return '<TrieNode {} ({})\nch: {}>'.format(self.value,
+                                                   self.freq,
+                                                   self.children)
+
 
 class RandomBag:
     """A random bag that allows elements to be inserted and selected randomly
@@ -645,7 +682,7 @@ def show_specific_video_page(video_id):
     try:
         add_video_stats_data(parse_video_data(get_info_by_youtube_id(video_id)))    
     except:
-        continue
+        pass
 
     # Get video_stats
     video_stats = VideoStat.query.filter(VideoStat.video_id == video_id
@@ -995,8 +1032,7 @@ def count_tag_frequency(tag_item):
 
 
 def trie_to_dict(node):
-    """Assume node is the root node of a trie.
-    Return a nested dictionary to be converted to JSON.
+    """Return a trie in the form of a nested dictionary to be jsonified.
     
     >>> tag_trie = Trie()
     >>> trie_to_dict(tag_trie.root)
@@ -1119,7 +1155,7 @@ def return_tag_trie():
     return jsonify(tag_trie_dict)
 
 
-# to be translated into JavaScript in chart-tag.html
+# to be translated into JavaScript
 def create_tag_list(trie_dict, previous=None):
     """
     Assume trie_dict is a dictionary representation of the tag trie.
@@ -1186,6 +1222,15 @@ def create_tag_list(trie_dict, previous=None):
                     all_tags.append(item)
 
     return all_tags
+
+
+def get_all_words_from_prefix(trie_dict, prefix):
+    """Given a prefix, find all valid tags that begin with it."""
+
+    all_tags = []
+
+
+
 
 def sort_tags_by_frequency(all_tags):
     """Assume all_tags is a list of all tags and their frequencies.
