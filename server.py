@@ -348,21 +348,29 @@ def generate_video_graph_by_shared_tags():
     return jsonify(data)
 
 
-###################################
+######################################################################
 # See inverted_index.py for details on the InvertedIndex, PostingsList, and Posting classes.
-###################################
+######################################################################
 
+for token in ii:
+    m = re.search(r'[\w ]+( )+[\w](?=[:])', token)
+    if m:
+        try:
+            token = m.group().split(' ')
+            token = ''.join(token)
+            print(token)
+        except Exception as e:
+            print(e)
+            print(e.args)
 
-def process_search_query(search_query):
-    """Process a term so it can be added to the index."""
+def query_type(q):
+    """Given a search query q (before tokenization), return the type of query
+    it represents so the correct algorithm can be used."""
 
-    search_query = nltk.word_tokenize(search_query).lower()
-    if search_query not in stopwords:
-        search_query = stemmer.stem(search_query)
-
-    # add other variations?
-
-    return token
+    if len(q.split()) > 1:
+        return 'full_text_query'
+    else:
+        return 'one_word_query'
 
 
 @app.route('/search', methods=['GET', 'POST'])
@@ -375,20 +383,29 @@ def display_search_results():
 
     if request.method == 'GET':
 
-        search_term = request.args.get('q')
+        # - - - - - - - - - - - - 
+        # (1) process search query
+        # - - - - - - - - - - - - 
+        search_query = request.args.get('q')
 
-        # (1) process_search_query (lowercase, stemming etc)
+        # (1.1) type of query
+        query_type = query_type(search_query)
 
-        token = process_search_query()
+        # (1.2) tokenize search query
+        tokens = generate_tokens() # this is a list
 
         # (2) unpickle index
         with open('inverted_index.pickle', 'rb') as f:
             inverted_index = pickle.load(f)
-            print(inverted_index[search_term])
+
+        # print(inverted_index)
 
         # (3) search the inverted_index
+
+        for token in tokens: # because it's a list with potentially multiple words
+
             try:
-                postings = [posting for posting in inverted_index[search_term]]
+                postings = [posting for posting in inverted_index[search_query]]
                 print('postings: ')
                 print(postings)
 
@@ -396,8 +413,8 @@ def display_search_results():
             except:
                 print('no results')
                 postings = [] # search term not found
-                return render_template('search-results.html', search_results=search_results,
-                                                              search_term=search_term)
+                return render_template('search-results.html', search_results=None,
+                                                              search_query=search_query)
 
         # (4) sort the inverted index by term frequency
         if postings: # if it's not empty
@@ -422,7 +439,7 @@ def display_search_results():
         print('search results')
         print(search_results)
         return render_template('search.html', search_results=search_results,
-                                              search_term=search_term)
+                                              search_query=search_query)
     else:
         pass
 
@@ -431,9 +448,9 @@ def display_search_results():
 
 def make_integer(sqlalchemy_object):
     """Assume object is a sqlalchemy.util._collections.result.
-    Return an int."""
+    Return an integer."""
 
-    return int(str(object)[1:-2])
+    return int(str(sqlalchemy_object)[1:-2])
 
 
 def format_timedelta(timedelta_object):
@@ -470,12 +487,6 @@ def index():
                                             channels_in_db=channels_in_db)
 
 
-@app.route('/chart_test', methods=['GET','POST'])
-def chart():
-
-    return render_template('chart_test.html')
-
-
 @app.route('/chart-tag', methods=['GET', 'POST'])
 def show_charts():
 
@@ -504,6 +515,7 @@ def calculate_demonetization_percentage_by_tag(tag):
                                 ).all()
 
     return round(len(demonetized_videos)/len(all_videos)*100)
+
 
 @app.route('/get-tag-data.json')
 def generate_tag_data_json():
@@ -615,7 +627,12 @@ def show_specific_channel_page(channel_id):
 
     # get channel data
     channel = Channel.query.get(channel_id)
-    add_channel_stats_data(parse_channel_data(get_info_by_youtube_id(channel_id), channel_in_db=True))    
+
+    try:
+        add_channel_stats_data(parse_channel_data(get_info_by_youtube_id(channel_id), channel_in_db=True))    
+    except:
+        pass
+
     channel_stats = ChannelStat.query.filter(ChannelStat.channel_id == channel_id
                                     ).order_by(ChannelStat.retrieved_at.desc()
                                     ).first()
@@ -665,7 +682,7 @@ def show_videos_page():
     
     random_monetized_videos = monetized_videos.get_random_elements(8) 
     random_demonetized_videos = demonetized_videos.get_random_elements(8)
-    random_videos = list(zip(random_monetized_videos, random_demonetized_videos))
+    random_videos = [pair[0], pair[1] for pair in list(zip(random_monetized_videos, random_demonetized_videos))]
 
     return render_template('videos.html',
                             random_videos=random_videos)
@@ -783,7 +800,7 @@ def generate_category_chart_data():
 @app.route('/explore/categories/<int:video_category_id>')
 def show_specific_category_page(video_category_id):
 
-    category = VideoCategory.query.filter(VideoCategory.video_category_id == video_category_id).first()
+    category = VideoCategory.query.get(video_category_id)
 
     videos_in_db = make_integer(
                         db.session.query(func.count(Video.video_id)
@@ -821,7 +838,7 @@ def show_tags_page():
 @app.route('/explore/tags/<int:tag_id>')
 def show_specific_tag_page(tag_id):
 
-    tag = Tag.query.filter(Tag.tag_id == tag_id).first()
+    tag = Tag.query.get(tag_id)
     tag_videos = Video.query.join(TagVideo
                            ).filter(TagVideo.tag_id == tag_id
                            ).all()
@@ -1015,8 +1032,8 @@ def create_initial_tag_data_json():
 
 
 def count_tag_frequency(tag_item):
-    """Assume Count how many times a tag_related_item (tag_id or tag) appears
-    in the TagVideo table."""
+    """Count how many times a tag_related_item (tag_id or tag) appears in the 
+    tags_videos association table."""
 
     # make things faster thru this? https://gist.github.com/hest/8798884
     tag_frequencies = []

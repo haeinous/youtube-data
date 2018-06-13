@@ -6,7 +6,10 @@
 
 """
 import collections, re, nltk, pickle, sys
+
+from sqlalchemy import or_
 from nltk.stem.snowball import EnglishStemmer
+from unidecode import unidecode
 
 from model import *
 from server import *
@@ -61,7 +64,7 @@ class PostingsList:
             current = current.next
 
     def __repr__(self):
-        return '<PostingsList with {} postings>'.format(len(self))
+        return '<PostingsList w/ {} postings>'.format(len(self))
 
 
 class Posting:
@@ -73,12 +76,39 @@ class Posting:
         self.data = data
         self.next = None
 
+    def document_details(self):
+        """Return the posting's document type and document_primary_key."""
+
+        document = Document.query.filter(Document.document_id == self.data[0]).first()
+
+        return (document.document_type, document.document_primary_key)
+
+
+    def calculate_relevance_score(self):
+        """Calculate a relevance score based on document type."""
+
+        document_type = self.document_type()[0]
+
+        if document_type == 'channel_title':
+            multiplier = 10
+        elif document_type == 'video_title':
+            multiplier = 5
+        elif document_type == 'video_description':
+            multiplier = 4
+        elif document_type == 'category':
+            multiplier = 2
+        else:
+            multiplier = 1
+
+        return self.data[1] * multiplier
+
+
     def __repr__(self):
         if self.next:
             return '<Posting: data={}>'.format(self.data)
         else:
-            return '<Posting (tail): data={}, next={}>'.format(self.data, 
-                                                               self.next)
+            return '<Posting (tail): data={}>'.format(self.data, 
+                                                      self.next)
 
 
 class InvertedIndex(dict):
@@ -92,27 +122,33 @@ class InvertedIndex(dict):
     def __init__(self):
         self.index = collections.defaultdict(list)
 
-    def process_terms(self, document, document_id):
-        """Process a term so it can be added to the index. The nltk module 
-        provides a tokenizer function, word stemmer, as well as a list of 
-        stopwords (English words to ignore)."""
+    def return_top_tokens(self, num_tokens=None):
+        """Return a list of the top <num_tokens> tokens, reverse-sorted (for popping 
+        in constant time) by how frequently they appear in documents."""
 
-        term = nltk.word_tokenize(document).lower()
-        if term not in self.stopwords:
-            term = self.stemmer.stem(term)
-            frequency = term.count(document)
-            if term not in self.index:
-                self.index[term] = PostingsList((document_id, frequency))
-            else:
-                self.index[term].append((document_id, frequency))
+        if not num_tokens:
+            num_tokens = 0
 
-    def print(self):
-        """Print the inverted index."""
-        print(dict(self.items()))
+        tokens_by_freq = []
 
-    def search(self, term):
+        for token, postings_list in self.items():
+            tokens_by_freq.append((token, len(postings_list)))
+
+        tokens_by_freq.sort(key=lambda x: x[1])
+
+        return tokens_by_freq[-num_tokens:] # indexing at [-0:] doesn't raise an error (same as nothing)
+
+    def search(self, token):
         """Given a search term, return a list of documents containing it."""
-        pass
+
+        try:
+            postings_list = self[token].sort(key=lambda x: x.data[1])
+        except KeyError:
+            return None
+
+        return postings_list
+
+
 
     def __missing__(self, term):
         """Similar to defaultdict(list), if term doesn't exist, the term is added
@@ -158,11 +194,13 @@ def index_document(document_text, document_id, title=None):
 
     if not title:
         good_tokens = generate_tokens(document_text)
-        good_tokens.extend(produce_token_variations(good_tokens))
 
-    else: # don't tokenize/stem for channel and video titles
+    else: # in addition to tokenizing/stemming channel and video titles, supplement with whole
         good_tokens = []
-        good_tokens.append(document_text.lower())
+        try:
+            good_tokens.append(document_text.lower())
+        except:
+            pass
         if title == 'channel': # add variations for entire channel title
             good_tokens.extend(produce_token_variations(good_tokens, channel=True))
         else:
@@ -204,6 +242,7 @@ def generate_inverted_index():
         if i:
             first_document_id = create_document_id('category', str(category.video_category_id))
             i = not first_document_id # changes i to False as long as first_document_id does not return None
+            print('first_document_id={}'.format(first_document_id))
         else:
             create_document_id('category', str(category.video_category_id))
     for channel in Channel.query.all():
@@ -220,14 +259,19 @@ def generate_inverted_index():
 
     # (2) Process document text (index_document function) and add to inverted index (inner function)
 
+    deleted_video_ids = set([video.video_id for video in
+                             Video.query.filter(or_(Video.video_status == 'http error',
+                                                    Video.video_status == 'deleted')).all()])
+
     documents_to_process = Document.query.filter(Document.document_id >= first_document_id
                                         ).filter(Document.document_primary_key.isnot(None)
                                         ).filter(Document.document_type.isnot(None)
+                                        ).filter(~Document.document_primary_key.in_(deleted_video_ids)
                                         ).all() # doc IDs are autogenerated sequentially
     j = 0
     for document in documents_to_process:
-        if j%100 == 0:
-            print('{} out of {} documents added!'.format(j, len(documents_to_process)))
+        if j%1000 == 0:
+            print('{} / {} documents\n{}'.format(j, len(documents_to_process), datetime.datetime.now()))
 
         if len(document.document_primary_key) == 11: # video
             video_object = Video.query.filter(Video.video_id == document.document_primary_key).first()
@@ -305,17 +349,18 @@ def generate_tokens(document_text):
 
     stemmer = EnglishStemmer() # from NLTK module
 
-    tokens = [additional_pruning(stemmer.stem(token.lower()))
+    tokens = [additional_pruning(remove_hyphens(stemmer.stem(token.lower())))
               for token in nltk.word_tokenize(document_text) if len(token) > 2 and token]
     
     good_tokens = []
     for token in tokens:
+        good_tokens.extend([unidecode(item) for item in process_url_prefixes(token)])
         good_tokens.extend([custom_youtube_stemmer(item) for item in process_url_prefixes(token) 
                             if custom_youtube_stemmer(item)])
 
     better_tokens = []
     for token in good_tokens:
-        if loop_through_chars(token):
+        if has_alpha_char(token):
             better_tokens.extend(process_url_ends(token))  # can you use list comprehension with extend?
 
     return better_tokens
@@ -328,7 +373,9 @@ def process_url_ends(token):
                            token[-6:] == '.co.uk'):
 
         tokens = [item for item in token.split('.') 
-                  if item not in {'', 'com', 'org', 'net', 'co', 'uk'}]
+                  if item not in {'', 'com', 'org', 'net', 'co', 'uk'} 
+                  and len(item) > 2]
+    
     else:
         tokens = [token]
 
@@ -387,40 +434,46 @@ def custom_youtube_stemmer(token):
         token = 'blog'
     elif token == 'live-stream':
         token = 'livestream'
+    elif token == 'itun':
+        token = 'itunes'
 
     return token
+
+def remove_hyphens(token):
+    """Remove a hyphen if it's flanked immediately by two alnums. Yes for 'hae-in'
+    but NO for 'bye - bye'."""
+    return re.sub(r'(?<=[\w])[-]{1}(?=[\w]+)', '', token)
 
 
 def additional_pruning(token):
     """Use regex to adjust tokens beginning/ending in non-alphanumeric characters."""
 
+    token = re.sub(r'[^a-z0-9]', ' ', token) # sub non-alnum characters with a space
+
     if not token[-1].isalnum():
-        token = re.search(r'[\w-]+(?=[\W]+)', token).group(0)
+        try:
+            token = re.search(r'[\w-]+(?=[\W]+)', token).group(0)
+        except:
+            pass
+
     if not token[0].isalnum():
-        token = re.search(r'\w+', token).group(0)
+        try:
+            token = re.search(r'\w+', token).group(0)
+        except:
+            pass
 
     return token
 
 
-def loop_through_chars(token):
-    """Loop through all the chars in token and remove those that: (a) don't have 
-    a single alpha character or (b) it begins/ends with a non-latin character. 
-    Return bool to determine whether to further process."""
+def has_alpha_char(token):
+    """Loop through all the chars in token and remove those that don't have a 
+    single alpha character. Return bool to determine whether to further process."""
 
-    at_least_one_alpha = False
+    for char in token:
+        if char.isalpha():
+            return True
 
-    for i in range(len(token)):
-        if i == len(token) or i == 0:
-            if token[i] > 'á': # if non-latin alpha character
-                return False
-        while not at_least_one_alpha:
-            if token[i].isalpha():
-                at_least_one_alpha = True
-
-    if at_least_one_alpha:
-        return True
-    else:
-        return False
+    return False
 
 
 def produce_token_variations(tokens, channel=False):
@@ -451,19 +504,6 @@ def append_to_inverted_index(new_document):
     pass # can you unpickle an index in append mode?
 
 
-def sort_tokens_by_freq():
-    """Return a list of tokens, reverse-sorted (for popping in constant time)
-    by how frequently they appear in documents."""
-
-    inverted_index = load_inverted_index()
-    tokens_by_freq = []
-
-    for token, postings_list in inverted_index.items():
-        tokens_by_freq.append((token, len(postings_list)))
-
-    return sorted(tokens_by_freq, key=lambda x: x[1])
-
-
 def count_documents(inverted_index):
     """Return number of documents indexed."""
 
@@ -480,15 +520,16 @@ def pickle_inverted_index(inverted_index):
     """Dump the inverted index into a pickle so it doesn't need
     to be regenerated every time."""
 
-    sys.setrecursionlimit(5000) # exceed the default max recursion limit
-    with open('inverted_index.pickle', 'wb') as f:
+    sys.setrecursionlimit(50000) # exceed the default max recursion limit
+    with open('inverted_index_try11.pickle', 'wb') as f:
         pickle.dump(inverted_index, f)
 
 
 def load_inverted_index():
     """Load the pickled inverted index."""
 
-    with open('inverted_index.pickle', 'rb') as f:
+    with open('inverted_index_try11.pickle', 'rb') as f:
+
         return pickle.load(f)
 
 
@@ -498,4 +539,5 @@ if __name__ == '__main__':
     connect_to_db(app)
     app.app_context().push()
 
-    # pickle_inverted_index(generate_inverted_index())
+    # generate_inverted_index()
+    pickle_inverted_index(generate_inverted_index())
