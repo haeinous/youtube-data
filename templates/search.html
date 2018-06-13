@@ -11,6 +11,83 @@
     </h1>
   </div>
 
+  {% if search_results['channels'] %}
+    <div>
+      <h2>
+        channels
+      </h2>
+      <div class="row" id="">
+        {% for result in search_results['channels'] %}
+          <div class="col-sm-12 col-md-8">
+            <li>
+              <ul>
+                <span>
+                  <a href="/explore/channels/{{ result.channel_id }}">
+                    {{ result.channel_title }}
+                  </a>
+                </span>
+              </ul>
+            </li>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if search_results['videos'] %}
+    <div>
+      <h2>
+        videos
+      </h2>
+      <div class="row" id="">
+        {% for result in search_results['videos'] %}
+          <div class="col-sm-12 col-md-8">
+            <li>
+              <ul>
+                <span>
+                  <a href="/explore/videos/{{ result.video_id }}">
+                    {{ result.video_title }}
+                  </a>
+                </span>
+              </ul>
+            </li>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if search_results['categories'] %}
+    <div>
+      <h2>
+        categories
+      </h2>
+      <div class="row" id="">
+        {% for result in search_results['categories'] %}
+          <div class="col-sm-12 col-md-8">
+            <li>
+              <ul>
+                <span>
+                  <a href="/explore/categories/{{ result.video_category_id }}">
+                    {{ result.category_name }}
+                  </a>
+                </span>
+              </ul>
+            </li>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if not search_results %}
+    <div>
+      <h2>
+        no results found!
+      </h2>
+    </div>
+  {% endif %}
+
 
 
 
