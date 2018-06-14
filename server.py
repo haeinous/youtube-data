@@ -352,17 +352,6 @@ def generate_video_graph_by_shared_tags():
 # See inverted_index.py for details on the InvertedIndex, PostingsList, and Posting classes.
 ######################################################################
 
-for token in ii:
-    m = re.search(r'[\w ]+( )+[\w](?=[:])', token)
-    if m:
-        try:
-            token = m.group().split(' ')
-            token = ''.join(token)
-            print(token)
-        except Exception as e:
-            print(e)
-            print(e.args)
-
 def query_type(q):
     """Given a search query q (before tokenization), return the type of query
     it represents so the correct algorithm can be used."""
@@ -682,7 +671,10 @@ def show_videos_page():
     
     random_monetized_videos = monetized_videos.get_random_elements(8) 
     random_demonetized_videos = demonetized_videos.get_random_elements(8)
-    random_videos = [pair[0], pair[1] for pair in list(zip(random_monetized_videos, random_demonetized_videos))]
+    random_videos = (random_monetized_videos[:4] + 
+                     random_demonetized_videos[:4] +
+                     random_monetized_videos[4:] + 
+                     random_demonetized_videos[4:])
 
     return render_template('videos.html',
                             random_videos=random_videos)

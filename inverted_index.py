@@ -476,6 +476,19 @@ def has_alpha_char(token):
     return False
 
 
+def tokenize_videogames(token):
+    """Concatenate likely videogame names. Currently not in use."""
+    m = re.search(r'[\w ]+( )+[\w](?=[:])', token)
+    if m:
+        try:
+            token = m.group().split(' ')
+            token = ''.join(token)
+            print(token)
+        except Exception as e:
+            print(e)
+            print(e.args)
+
+
 def produce_token_variations(tokens, channel=False):
     """Return a list split and joined token variations. For example, for the token 
     'kiera bridget', 'kierabridget', 'kiera', and 'bridget' would be added."""
@@ -533,11 +546,10 @@ def load_inverted_index():
         return pickle.load(f)
 
 
-
 if __name__ == '__main__':
 
     connect_to_db(app)
     app.app_context().push()
 
     # generate_inverted_index()
-    pickle_inverted_index(generate_inverted_index())
+    # pickle_inverted_index(generate_inverted_index())
