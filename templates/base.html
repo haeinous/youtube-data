@@ -8,8 +8,8 @@
 
   <title>{% block title %}{% endblock %}</title>
 
-  <!-- Font Awesome CSS -->
-  <!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous"> -->
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
   <!-- Google fonts (Lato regular and bold) -->
@@ -24,7 +24,8 @@
 
     body{
       font-family: 'Raleway', sans-serif;
-      padding-bottom: 100px;
+      font-size: 1.1rem;
+      padding-bottom: 120px;
     }
 
     h1, h2, h3, h4, h5, h6 {
@@ -34,12 +35,56 @@
       margin-bottom: 20px; 
     }
 
-    button {
+    h2 {
+      font-size: 2em;
+      display: block;
+      float: left;
+      position: relative;
+    }
 
+    h1 {
+      font-size: 3em;
+      display: block;
+      float:left;
+      position:relative;
+      letter-spacing: 1px;
+    }
+
+    h1:before {
+      display: block;
+      content:'';
+      height: 18px;
+      position:absolute;
+      width:100%;
+      bottom:0;
+      left:0;
+      background:#fff200;
+      z-index:-1;
+    }
+
+    h2:before {
+      display: block;
+      content:'';
+      height: 11px;
+      position:absolute;
+      width:100%;
+      bottom:0;
+      left:0;
+      background:#5ec8d5;
+      z-index:-1;
+    }
+
+    .card {
+      margin-bottom: 10px;
+      margin-top: 10px;
     }
 
     .card-text {
-      font-weight: bold;
+      font-weight: normal;
+    }
+
+    .navbar-text:hover {
+      color: red;
     }
 
     nav {
@@ -54,6 +99,7 @@
 
     .navbar-text {
       font-size: 1.2em;
+      font-weight: 700;
     }
 
     .footer {
@@ -91,12 +137,33 @@
       color: white;
     }
 
+    a {
+      color: #ee2761;
+      text-decoration: none;
+      background-color: transparent;
+    }
+
+    a:hover {
+      color: #af1e48;
+    }
+
+    a:active {
+      color: #af1e48;
+    }
+
     .tag-text {
       color: white;
       font-size: 1.3em;
       text-align: center;
       height: 30px;
       line-height: 30px;
+      display: inline-block;
+      margin-right: 10px;
+      margin-left: 10px;
+    }
+
+    #graph-svg {
+      background-color: #d9f7fa;
     }
 
     .alert-success {
@@ -140,16 +207,56 @@
       text-shadow: none;
     }
 
+    #navbar-search-button {
+      color: #;
+    }
+
     .btn-primary {
       color: #ffffff;
       background-color: #ee2761;
       border-color: #ee2761;
     }
 
-    .btn-primary:hover .btn-primary:active {
+    .btn-primary:hover {
       color: #ffffff;
       background-color: #af1e48;
       border-color: #af1e48;
+    }
+
+    .btn-primary:active {
+      color: #ffffff;
+      background-color: #af1e48;
+      border-color: #af1e48;
+    }
+
+    .btn-outline-primary {
+      color: #ee2761;
+      background-color: transparent;
+      background-image: none;
+      border-color: #ee2761;
+      border-width: 1px;
+    }
+
+    .btn-outline-primary:hover {
+      color: #ffffff;
+      background-color: #ee2761;
+      background-image: none;
+      border-color: #ee2761;
+    }
+
+    .btn-outline-primary:active {
+      color: #ffffff;
+      background-color: #ee2761;
+      background-image: none;
+      border-color: #ee2761;
+    }
+
+    .lead {
+      margin-bottom: 20px;
+    }
+
+    .nav-link:hover {
+      color: #ee2761;      
     }
 
     div.remove-button-container {
@@ -160,8 +267,32 @@
       right: 2px;
     }
 
-    .remove-button-container {
+    footer {
+      justify-content: space-between;
+      display: block;
+      padding: 8px;
+      vertical-align: middle;
+      color: #282562;
     }
+
+    footer ul {
+      list-style-type: none;
+      list-style-image: none;
+    }
+
+    footer.socials {
+      margin-top: 12px;
+    }
+
+    .fab {
+      color: #ee2761;
+    }
+
+    #rubber-duck {
+      height: 40px;
+    }
+
+
 
   </style>
 </head>
@@ -170,7 +301,7 @@
 
   <nav class="navbar navbar-expand-lg navbar-light bg-light rounded sticky-top" style="background: #f7f8f9;">
     <a class="navbar-brand" href="/">
-      <img src="/static/logo.png" style="height: 40px;">
+      <img src="/static/logo.png" id="rubber-duck">
     </a>
 
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-template" aria-controls="navbar-template" aria-expanded="false" aria-label="Toggle navigation">
@@ -218,7 +349,7 @@
 
       <form action="/search" method="GET" class="form-inline my-2 my-lg-0">
         <input class="form-control mr-sm-2" type="text" placeholder="search" aria-label="search" id="search-form-input" name="q">
-        <button class="btn btn-outline-success my-2 my-sm-0 navbar-text" type="submit">
+        <button class="btn btn-outline-primary my-2 my-sm-0 navbar-text" type="submit" id="navbar-search-button">
           search
         </button>
       </form>
@@ -273,26 +404,40 @@
 
 <footer class="footer" style="background-color: #f7f8f9;">
   <div class="container">
-    <div class="row">
+    <div class="row socials row justify-content-around">
       <div class="col-md-12 py-2">
-        <div class="flex-center">
+        <div class="text-center center-block">
+          <i class="fab fa-twitter-square"></i>
           <a href="https://twitter.com/haehae" class="tw-ic">
-            <i class="fa fa-twitter fa-sm mr-md-5 mr-3">
-              @haehae
-            </i>
-          <a href="https://www.linkedin.com/in/haeinous" class="li-ic">
-            <i class="fa fa-linkedin fa-sm mr-md-5 mr-3">
-              haeinous
-            </i>
+            @haehae
           </a>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <i class="fab fa-linkedin"></i>
+          <a href="https://www.linkedin.com/in/haeinous" class="li-ic">
+            haeinous
+          </a>  
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;          
+          <i class="fab fa-github-square"></i>
+          <a href="https://github.com/haeinous" class="li-ic">
+            haeinous
+          </a>            
+          <p>
+            <span>
+              youtube data collective (ytdc)&nbsp;&nbsp;&verbar;&nbsp;&nbsp;
+            </span>
+            <span class="" id="made-with-love">              
+              made with <i class="far fa-heart"></i>
+            </span> by hae-in lim.
+          </p>
+
         </div>
+        <!-- /.col -->
       </div>
+      <div class="text-center">
+      </div>
+
+      <!-- /.row -->
     </div>
-  </div>
-  <div class="text-center">
-    <span>
-      made with love by hae-in lim.
-    </span>
   </div>
 </footer>
 

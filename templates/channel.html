@@ -8,9 +8,10 @@
 
   <div class="row page-title" id="channel-row1">
     <h1>
-      <a href="https://www.youtube.com/channel/{{ channel.channel_id }}" id="youtube-url" target="_blank">
         {{ channel.channel_title }}
-      </a>
+        <a href="https://www.youtube.com/channel/{{ channel.channel_id }}" id="youtube-url" target="_blank">
+          <i class="fas fa-external-link-alt fa-sm" id="external-link-icon"></i>
+        </a>
     </h1>
   </div>
 
@@ -98,8 +99,8 @@
     <h3>
       graph representation of {{ channel.channel_title }}&rsquo;s videos by shared tags
     </h3>
-    <div class="col svg-container" id="graph-svg-container">
-      <svg width="700" height="400" id="graph-svg" style="background-color: #282562"></svg>      
+    <div class="col svg-container mx-auto" id="graph-svg-container">
+      <svg width="700" height="400" id="graph-svg"></svg>      
     </div>
   </div>
 
