@@ -18,11 +18,11 @@
   </div>
 
   <!-- tag display area -->
-  <div class="row text-center" id="tag-display-container">
+  <div class="row text-center align-middle" id="tag-display-container">
 
     <!-- tag-display1 -->
     <div class="col tag-display" id="tag-display1" style="background-color: #ee2761;">
-      <div class="row">        
+      <div>        
         <div class="col-10 tag-text" id="tag-text1"><!-- 
           tag-text1 
      --></div>
@@ -104,7 +104,7 @@
       </div>
 
       <!-- tag search container -->
-      <div class="col align-middle" id="tag-search-container">
+      <div class="col" id="tag-search-container">
         <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search tags">
         <div id="suggested-tag-container">
           <ul class="" id="suggested-tags" style="background-color: #fff5f8;" role="menu">
@@ -138,7 +138,7 @@
 
   <div class="row" id="random-tag-container">
     {% for tag in tags %}
-      <div class="col-lg-3 col-md-4 col-sm-6 text-truncate" id="tag-text" style="display: inline-block;">
+      <div class="col-lg-3 col-md-4 col-sm-6 text-truncate" id="tag-text">
         <a href="/explore/tags/{{ tag.tag_id }}">
           {{ tag.tag }}
         </a>
@@ -253,6 +253,7 @@
     $('#tag-text2').text(initialTagExamples[1]);
     $('#tag-text3').text(initialTagExamples[2]);
     $('#tag-display4').hide();
+    $('#tag-text5').hide();
     $('#close-button5').hide();
   }
 
@@ -413,7 +414,7 @@
           allTags.push([prefix+charNode[0], charNode[1]['freq']]);
           // console.log(allTags)
         }
-        for (charNode[1]['children']) {
+        for (let c of charNode[1]['children']) {
           console.log("charNode[1]['children']");
           console.log(charNode[1]['children']);
         }
@@ -447,7 +448,7 @@
         if (charNode[1]['freq']) { // if freq !== 0, ie it's a word end
           allTags.push([prefix+charNode[0], charNode[1]['freq']]);
         }
-        for (charNode[1]['children']) {
+        for (let c of charNode[1]['children']) {
           console.log("charNode[1]['children']");
           console.log(charNode[1]['children']);
         }

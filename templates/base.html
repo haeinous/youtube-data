@@ -123,8 +123,9 @@
     }
 
     .links line {
-      stroke: #fff;
-      stroke-opacity: 0.6;
+      stroke: #5ec8d5;
+      stroke-width: 3px;
+      stroke-opacity: 1;
     }
 
     .nodes circle {
@@ -133,6 +134,9 @@
     }
 
     .tag-display {
+      justify-content: center;
+      align-items: center;
+      display: flex;
       padding: 10px;
       color: white;
     }
@@ -153,7 +157,7 @@
 
     .tag-text {
       color: white;
-      font-size: 1.3em;
+      font-size: 1.2em;
       text-align: center;
       height: 30px;
       line-height: 30px;
@@ -168,13 +172,26 @@
 
     .alert-success {
       color: white;
-      background-color: #32b259;
-      border-color: #7FDA9B;
+      background-color: #5ec8d5;
+      border-color: #5ec8d5;
     }
 
-    .alert-success .alert-link {
-      color: #fff200;
+    .alert-link {
+      color: white;
       font-weight: 900;
+    }
+
+
+    .alert-link:before {
+      display: block;
+      content:'';
+      height: 8px;
+      position:absolute;
+      width:100%;
+      bottom:0;
+      left:0;
+      background:#ee2761;
+      z-index:-1;
     }
 
     #tag-search-box {
