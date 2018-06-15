@@ -5,40 +5,39 @@
 {% block content %}
 <div class="container">
   <div class="row lead">
-    <div id="about-block">
 
-      <h1 id="about-title">
-        about ytdc
-      </h1>
-
-      <div id="db-statistics">
-        <div id="big-numbers">
-          <h3>
-            <strong>{{ '{:,}'.format(videos_in_db) }}</strong> videos and <strong>{{ '{:,}'.format(channels_in_db) }}</strong> channels tracked
-          </h3>
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-          </p>
+    <h1 id="about-title">
+      about ytdc
+    </h1>
+  </div>
+  <div>
+    <div id="db-statistics">
+      <div>
+        <div class="big-numbers">
+          <strong>{{ '{:,}'.format(videos_in_db) }}</strong> videos and <strong>{{ '{:,}'.format(channels_in_db) }}</strong> channels tracked          
         </div>
+        <p>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+        </p>
       </div>
-
     </div>
+
   </div>
 
-  <div class="row" id="demonetization-video-container">
-    <div class="col-sm-12 col-md-6 justify-content-center iframe" id="demonetization-video-neistat">
+  <div class="row justify-content-around" id="demonetization-video-container">
+    <div class="col-sm-12 col-md-6 iframe center-all" id="demonetization-video-neistat">
       <iframe width="400" height="225" src="https://www.youtube.com/embed/HZakJFqdpRY?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
       </iframe>
     </div>
-    <div class="col-sm-12 col-md-6 justify-content-center iframe" id="demonetization-video-crg">
+    <div class="col-sm-12 col-md-6 iframe center-all" id="demonetization-video-crg">
       <iframe width="400" height="225" src="https://www.youtube.com/embed/uSXQEIEKOUo?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
       </iframe>
     </div>
-    <div class="col-sm-12 col-md-6 justify-content-center iframe" id="demonetization-video-imagine-blank">
+    <div class="col-sm-12 col-md-6 iframe center-all" id="demonetization-video-imagine-blank">
       <iframe width="400" height="225" src="https://www.youtube.com/embed/ouMeAaAWUEg?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
       </iframe>
     </div>
-    <div class="col-sm-12 col-md-6 justify-content-center iframe" id="demonetization-video-ellie-jayden">
+    <div class="col-sm-12 col-md-6 iframe center-all" id="demonetization-video-ellie-jayden">
       <iframe width="400" height="225" src="https://www.youtube.com/embed/0JUOrCTwFXc?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
       </iframe>
     </div>
@@ -75,8 +74,6 @@
       </ul>
       <!-- /#resources-list -->
     </div>
-    <!-- /#about-block -->
-  </div>
 
 </div>
 
