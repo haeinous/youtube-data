@@ -104,11 +104,13 @@
       </div>
 
       <!-- tag search container -->
-      <div class="col" id="tag-search-container">
-        <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search tags" autocomplete="off">
-        <div class= "suggested-tags" id="suggested-tag-container">
-          <ul class="suggested-tags list-unstyled" id="suggested-tag-dropdown" role="menu">
-          </ul>
+      <div id="tag-search-container" class="">
+        <input id="tag-search-box" type="text" name="tag-search-box" placeholder="search tags" autocomplete="off" style="">
+        <div id="suggestion-results-container" class="">
+          <section id="suggested-tag-section" class="" style="">
+            <ul id="suggested-tag-dropdown" class="suggested-tags list-unstyled" role="menu">
+            </ul>
+          </section>          
         </div>
       </div>
       <!-- end tag search container -->
@@ -194,6 +196,11 @@
                         ['#tag-text4', '#tag-display4'],
                         ['#tag-text5', '#tag-display5']]
 
+  let dataTemplate = {labels: [],
+                      datasets: [{backgroundColor: [],
+                                  data: []
+                                }]
+  }
 
   // (2.1) Load chart when you land on the page.
 
@@ -229,7 +236,6 @@
   function populateTagDisplay() {
     let numTags = currentTags.length;
     let tagDisplayOptions = tagDisplayInfo.slice(0, numTags);
-    console.log(tagDisplayOptions);
     if (numTags === 5) {
       $('#tag-text5').show();
       $('#close-button5').show();            
@@ -268,7 +274,6 @@
     for (let i = 0; i < 3; i++) {
       currentTags[i].push(arr[i]);
     }
-    console.log(currentTags);
   }
 
   // (3) Set up autocomplete.
@@ -283,7 +288,7 @@
     }
     let inputNode = findTrieNode(inputVal);
     if (inputNode === null) {
-      $('#suggested-tag-dropdown').append('<p>No results found.</p>');
+      $('#suggested-tag-dropdown').append('<li class="tag-suggestion">&nbsp;&nbsp;no results found</li>');
     }
     else {
       let input;
@@ -294,13 +299,9 @@
         input = inputVal.slice(0, -1);
       }
       let sortedTagArray = getAllWords(inputNode, input);
-      console.log('sortedTagArray:')
-      console.log(sortedTagArray)
       let suggestedTagsHtml = '';
-      for (let tag of sortedTagArray.slice(0, 8)) { // slicing does not raise indexerror if fewer than 8 tags.
-        console.log('a tag:');
-        console.log(tag);
-        suggestedTagsHtml += `<li class="tag-suggestion" id="tag-${tag[0]}"><a>${tag[0]}</a></li>`;
+      for (let tag of sortedTagArray.slice(0, 12)) {
+        suggestedTagsHtml += `<li class="tag-suggestion" id="tag-${tag[0]}"><a>&nbsp;&nbsp;${tag[0]}</a></li>`;
       }
       $('#suggested-tag-dropdown').append(suggestedTagsHtml);
     }
@@ -318,12 +319,10 @@
         return null
       }
     }
-    // console.log('inputNode:')
-    // console.log(inputNode)
     return inputNode
   }
 
-  // start over Friday night
+  // real, working getAllWords function!
 
   function getAllWords(node, prefix='') {
     let allTags = []
@@ -338,85 +337,56 @@
       }
     }
     allTags.sort((a, b) => (b[1] - a[1]));
-    console.log('allTags:');
-    console.log(allTags);
     return allTags
   }
 
-  // (4) Add tag.
+  // $('#tag-search-box').on('blur', function() {
+  //   $('#suggested-tag-dropdown').hide();
+  // });
+
+  // (4) Add tag
 
   // (4.1) Upon clicking a tag, add it to the chart
 
-  $('.suggested-tag-dropdown').on('click', addTag);
+  $('#suggested-tag-dropdown').on('click', 'li', addTag);
 
   function addTag() {
     let newTag = $(this).text().trim();
     $.ajax({
-      url: '/get-tag-data.json',
-      data: {'tags': newTag}
+      url: '/get-individual-tag-data.json',
+      data: {newTag: newTag}
     })
     .done(function(response) {
-      addTagToChart(response);
-    })
-    .done(function(response) {
-      addTagToDisplay(response);
+      addTagToCurrentTags(response);
     })
   }
 
-  function addTagToChart(response) {
-    tagChart.data.labels.push(newTag);
-    tagChart.data.datasets.forEach(dataset => {
-      dataset.data.push(response['datasets'][0]['data']);
-    });
+  function addTagToCurrentTags(response) {
+    let newTag = Object.entries(response)[1][1][0];
+    let newTagData = Object.entries(response)[0][1][0].data[0]
+    currentTags.push([newTag, newTagData]);
+    addTagToChart(newTag, newTagData, rgbColors[currentTags.length-1]);
+    populateTagDisplay();
+  }
+
+  function addTagToChart(newLabel, newData, newColor) {
+    tagChart.data.labels.push(newLabel);
+    tagChart.data.datasets[0].data.push(newData);
+    tagChart.data.datasets[0].backgroundColor.push(newColor);
     tagChart.update();
   }
 
-  // (4.2) Add it to the tagDisplay
-
-  function addTagToDisplay(response) {
-    currentTags.push([newTag, response['datasets'][0]['data']]);
-    updateChart();
-  }
-
-  // // Function that applies to multiple sections (adding + removing)
-  // function updateChart() {
-  //   // debugger;
-  //   let data = {'labels': [],
-  //               'datasets': []}
-    
-  //   for (let i = 0; i < currentTags.length; i++) {
-  //     data['labels'].push(currentTags[i][0]);
-  //     let datasetTemplate = {'backgroundColor': [],
-  //                            'data': []}
-  //     datasetTemplate['data'][i].push(currentTags[i][1]);
-  //     datasetTemplate['backgroundColor'].push()
-  //     data['datasets'].push(currentTags[i][1]);
-  //   }
-  //   console.log(data);
-
-  //   // is creating a new chart going to work?
-  //   tagChart = new Chart(ctxTagChart, {
-  //     type: 'line',
-  //     data: data,
-  //     options: options
-  //   });
-  // }
 
   function reloadChart() {
-    let dataTemplate = {
-      labels: [],
-      datasets: [{backgroundColor: [],
-                  data: []
-                }]
-    }
-    dataTemplate.datasets[0].backgroundColor = rgbColors.slice(0, currentTags.length);
+    let dataTemplateCopy = dataTemplate;
+    dataTemplateCopy.datasets[0].backgroundColor = rgbColors.slice(0, currentTags.length);
     for (let tagInfo of currentTags) {
-      dataTemplate.labels.push(tagInfo[0]);
-      dataTemplate.datasets[0].data.push(tagInfo[1]);
+      dataTemplateCopy.labels.push(tagInfo[0]);
+      dataTemplateCopy.datasets[0].data.push(tagInfo[1]);
     }
     tagChart = new Chart(ctxTagChart, {
       type: 'bar',
-      data: dataTemplate,
+      data: dataTemplateCopy,
       options: options
     })
   }
