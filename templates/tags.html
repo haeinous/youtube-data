@@ -105,9 +105,9 @@
 
       <!-- tag search container -->
       <div class="col" id="tag-search-container">
-        <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search tags">
-        <div id="suggested-tag-container">
-          <ul class="" id="suggested-tags" style="background-color: #fff5f8;" role="menu">
+        <input type="text" id="tag-search-box" name="tag-search-box" placeholder="search tags" autocomplete="off">
+        <div class= "suggested-tags" id="suggested-tag-container">
+          <ul class="suggested-tags list-unstyled" id="suggested-tag-dropdown" role="menu">
           </ul>
         </div>
       </div>
@@ -198,9 +198,6 @@
   // (2.1) Load chart when you land on the page.
 
   window.currentTags = [['donald trump'], ['hillary clinton'], ['bernie sanders']]
-  window.tagTrie = [];
-  window.tagArray;
-
 
   window.onload = function() {
     $.ajax({
@@ -224,7 +221,7 @@
     $.ajax({
       url: '/autocomplete-trie.json',
     })
-    .done(response => {window.tagTrie = [Object.keys(response)[0], Object.values(response)[0]]})
+    .done(response => {window.tagTrie = ['', response['']]})
   }
 
   // (2.2) Populate tag display area.
@@ -279,35 +276,57 @@
   $('#tag-search-box').on('keyup', displaySuggestedTags);
 
   function displaySuggestedTags() {
+    $('#suggested-tag-dropdown').empty();
     let inputVal = $('#tag-search-box').val();
-    let sortedTagArray = sortTags(inputVal);
-    if (sortedTagArray === null) { // null or undefined?
-      $('#suggested-tags').append('<p>No results found.</p>');
-    } else {
-      let suggestedTagsHtml = '';
-      for (let tag in sortedTagArray.slice(0, 8)) { // slicing does not raise indexerror if fewer than 8 tags.
-        suggestedTagsHtml += `<li class="clickable-suggestions" id="tag-${tag[0]}"><a>${tag[0]}</a></li>`;
-      }
-      $('#suggested-tags').append(suggestedTagsHtml);
+    if (inputVal === '') {
+      return null
     }
-  }
-
-  function updateSuggestedTags() {
-    // is this necessary?
+    let inputNode = findTrieNode(inputVal);
+    if (inputNode === null) {
+      $('#suggested-tag-dropdown').append('<p>No results found.</p>');
+    }
+    else {
+      let input;
+      if (inputVal.length === 1) {
+        input = '';
+      }
+      else {
+        input = inputVal.slice(0, -1);
+      }
+      let sortedTagArray = getAllWords(inputNode, input);
+      console.log('sortedTagArray:')
+      console.log(sortedTagArray)
+      let suggestedTagsHtml = '';
+      for (let tag of sortedTagArray.slice(0, 8)) { // slicing does not raise indexerror if fewer than 8 tags.
+        console.log('a tag:');
+        console.log(tag);
+        suggestedTagsHtml += `<li class="tag-suggestion" id="tag-${tag[0]}"><a>${tag[0]}</a></li>`;
+      }
+      $('#suggested-tag-dropdown').append(suggestedTagsHtml);
+    }
   }
 
     // (a) Get all words starting with prefix   
 
-  function sortTags(inputVal) {
-    let allTags = getAllWords(tagTrie, inputVal);
-    allTags.sort((a, b) => (b[1] - a[1]));
-    return allTags
+  function findTrieNode(input) {
+    let inputNode = tagTrie;
+    for (let char of input) {
+      if (Object.keys(inputNode[1].children).includes(char)) {
+        inputNode = [char, inputNode[1].children[char]];
+      }
+      else {
+        return null
+      }
+    }
+    // console.log('inputNode:')
+    // console.log(inputNode)
+    return inputNode
   }
 
   // start over Friday night
 
   function getAllWords(node, prefix='') {
-    let allTags = [];
+    let allTags = []
     if (node[1].freq !== 0) {
       allTags.push([prefix + node[0], node[1].freq]);
     }
@@ -318,6 +337,9 @@
         }
       }
     }
+    allTags.sort((a, b) => (b[1] - a[1]));
+    console.log('allTags:');
+    console.log(allTags);
     return allTags
   }
 
