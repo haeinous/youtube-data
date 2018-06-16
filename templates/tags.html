@@ -173,6 +173,7 @@
                    '5ec8d5', // blueberry
                    'fff200'] // yellow
 
+
   let options = {responsive: true,
                  animation: false,
                  legend: {display: false,
@@ -180,13 +181,20 @@
                  title: {display: false}, 
                  tooltips: {mode: 'index',
                             intersect: true},
+                 layout: {padding: {right: 50}},
                  elements: {point: {pointStyle: 'circle'}},
                  scales: {yAxes: [{ticks: {min: 0,
                                            callback: (label, index, labels) => {return label + '%'},
-                                   scaleLabel: {fontFamily: 'Raleway',
-                                                fontColor: 'black'}},
-                     }],
-                 }}
+                                           fontFamily: 'Lato',
+                                           fontColor: 'rgba(40, 37, 98, 1)',
+                                           fontSize: 16}
+                                 }],
+                         xAxes: [{ticks: {fontFamily: 'Lato',
+                                          fontColor: 'rgba(40, 37, 98, 1)',
+                                          fontSize: 20},
+                                  gridLines: {display: false}}
+                                ]}
+                 }
 
   let initialTagExamples = ['donald trump', 'hillary clinton', 'bernie sanders']
 
@@ -282,7 +290,7 @@
 
   function displaySuggestedTags() {
     $('#suggested-tag-dropdown').empty();
-    let inputVal = $('#tag-search-box').val();
+    let inputVal = $('#tag-search-box').val().toLowerCase().trim();
     if (inputVal === '') {
       return null
     }
@@ -306,6 +314,8 @@
       $('#suggested-tag-dropdown').append(suggestedTagsHtml);
     }
   }
+
+
 
     // (a) Get all words starting with prefix   
 

@@ -99,14 +99,24 @@
 
   let options = {responsive: true,
                  animation: false,
-                 legend: {display: true},
+                 legend: {display: true,
+                          borderColor: 'rgba(255, 255, 255, 1)',
+                          labels: {fontColor: 'rgba(40, 37, 98, 1)',
+                                   fontFamily: 'Lato',
+                                   fontSize: 14}},
                  title: {display: false}, 
                  maintainAspectRatio: false,
                  tooltips: {mode: 'index',
                             intersect: true},
                  elements: {point: {pointStyle: 'circle'}},
-                 scales: {xAxes: [{stacked: true}],
-                          yAxes: [{stacked: true}]
+                 scales: {xAxes: [{stacked: true,
+                                   ticks: {fontFamily: 'Lato',
+                                           fontColor: 'rgba(40, 37, 98, 1)',
+                                           fontSize: 14,
+                                           stepSize: 20}
+                                  }],
+                          yAxes: [{stacked: true,
+                                   display: false}]
                  }}
 
   tag = $('h1').text().trim().slice(1, -1);
@@ -115,8 +125,8 @@
 
   window.onload = function() {
     $.ajax({
-      url: '/get-individual-tag-data.json',
-      data: {'tag': tag},
+      url: '/get-individual-tag-data-for-chart.json',
+      data: {tag: tag},
       type: 'GET'
     })
     .done(function loadNewChart(response) {

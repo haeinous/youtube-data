@@ -88,10 +88,10 @@ class TrieNode:
         if not previous: # if it's the first recursive loop
             previous = ''
 
-        if trie_node.freq:
-            all_words.append((previous, trie_node.freq))
+        if self.freq:
+            all_words.append((previous, self.freq))
 
-        for char, node in trie_node.children.items():
+        for char, node in self.children.items():
             for word_and_freq in list_words(node, previous=previous+char):
                 all_words.append(word_and_freq)
 
@@ -476,18 +476,6 @@ def index():
                                             channels_in_db=channels_in_db)
 
 
-@app.route('/chart-tag', methods=['GET', 'POST'])
-def show_charts():
-
-    return render_template('chart-tag.html')
-
-
-@app.route('/new-chart-tag', methods=['GET', 'POST'])
-def show_new_chart():
-
-    return render_template('new-chart-tag.html')
-
-
 def calculate_demonetization_percentage_by_tag(tag):
     """Given a tag, return the percentage of videos with that tag that have
     been demonetized."""
@@ -506,16 +494,30 @@ def calculate_demonetization_percentage_by_tag(tag):
     return round(len(demonetized_videos)/len(all_videos)*100)
 
 
+@app.route('/get-individual-tag-data.json')
+def generate_individual_tag_data_json():
+    """Query the database the retrieve tag demonetization data and
+    return a json string."""
+
+    tag = request.args.get('newTag')
+
+    json_response = {'labels': [tag],
+                     'datasets': [{'backgroundColor': [], # populate on client side
+                                   'data': []}]}
+
+    demonetization_percentage = calculate_demonetization_percentage_by_tag(tag)
+    json_response['datasets'][0]['data'].append(demonetization_percentage)
+
+    print(json_response)
+    return jsonify(json_response)
+
+
 @app.route('/get-tag-data.json')
 def generate_tag_data_json():
     """Query the database the retrieve tag demonetization data and
     return a json string."""
 
-    tags = request.args.get('tags')
-
-    if not tags:
-        print('not tag')
-        tags = ['donald trump', 'hillary clinton', 'bernie sanders']
+    tags = ['donald trump', 'hillary clinton', 'bernie sanders']
 
     json_response = {'labels': [],
                      'datasets': [{'backgroundColor': [], # populate on client side
@@ -525,12 +527,11 @@ def generate_tag_data_json():
         demonetization_percentage = calculate_demonetization_percentage_by_tag(tag)
         json_response['datasets'][0]['data'].append(demonetization_percentage) 
     
-    print(json_response)
     return jsonify(json_response)
 
 
-@app.route('/get-individual-tag-data.json')
-def generate_tag_data_for_individual_tag():
+@app.route('/get-individual-tag-data-for-chart.json')
+def generate_tag_data_for_individual_tag_chart():
     """Given an individual tag, load demonetization data and # of videos using it."""
 
     tag = request.args.get('tag')
@@ -1083,19 +1084,18 @@ def trie_to_dict(node):
     return {'freq': node.freq, 'children': trie_dict}
 
 
-def get_tag_frequency(word):
+def get_tag_frequency(tag_id):
     """Get tag frequency for a certain word from the db."""
 
     frequency_in_videos = db.session.query(func.count(TagVideo.tag_video_id)
-                            ).join(Tag
-                            ).filter(Tag.tag == word
-                            ).first()
+                           ).filter(TagVideo.tag_id == tag_id
+                           ).first()
     frequency_in_images = db.session.query(func.count(TagImage.tag_image_id)
-                            ).join(Tag
-                            ).filter(Tag.tag == word
+                            ).filter(TagImage.tag_id == tag_id
                             ).first()
 
     return make_integer(frequency_in_videos) + make_integer(frequency_in_images)
+
     # by definition, there shouldn't be any tags whose frequency is zero.
 
 
@@ -1103,26 +1103,39 @@ def construct_tag_trie():
     """Construct a complete tag trie for all tags in the seed database (only needs 
     to be done once). Construct a smaller list of qualified tags and convert it into
     a dictionary for easy retrieval."""
-    sys.setrecursionlimit(10000) # exceed the default max recursion limit
 
     complete_tag_trie = Trie()
     smaller_tag_trie = Trie()
 
-    for tag in Tag.query.all():
-        tag_freq = get_tag_frequency(tag.tag)
+    tags = Tag.query.all()
+
+    not_added = set()
+    i = 0
+    for tag in tags:
+        if i%100 == 0:
+            print('done processing {} out of {} tags'.format(i, len(tags)))
+        tag_freq = get_tag_frequency(tag.tag_id)
         complete_tag_trie.add_word(tag.tag, tag_freq)
-        if len(tag.tag) < 18 and tag.tag.count(' ') < 4:
-            smaller_tag_trie.add_word(tag.tag, tag_freq)
+        if len(str(tag.tag)) < 18 and str(tag.tag).count(' ') < 4 and tag_freq > 3:
+            smaller_tag_trie.add_word(str(tag.tag), tag_freq)
+        else:
+            # print('{} not added'.format(str(tag.tag)))
+            not_added.add((str(tag.tag), tag_freq))
+        i += 1
 
     tag_trie_dict = trie_to_dict(smaller_tag_trie.root)
+    complete_tag_trie_dict = trie_to_dict(complete_tag_trie.root)
 
-    with open('tag_trie_dict.pickle', 'wb') as f:
+    sys.setrecursionlimit(30000) # exceed the default max recursion limit
+    with open('tag_trie_dict2.pickle', 'wb') as f:
         pickle.dump(tag_trie_dict, f)
 
-    with open('complete_tag_trie.pickle', 'wb') as f:
+    with open('complete_tag_trie2.pickle', 'wb') as f:
         pickle.dump(complete_tag_trie, f)
 
-    return tag_trie_dict
+    return [tag_trie_dict, complete_tag_trie_dict, not_added]
+
+
 
 
 @app.route('/autocomplete-trie.json')
@@ -1133,38 +1146,48 @@ def return_tag_trie():
     # with open('tag_trie_dict.pickle', 'rb') as f:
     #     tag_trie_dict = pickle.load(f)
 
-    tag_trie_dict = {'': {'children': {'a': {'children': {'n': {'children': {'g': {'children': {'e': {'children': {'r': {'children': {},
-            'freq': 2}},
-          'freq': 0},
-         'r': {'children': {'y': {'children': {}, 'freq': 3}}, 'freq': 0}},
-        'freq': 0},
-       't': {'children': {}, 'freq': 2}},
-      'freq': 2}},
-    'freq': 5},
-   'b': {'children': {'a': {'children': {'r': {'children': {'k': {'children': {},
-          'freq': 1},
-         'n': {'children': {'s': {'children': {'t': {'children': {'o': {'children': {'r': {'children': {'m': {'children': {},
-                    'freq': 1}},
-                  'freq': 0}},
+    tag_trie_dict = {'':{'children': {'b': {'children': {'a': {'children': {'r': {'children': {'b': {'children': {'i': {'children': {'e': {'children': {},
+              'freq': 6}},
+            'freq': 0}},
+          'freq': 0}},
+        'freq': 0}},
+      'freq': 0}},
+    'freq': 0},
+   'c': {'children': {'h': {'children': {'e': {'children': {'a': {'children': {'t': {'children': {'i': {'children': {'n': {'children': {'g': {'children': {},
+                  'freq': 8}},
                 'freq': 0}},
               'freq': 0}},
             'freq': 0}},
-          'freq': 1}},
-        'freq': 2}},
-      'freq': 0},
-     'e': {'children': {'e': {'children': {}, 'freq': 2},
-       'i': {'children': {'n': {'children': {'g': {'children': {}, 'freq': 2}},
           'freq': 0}},
-        'freq': 0},
-       't': {'children': {}, 'freq': 1}},
-      'freq': 2}},
+        'freq': 0}},
+      'freq': 0}},
+    'freq': 0},
+   'g': {'children': {'a': {'children': {'y': {'children': {}, 'freq': 3}},
+      'freq': 0}},
+    'freq': 0},
+   'l': {'children': {'e': {'children': {'s': {'children': {'b': {'children': {'i': {'children': {'a': {'children': {'n': {'children': {},
+                'freq': 7}},
+              'freq': 0}},
+            'freq': 0}},
+          'freq': 0}},
+        'freq': 0}},
+      'freq': 0},
+     'g': {'children': {'b': {'children': {'t': {'children': {'q': {'children': {},
+            'freq': 5}},
+          'freq': 4}},
+        'freq': 0}},
+      'freq': 0}},
+    'freq': 0},
+   's': {'children': {'e': {'children': {'x': {'children': {'y': {'children': {},
+          'freq': 4}},
+        'freq': 3}},
+      'freq': 0}},
     'freq': 0}},
   'freq': 0}}
 
     return jsonify(tag_trie_dict)
 
 
-# to be translated into JavaScript
 def create_tag_list(trie_dict, previous=None):
     """
     Assume trie_dict is a dictionary representation of the tag trie.
