@@ -195,27 +195,13 @@
                  $('#tag-text4').text(),
                  $('#tag-text5').text()];
 
+  let tagDisplayInfo = [['#tag-text1', '#tag-display1'],
+                        ['#tag-text2', '#tag-display2'],
+                        ['#tag-text3', '#tag-display3'],
+                        ['#tag-text4', '#tag-display4'],
+                        ['#tag-text5', '#tag-display5']]
+
   // (1.2) Conditional logic
-
-  function countTagsDisplayed() {
-    let i = 0;
-    for (let tag of tagText) {
-      if (tag) {
-        i += 1
-      }
-    }
-    return i
-  }
-
-  let countTagsNow = countTagsDisplayed();
-  console.log('countTagsNow:');
-  console.log(countTagsNow);
-
-  if (countTagsNow === 5) {
-    $('#tag-search-container').hide();
-    $('#close-button5').show();
-    $('#tag-text5').show();
-  }
 
 
   // (2.1) Load chart when you land on the page.
@@ -233,7 +219,7 @@
       loadChart(response);
     })
     .done(function(response) {
-      initializeTagDisplay(response);
+      populateTagDisplay(response);
     })
     .done(function(response) {
       loadChart(response);
@@ -245,31 +231,49 @@
     $.ajax({
       url: '/autocomplete-trie.json',
     })
-    .done(response => {window.tagTrie = response})
+    .done(response => {window.tagTrie = [Object.keys(response), Object.values(response)]})
   }
 
   // (2.2) Populate tag display area.
 
-  function initializeTagDisplay(response) {
-    $('#tag-text1').text(initialTagExamples[0]);
-    $('#tag-text2').text(initialTagExamples[1]);
-    $('#tag-text3').text(initialTagExamples[2]);
-    $('#tag-display4').hide();
-    $('#tag-text5').hide();
-    $('#close-button5').hide();
+  function populateTagDisplay() {
+    let numTags = currentTags.length;
+    let tagDisplayOptions = tagDisplayInfo.slice(0, numTags);
+    console.log(tagDisplayOptions);
+    if (numTags === 5) {
+      $('#tag-text5').show();
+      $('#close-button5').show();            
+      $('#tag-search-container').hide();      
+    }
+    else {
+      $('#tag-display5').show();
+      $('#tag-search-container').show();
+      $('#tag-text5').hide();
+      $('#close-button5').hide();
+      let displaysToHide = tagDisplayInfo.slice(numTags, 4);
+      for (let displayToHide of displaysToHide) {
+        $(displayToHide[1]).hide();
+      }  
+    }
+    for (let tagInfo of currentTags) {
+      let tagDisplayOption = tagDisplayOptions.shift()
+      $(tagDisplayOption[1]).show();
+      $(tagDisplayOption[0]).text(tagInfo[0]);    
+    }
   }
 
   // (2.3) Create chart.
 
   function loadChart(response) {
     response['datasets'][0]['backgroundColor'] = rgbColors.slice(0, 3);
+    console.log('response:')
+    console.log(response);
     tagChart = new Chart(ctxTagChart, {
       type: 'bar',
       data: response,
       options: options
     })
   }
-
 
   function updateCurrentTags(response) {
     let arr = Object.entries(response)[0][1][0].data;    
@@ -279,17 +283,6 @@
     console.log(currentTags);
   }
 
-
-
-  // (2.4) Load autocomplete trie.
-
-  // tagTrie = loadTagTrie();
-
-  // function loadTagTrie() {
-  //   $.ajax({
-  //     url: '/autocomplete-trie.json'
-  //   })
-  // }
   
   // (3) Set up autocomplete.
 
@@ -313,10 +306,11 @@
     // is this necessary?
   }
 
-  function sortTags(inputVal) {
     // (a) Get all words starting with prefix   
+
+  function sortTags(inputVal) {
     let allTags = getAllWords(tagTrie, inputVal);
-    allTags.sort((a,b) => (b[1] - a[1]));
+    allTags.sort((a, b) => (b[1] - a[1]));
     return allTags
   }
 
@@ -368,109 +362,152 @@
   // (5) get frequency
 
   function getFrequency(node) {
-    let freq = Object.entries(node)[0][1].freq;
-      return freq
+    return node[1].freq;
   }
 
 
 
-  // actual func
-  function getAllWords(trieNode, prefix) {
+
+  // actual actual func
+  function getAllWords(node, prefix='') {
     let allTags = [];
-    let nodeKeys = Object.keys(trieNode); // array that's [''] for root; ['a','b'] (for example) for subnodes
-
-    if (nodeKeys[0] === '') { // if root node i.e. first recursive loop
-      // ##### whatever needs to be done
-
-    }
-    else {
-
-    }
-
-
-
-
-
-    // (1) if it's the first recursive loop
-    if (Object.keys(trie)[0] === '') { 
-      let modTrie = trie[''];
-      for (let char of prefix) {
-      modTrie = modTrie['children'][char];
+    // console.log(Object.keys(node))
+    // console.log(Object.values(node))
+    console.log(Object.entries(node))
+    for (let item of Object.entries(node)) {
+      if (item[1].freq !== 0) {
+        allTags.push([prefix+item[0], item[1].freq]);
+        console.log([prefix+item[0], item[1].freq]);
       }
-      console.log('modTrie: ')
-      console.log(modTrie);
-    }
-    // (2) does it have children?
-    for (let item of Object.entries(modTrie)) {
-      // console.log('item: ')
-      // console.log(item);
-      // console.log('item[1]');
-      // console.log(item[1]);
-      for (let charNode of Object.entries(item[1])) {
-        // console.log('charNode:')
-        // console.log(charNode)
-        if (charNode[1]['freq']) { // if it has a value
-          // console.log("charNode[1]['freq']:");
-          // console.log(charNode[1]['freq']);
-          // console.log('prefix+charNode[0]:')
-          // console.log(prefix+charNode[0])
-          // console.log("[prefix+charNode[0], charNode[1]['freq']]");
-          // console.log([prefix+charNode[0], charNode[1]['freq']]);
-          allTags.push([prefix+charNode[0], charNode[1]['freq']]);
-          // console.log(allTags)
-        }
-        for (let c of charNode[1]['children']) {
-          console.log("charNode[1]['children']");
-          console.log(charNode[1]['children']);
-        }
-      }
-      if (item[1]['freq']) {
-        console.log((prefix+item[0], item[1]['freq']));
-        allTags.push((prefix+item[0], item[1]['freq']));
-      }
-      for (let child of Object.entries(item[1]['children'])) {
-        console.log(child);
-        for (let wordInfo in getAllWords(child, prefix+item[0])) {
-        // for (let wordInfo in getAllWords({child[0]: child[1]}, prefix+item[0])) {
-          allTags.push(wordInfo);
+      let nodeChildren = item[1].children; // an object, same as the original node like:
+      // {a:{children:{l:[Obj],n:[Obj]},freq:1},
+      //  b:{children:{a:[Obj],e:[Obj]},freq:0}
+      // }
+      for (let child of Object.entries(nodeChildren)) {
+        console.log('line 381')
+        console.log(child[1])
+        console.log(child[0])
+        console.log(prefix=prefix+child[0])
+        for (let word_and_freq of getAllWords([prefix=prefix+child[0], child[1]])) {
+          allTags.push(word_and_freq);
         }
       }
     }
     return allTags
   }
 
-  // clean
-  function getAllWords(trieObject, prefix) {
-    let allTags = [];
-    if (Object.keys(trieObject)[0] === '') { // if it's the first recursive loop
-      modifiedTrieObject = trieObject[''];
-      for (let char of prefix) {
-      modifiedTrieObject = modifiedTrieObject['children'][char];
-      }
-    }
-    for (let item of Object.entries(modifiedTrieObject)) {
-      for (let charNode of Object.entries(item[1])) {
-        if (charNode[1]['freq']) { // if freq !== 0, ie it's a word end
-          allTags.push([prefix+charNode[0], charNode[1]['freq']]);
-        }
-        for (let c of charNode[1]['children']) {
-          console.log("charNode[1]['children']");
-          console.log(charNode[1]['children']);
-        }
-      }
-      if (item[1]['freq']) {
-        console.log((prefix+item[0], item[1]['freq']));
-        allTags.push((prefix+item[0], item[1]['freq']));
-      }
-      for (let child of Object.entries(item[1]['children'])) {
-        console.log(child);
-        for (let wordInfo in getAllWords(child, prefix+item[0])) {
-          allTags.push(wordInfo);
-        }
-      }
-    }
-    return allTags
-  }
+ // // actual func
+ //  function getAllWords(node, prefix='') {
+ //    let allTags = [];
+ //    // console.log(Object.keys(node))
+ //    // console.log(Object.values(node))
+ //    console.log(Object.entries(node))
+ //    let nodeEntries = Object.entries(node); // array that's [''] for root; ['a','b'] (for example) for subnodes
+ //    for (let subNode of nodeEntries) {
+ //      if (getFrequency(subNode) !== 0) {
+ //        allTags.push([prefix+subNode[0], getFrequency(subNode)]);
+ //        // console.log([prefix+entry[0], getFrequency(node)]);
+ //      }
+ //      let nodeChildren = subNode[1].children; // an object, same as the original node like:
+ //      // {a:{children:{l:[Obj],n:[Obj]},freq:1},
+ //      //  b:{children:{a:[Obj],e:[Obj]},freq:0}
+ //      // }
+ //      for (let child of Object.entries(nodeChildren)) {
+ //        console.log('line 381')
+ //        console.log(child[1])
+ //        console.log(child[0])
+ //        console.log(prefix=prefix+child[0])
+ //        for (let word_and_freq of getAllWords([child[1], prefix=prefix+child[0]])) {
+ //          allTags.push(word_and_freq);
+ //        }
+ //      }
+ //    }
+ //    return allTags
+ //  }
+
+
+
+
+    // // (1) if it's the first recursive loop
+    // if (Object.keys(trie)[0] === '') { 
+    //   let modTrie = trie[''];
+    //   for (let char of prefix) {
+    //   modTrie = modTrie['children'][char];
+    //   }
+    //   console.log('modTrie: ')
+    //   console.log(modTrie);
+    // }
+    // // (2) does it have children?
+    // for (let item of Object.entries(modTrie)) {
+    //   // console.log('item: ')
+    //   // console.log(item);
+    //   // console.log('item[1]');
+    //   // console.log(item[1]);
+    //   for (let charNode of Object.entries(item[1])) {
+    //     // console.log('charNode:')
+    //     // console.log(charNode)
+    //     if (charNode[1]['freq']) { // if it has a value
+    //       // console.log("charNode[1]['freq']:");
+    //       // console.log(charNode[1]['freq']);
+    //       // console.log('prefix+charNode[0]:')
+    //       // console.log(prefix+charNode[0])
+    //       // console.log("[prefix+charNode[0], charNode[1]['freq']]");
+    //       // console.log([prefix+charNode[0], charNode[1]['freq']]);
+    //       allTags.push([prefix+charNode[0], charNode[1]['freq']]);
+  //         // console.log(allTags)
+  //       }
+  //       for (let c of charNode[1]['children']) {
+  //         console.log("charNode[1]['children']");
+  //         console.log(charNode[1]['children']);
+  //       }
+  //     }
+  //     if (item[1]['freq']) {
+  //       console.log((prefix+item[0], item[1]['freq']));
+  //       allTags.push((prefix+item[0], item[1]['freq']));
+  //     }
+  //     for (let child of Object.entries(item[1]['children'])) {
+  //       console.log(child);
+  //       for (let wordInfo in getAllWords(child, prefix+item[0])) {
+  //       // for (let wordInfo in getAllWords({child[0]: child[1]}, prefix+item[0])) {
+  //         allTags.push(wordInfo);
+  //       }
+  //     }
+  //   }
+  //   return allTags
+  // }
+
+  // // clean
+  // function getAllWords(trieObject, prefix) {
+  //   let allTags = [];
+  //   if (Object.keys(trieObject)[0] === '') { // if it's the first recursive loop
+  //     modifiedTrieObject = trieObject[''];
+  //     for (let char of prefix) {
+  //     modifiedTrieObject = modifiedTrieObject['children'][char];
+  //     }
+  //   }
+  //   for (let item of Object.entries(modifiedTrieObject)) {
+  //     for (let charNode of Object.entries(item[1])) {
+  //       if (charNode[1]['freq']) { // if freq !== 0, ie it's a word end
+  //         allTags.push([prefix+charNode[0], charNode[1]['freq']]);
+  //       }
+  //       for (let c of charNode[1]['children']) {
+  //         console.log("charNode[1]['children']");
+  //         console.log(charNode[1]['children']);
+  //       }
+  //     }
+  //     if (item[1]['freq']) {
+  //       console.log((prefix+item[0], item[1]['freq']));
+  //       allTags.push((prefix+item[0], item[1]['freq']));
+  //     }
+  //     for (let child of Object.entries(item[1]['children'])) {
+  //       console.log(child);
+  //       for (let wordInfo in getAllWords(child, prefix+item[0])) {
+  //         allTags.push(wordInfo);
+  //       }
+  //     }
+  //   }
+  //   return allTags
+  // }
 
 
   // (4) Add tag.
@@ -508,29 +545,56 @@
     updateChart();
   }
 
-  // Function that applies to multiple sections (adding + removing)
-  function updateChart() {
-    // debugger;
-    let data = {'labels': [],
-                'datasets': []}
+  // // Function that applies to multiple sections (adding + removing)
+  // function updateChart() {
+  //   // debugger;
+  //   let data = {'labels': [],
+  //               'datasets': []}
     
-    for (let i = 0; i < currentTags.length; i++) {
-      data['labels'].push(currentTags[i][0]);
-      let datasetTemplate = {'backgroundColor': [],
-                             'data': []}
-      datasetTemplate['data'][i].push(currentTags[i][1]);
-      datasetTemplate['backgroundColor'].push()
-      data['datasets'].push(currentTags[i][1]);
-    }
-    console.log(data);
+  //   for (let i = 0; i < currentTags.length; i++) {
+  //     data['labels'].push(currentTags[i][0]);
+  //     let datasetTemplate = {'backgroundColor': [],
+  //                            'data': []}
+  //     datasetTemplate['data'][i].push(currentTags[i][1]);
+  //     datasetTemplate['backgroundColor'].push()
+  //     data['datasets'].push(currentTags[i][1]);
+  //   }
+  //   console.log(data);
 
-    // is creating a new chart going to work?
+  //   // is creating a new chart going to work?
+  //   tagChart = new Chart(ctxTagChart, {
+  //     type: 'line',
+  //     data: data,
+  //     options: options
+  //   });
+  // }
+
+  function reloadChart() {
+    let dataTemplate = {
+      labels: [],
+      datasets: [{backgroundColor: [],
+                  data: []
+                }]
+    }
+    dataTemplate.datasets[0].backgroundColor = rgbColors.slice(0, currentTags.length);
+    for (let tagInfo of currentTags) {
+      dataTemplate.labels.push(tagInfo[0]);
+      dataTemplate.datasets[0].data.push(tagInfo[1]);
+    }
     tagChart = new Chart(ctxTagChart, {
-      type: 'line',
-      data: data,
+      type: 'bar',
+      data: dataTemplate,
       options: options
-    });
+    })
   }
+
+  function reloadTagDisplay() {
+    for (let tagInfo of currentTags) {
+
+    }
+  }
+
+
 
   // (5) Remove tags.
 
@@ -542,9 +606,15 @@
     tagId = tagId.slice(-1);
     $('#tag-display' + tagId).hide();
     // (b) remove tag from currentTags
-    currentTags.splice(tagId, 1); // removes tag at index[tagId]
-    // (c) update chart data & colors
-    updateChart();    
+    console.log('currentTags after remove clicked: ');
+    console.log(currentTags);
+    currentTags.splice(tagId-1, 1); // removes tag at index[tagId]
+    console.log('currentTags after splice: ');
+    console.log(currentTags);
+    // (c) update tagDisplay colors
+    populateTagDisplay();
+    // (d) update chart data & colors
+    reloadChart(); 
   }
 
 
