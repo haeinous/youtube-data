@@ -5,39 +5,52 @@
 {% block content %}
 
 <div class="container">
-  <div class="row page-title" id="video-row1">
+  <div class="row page-title" id="h1-row">
     <h1>
-      video profile: &ldquo;{{ video.video_title.lower() }}&rdquo; by <a href="/explore/channels/{{ channel.channel_id }}">{{ channel.channel_title }}</a>
+      &nbsp;video profile:
     </h1>
     <!-- /#video-row1 -->
   </div>
 
-  <div class="row page-title badge" id="video-row2">
-    <h5>
-      {% if video.is_monetized == False %}
-        <span class="badge badge-danger">
-          demonetized
-        </span>
-      {% else %}
-        <span class="badge badge-success">
-          monetized
-        </span>
-      {% endif %}
-    </h5>
-    <!-- /#video-row2 -->
+  <div class="row video-title" id="video-row2">
+    <h2 id="after-video-row2">
+      {{ video.video_title.lower() }}
+    </h2>
   </div>
 
-  <div class="row table-inside" id="basic-info-and-iframe">
-    <div class="col-sm-12 col-lg-10">
-      <table class="display table table-striped table-bordered table-sm">
-        <thead>
-          <tr>
-            <th scope="col"></th>
-            <th scope="col"></th>
-            <th scope="col"></th>
-          </tr>
-        </thead>
+  <div class="row" id="video-row-margin-reduce">
+    <h4 id="like-h3">
+      &nbsp;&nbsp;&nbsp;by <a href="/explore/channels/{{ channel.channel_id }}">{{ channel.channel_title }}</a>
+    </h4>
+    <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+    <div class="row page-title badge" id="video-row3">
+      <h5>
+        {% if video.is_monetized == False %}
+          <span class="badge badge-danger">
+            demonetized
+          </span>
+        {% else %}
+          <span class="badge badge-success">
+            monetized
+          </span>
+        {% endif %}
+      </h5>
+      <!-- /#video-row2 -->
+    </div>
 
+  </div>
+
+  <div>
+    <h3 class="row">
+      about the video
+    </h3>
+    <br>
+    <br>
+  </div>
+
+  <div class="row center-vertically table-inside" id="basic-info-and-iframe">
+    <div class="col-sm-12 col-md-7 col-lg-5">
+      <table class="display table table-striped table-bordered table-sm">
         <tbody>
           <tr>
             <th scope="row">
@@ -45,10 +58,6 @@
             </th>
             <td>
               {{ video.published_at.strftime('%B %-d, %Y') }}
-            </td>
-            <td rowspan="7" align="center">
-              <iframe width="400" height="225" src="https://www.youtube.com/embed/{{ video.video_id }}?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
-              </iframe>
             </td>
           </tr>
           <tr>
@@ -101,18 +110,27 @@
               {{ '{:,}'.format(video_stats.comments) }}
             </td>
           </tr>
-          {% if nsfw_score %}
+          
             <tr>
               <th scope="row">
                 thumbnail nsfw score
               </th>
-              <td>
-                {{ nsfw_score }} / 100
-              </td>
+              {% if nsfw_score %}
+                <td>
+                  {{ nsfw_score }} / 100
+                </td>
+              {% else %}
+                <td>
+                  n/a
+                </td>
+              {% endif %}
             </tr>
-          {% endif %}
         </tbody>
       </table>
+    </div>
+    <div class="col-lg-7 col-md-6 col-sm-10">
+      <iframe class="" width="472" height="265.5" src="https://www.youtube.com/embed/{{ video.video_id }}?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+      </iframe>
     </div>
   </div>
 
@@ -124,121 +142,126 @@
     </div>
 
     <div class="row table-inside" id="sentiment-analysis-table">
-      <div class="col-sm-12 col-lg-10">
+      <div class="col-sm-10 col-lg-5">
 
-        <table class="display table table-striped table-bordered table-sm">
-          <thead>
-            <tr>
-              <th scope="col"></th>
-              <th scope="col"></th>
-              <th scope="col"></th>
-            </tr>
-          </thead>
-
+        <table class="display table table-bordered table-sm">
           <tbody>
-            <tr>
-              <th scope="row">
-                description sentiment
-              </th>
-              <td>
-                {{ video.published_at.strftime('%B %-d, %Y') }}
-              </td>
-              <td rowspan="3" align="">
-                <p>
-                  <em>description</em>: {{ video.video_description }}
-                </p>
-                <p>
-                  <em>tags</em>: {% for tag in tags %}
-                    <a href="/explore/tags/{{ tag.tag_id }}">
-                      {{ tag.tag }}
-                    </a>
-                    {% endfor %}
-                </p>
-              </td>
-            </tr>
-
             {% for text_analysis in text_analyses %}
+              <tr>
+                {% if text_analysis[0] == 'video_title' %}
+                  <th scope="row">
+                    title
+                  </th>
+                  <td>
+                    <div id="title-sentiment-score" data-toggle="tooltip" data-placement="left" title="sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
+                      {% if text_analysis[1] < 0 %}
+                        score: 
+                        <span class="negative">
+                          {{ text_analysis[1] }}
+                        </span>
+                      {% else %}
+                        score: 
+                        <span class="positive">
+                          {{ text_analysis[1] }}
+                        </span>           
+                      {% endif %}
+                    </div>
 
-            <tr>
-              {% if text_analysis[0] == 'video_title' %}
-                <th scope="row">
-                  title sentiment
-                </th>
-                <td>
-                  <div id="title-sentiment-score" data-toggle="tooltip" data-placement="left" title="sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
-                    {% if text_analysis[1] < 0 %}
-                      Score: 
-                      <span class="negative" style="color: red;">
-                        {{ text_analysis[1] }}
-                      </span>
-                    {% else %}
-                      score: 
-                      <span class="positive" style="color: green;">
-                        {{ text_analysis[1] }}
-                      </span>           
-                    {% endif %}
-                  </div>
+                    <div id="title-sentiment-magnitude" data-toggle="tooltip" data-placement="left" title="magnitude is the strength of sentiment regardless of score and ranges from 0 to infinity.">
+                      magnitude: {{ text_analysis[2] }}
+                    </div>
+                  </td>
 
-                  <div id="title-sentiment-magnitude" data-toggle="tooltip" data-placement="left" title="magnitude is the strength of sentiment regardless of score and ranges from 0 to infinity.">
-                    magnitude: {{ text_analysis[2] }}
-                  </div>
-                </td>
-                <td></td>
+                {% elif text_analysis[0] == 'video_description' %}
+                  <th scope="row">
+                    description
+                    <br>
+                    <button id="view-description-toggle" class="btn btn-tertiary btn-xs" type="button" data-toggle="collapse" data-target="#video-description-collapse" aria-expanded="false" aria-controls="collapseExample">
+                      view video description
+                    </button>
+                  </th>
+                  <td>
+                    <div id="description-sentiment-score" data-toggle="tooltip" data-placement="left" title="sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
+                      {% if text_analysis[1] < 0 %}
+                        score: 
+                        <span class="negative">
+                          {{ text_analysis[1] }}
+                        </span>
+                      {% else %}
+                        score: 
+                        <span class="positive">
+                          {{ text_analysis[1] }}
+                        </span>           
+                      {% endif %}
+                    </div>
+                    <div id="description-sentiment-magnitude" data-toggle="tooltip" data-placement="left" title="magnitude is the strength of sentiment regardless of score and ranges from 0 to infinity.">
+                      magnitude: {{ text_analysis[2] }}
+                    </div>
+                  </td>
 
-              {% elif text_analysis[0] == 'video_title' %}
-                <th scope="row">
-                  description sentiment
-                </th>
-                <td>
-                  <div id="description-sentiment-score" data-toggle="tooltip" data-placement="left" title="sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
-                    {% if text_analysis[1] < 0 %}
-                      score: 
-                      <span class="negative" style="color: red;">
-                        {{ text_analysis[1] }}
-                      </span>
-                    {% else %}
-                      score: 
-                      <span class="positive" style="color: green;">
-                        {{ text_analysis[1] }}
-                      </span>           
-                    {% endif %}
-                  </div>
-                  <div id="description-sentiment-magnitude" data-toggle="tooltip" data-placement="left" title="magnitude is the strength of sentiment regardless of score and ranges from 0 to infinity.">
-                    magnitude: {{ text_analysis[2] }}
-                  </div>
-                </td>
-                <td></td>
-
-              {% elif text_analysis[0] == 'video_tags' %}
-                <th scope="row">
-                  tag sentiment
-                </th>
-                  <div id="tag-sentiment-score" data-toggle="tooltip" data-placement="left" title="sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
-                    {% if text_analysis[1] < 0 %}
-                      score: 
-                      <span class="negative" style="color: red;">
-                        {{ text_analysis[1] }}
-                      </span>
-                    {% else %}
-                      score: 
-                      <span class="positive" style="color: green;">
-                        {{ text_analysis[1] }}
-                      </span>           
-                    {% endif %}
-                  </div>
-                  <div id="tag-sentiment-magnitude" data-toggle="tooltip" data-placement="left" title="magnitude is the strength of sentiment regardless of score and ranges from 0 to infinity.">
-                    magnitude: {{ text_analysis[2] }}
-                  </div>
-                <td></td>      
-              {% endif %}
-            </tr>
-
+                {% elif text_analysis[0] == 'video_tags' %}
+                  <th scope="row">
+                    tag
+                    <br>
+                    <button id="view-tags-toggle" class="btn btn-tertiary btn-xs" type="button" data-toggle="collapse" data-target="#video-tags-collapse" aria-expanded="false" aria-controls="collapseExample">
+                      view tags
+                    </button>
+                  </th>
+                  <td>
+                    <div id="tag-sentiment-score" data-toggle="tooltip" data-placement="left" title="sentiment score ranges from -1.0 (very negative) to 1.0 (very positive).">
+                      {% if text_analysis[1] < 0 %}
+                        score: 
+                        <span class="negative">
+                          {{ text_analysis[1] }}
+                        </span>
+                      {% else %}
+                        score: 
+                        <span class="positive">
+                          {{ text_analysis[1] }}
+                        </span>           
+                      {% endif %}
+                    </div>
+                    <div id="tag-sentiment-magnitude" data-toggle="tooltip" data-placement="left" title="magnitude is the strength of sentiment regardless of score and ranges from 0 to infinity.">
+                      magnitude: {{ text_analysis[2] }}
+                    </div>
+                  </td>
+                {% endif %}
+              </tr>
             {% endfor %}
 
           </tbody>
           <!-- /table -->
         </table>
-      </div>      
+      </div>     
+
+      <div class="col-sm-10 col-lg-7">
+        <div class="collapse" id="video-description-collapse">
+          <div class="card card-body collapse-card" id="video-description">
+            <p class="small-yellow-highlight" id="">
+              <span class="small-yellow-highlight">
+                video description
+              </span>
+            </p>
+            {{ video.video_description }}
+          </div>
+        </div>
+        <div class="collapse" id="video-tags-collapse">
+          <div class="card card-body collapse-card" id="all-tags">
+              <p id="">
+                <span class="small-yellow-highlight">
+                  tags
+                </span>
+                <br>
+                {% for tag in tags %}
+                  <a href="/explore/tags/{{ tag.tag_id }}">
+                    {{ tag.tag }}
+                  </a>   
+                  &nbsp;&nbsp;&verbar;&nbsp;&nbsp;             
+                {% endfor %}
+              </p>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
