@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% block title %}video tags | ytdc{% endblock %}
+{% block title %}explore tags | ytdc{% endblock %}
 
 {% block content %}
 
 <div class="container">
   <div class="row align-items-center" id="tags-row1">
     <h1>
-      video tags
+      tags
     </h1>
   </div>
 
@@ -105,7 +105,7 @@
 
       <!-- tag search container -->
       <div id="tag-search-container" class="">
-        <input id="tag-search-box" class="remove-glow" type="text" name="tag-search-box" placeholder="search tags" autocomplete="off" style="">
+        <input id="tag-search-box" type="text" name="tag-search-box" placeholder="search tags" autocomplete="off" style="">
         <div id="suggestion-results-container" class="">
           <section id="suggested-tag-section" class="" style="">
             <ul id="suggested-tag-dropdown" class="suggested-tags list-unstyled" role="menu">
@@ -124,11 +124,9 @@
 
 
   <!-- chart -->
-  <div class="row center-all">
-    <div class="col-10">
-      <div class="row justify-content-center canvas-container" id="chart-row">
-        <canvas id="demonetization-by-tag-chart"></canvas>      
-      </div>
+  <div class="row justify-content-center" id="chart-row">
+    <div class="col-10" id="canvas-container">
+      <canvas id="demonetization-by-tag-chart"></canvas>      
     </div>
   </div>
   <!-- end chart -->
@@ -138,6 +136,7 @@
     <h2>
       here are 80 random tags
     </h2>
+    <i class="fas fa-sync-alt"></i>
   </div>
 
   <div class="row" id="random-tag-container">
@@ -176,26 +175,63 @@
                    'fff200'] // yellow
 
 
-  let options = {responsive: true,
-                 animation: false,
-                 legend: {display: false,
-                          defaultFontColor: 'black'},
-                 title: {display: false}, 
-                 tooltips: {enabled: false},
-                 layout: {padding: {right: 50}},
-                 elements: {point: {pointStyle: 'circle'}},
-                 scales: {yAxes: [{ticks: {min: 0,
-                                           callback: (label, index, labels) => {return label + '%'},
-                                           fontFamily: 'Lato',
-                                           fontColor: 'rgba(40, 37, 98, 1)',
-                                           fontSize: 14}
-                                 }],
-                         xAxes: [{ticks: {fontFamily: 'Lato',
-                                          fontColor: 'rgba(40, 37, 98, 1)',
-                                          fontSize: 18},
-                                  gridLines: {display: false}}
-                                ]}
-                 }
+  let options = {
+    responsive: true,
+    animation: false,
+    legend: {
+      display: false,
+    },
+    title: {
+      display: false
+    }, 
+    tooltips: {
+      enabled: false
+    },
+    layout: {
+      padding: {
+        right: 50
+      }
+    },
+    elements: {
+      point: {
+        pointStyle: 'circle'
+      }
+    },
+    plugins: {
+      datalabels: {
+        align: 'top',
+        anchor: 'center',
+        color: 'white',
+        formatter: (value, context) => {Math.round(value).toString() + '%'},
+        font: {
+           weight: 'bold',
+           family: 'Lato',
+           size: 16
+        },
+      }
+    },
+    scales: {
+      yAxes: [{
+        ticks: {
+          min: 0,
+          callback: (label, index, labels) => {return label + '%'},
+          fontFamily: 'Lato',
+          fontColor: 'rgba(40, 37, 98, 1)',
+          fontSize: 16
+        }
+      }],
+      xAxes: [{
+        ticks: {
+          fontFamily: 'Lato',
+          fontColor: 'rgba(40, 37, 98, 1)',
+          fontSize: 20
+         },
+          gridLines: {
+           display: false
+          }
+         }]
+      }
+    }
 
   let initialTagExamples = ['donald trump', 'hillary clinton', 'bernie sanders']
 
@@ -207,7 +243,11 @@
 
   let dataTemplate = {labels: [],
                       datasets: [{backgroundColor: [],
-                                  data: []
+                                  data: [],
+                                  datalabels: {
+                                    align: 'center',
+                                    anchor: 'end'
+                                  }
                                 }]
   }
 
@@ -292,13 +332,12 @@
   function displaySuggestedTags() {
     $('#suggested-tag-dropdown').empty();
     let inputVal = $('#tag-search-box').val().toLowerCase().trim();
-    console.log(inputVal);
     if (inputVal === '') {
       return null
     }
     let inputNode = findTrieNode(inputVal);
     if (inputNode === null) {
-      $('#suggested-tag-dropdown').append('<li class="tag-suggestion dropdown-item">no results found</li>');
+      $('#suggested-tag-dropdown').append('<li class="tag-suggestion">&nbsp;&nbsp;no results found</li>');
     }
     else {
       let input;
@@ -311,13 +350,15 @@
       let sortedTagArray = getAllWords(inputNode, input);
       let suggestedTagsHtml = '';
       for (let tag of sortedTagArray.slice(0, 12)) {
-        suggestedTagsHtml += `<li class="tag-suggestion dropdown-item" id="tag-${tag[0]}"><a>${tag[0]}</a></li>`;
+        suggestedTagsHtml += `<li class="tag-suggestion" id="tag-${tag[0]}"><a>&nbsp;&nbsp;${tag[0]}</a></li>`;
       }
       $('#suggested-tag-dropdown').append(suggestedTagsHtml);
     }
   }
 
-  // (a) Get all words starting with prefix   
+
+
+    // (a) Get all words starting with prefix   
 
   function findTrieNode(input) {
     let inputNode = tagTrie;
@@ -349,6 +390,10 @@
     allTags.sort((a, b) => (b[1] - a[1]));
     return allTags
   }
+
+  // $('#tag-search-box').on('blur', function() {
+  //   $('#suggested-tag-dropdown').hide();
+  // });
 
   // (4) Add tag
 

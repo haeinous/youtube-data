@@ -48,7 +48,7 @@ def add_all_info_to_db(video_id):
 
     # (5) Add data to the image_analyses table by calling the Clarifai API.
     thumbnail_url = Video.query.filter(Video.video_id == video_id).first().thumbnail_url
-    add_clarifai_data(thumbnail_url)
+    add_clarifai_data([thumbnail_url])
     # print('done adding image analysis data')
 
 

@@ -8,143 +8,89 @@
   
   <div class="row">
     <h1>
-      add data about a video
+      add your own data
     </h1>    
   </div>
-
-  <div class="row lead" id="add-data-row1">
-    
-    <div class="col">
+  <div class="row">
+    <p id="thanks-add-data">
       You put the &ldquo;collective&rdquo; in ytdc! Our insights get better when we have more data &ndash; thanks so much for contributing.
-    </div>
+    </p>
   </div>
 
-  <div class="form">
-
-    <form action="/add-data" method="POST" id="add-to-database-action">
-
-      <div class="form-group row" id="video-id-row">
-        <label class="col-sm-2 col-form-label" data-toggle="tooltip" data-placement="left" title="youtube video ids are 11 characters long and only consist of alphanumeric characters, underscores, and dashes.">
-          youtube video id
-        </label>
-        
-        <div class="col-xs-10 col-sm-10 col-md-5">
-          <input class="form-control" id="video-id-input" name="video-id-input" placeholder="e.g., HZakJFqdpRY" required>
-          <div class="error-message" id="video-id-error-message">
-          </div>
-        </div>
-        <!-- /#video-id-row -->
-      </div>
-
-      <fieldset class="form-group" id="monetizationStatus">
-        <div class="row">
-          <legend class="col-form-label col-sm-2 pt-0">
-            monetization status
-          </legend>
-          <div class="col-sm-10">
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="monetizedRadio" id="clicked-monetization-true" value="monetized" required>
-              <label class="form-check-label" for="gridRadios1">
-                monetized
-              </label>
-              <!-- /.form-check -->
-            </div>
-
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="monetizedRadio" id="clicked-monetization-false" value="demonetized" required>
-              <label class="form-check-label" for="gridRadios2">
-                not monetized
-              </label>
-              <!-- /.form-check -->
-            </div>
-
-          </div>
-        </div>
-        <!-- /#monetization-status -->
-      </fieldset>
-
-      <div class="form-group row" id="telling-the-truth">
-        <div class="col-sm-2">
-        </div>
-        <div class="col-sm-10">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="gridCheck1" required>
-            <label class="form-check-label" for="gridCheck1">
-              cross my heart and kiss my elbow, I swear this information is true.
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-group row">
-        <div class="col-sm-10">
-          <!-- <button type="submit" class="btn btn-primary" id="submit-form-button" data-toggle="modal" data-target="#exampleModalCenter"> -->
-          <button type="submit" class="btn btn-primary" id="submit-form-button" data-toggle="modal" data-target="#exampleModalCenter">
-            add data
-          </button>
-        </div>
-      </div>
-
-  </form>
-  </div>
-
-  <!-- <div class="modal fade d-none modalMismatch" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLongTitle">
-            Something's not right
-          </h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">
-              &times;
-            </span>
-          </button>
-        </div>
-        <div class="modal-body" id="modal-mismatch-body">
+  <div class="row form center-all" id="add-data-form">
+    <div class="col-lg-7 col-md-9 col-sm-10" id="left-side">
+      <form action="/add-data" class="border rounded" method="POST" id="add-to-database-action">
+        <div class="form-group row" id="video-id-row">
+          <label class="col-sm-4 col-form-label" data-toggle="tooltip" data-placement="left" title="youtube video ids are 11 characters long and only consist of alphanumeric characters, underscores, and dashes.">
+            youtube video id
+          </label>
           
+          <div class="col-sm-8 col-md-7">
+            <input class="form-control remove-glow" id="video-id-input" name="video-id-input" placeholder="e.g., HZakJFqdpRY" required>
+            <div class="error-message" id="video-id-error-message">
+            </div>
+          </div>
+          <!-- /#video-id-row -->
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary close" data-dismiss="modal" id="modal-mismatch-cancel" data-dismiss="modal" aria-label="Close">
-            Cancel
-          </button>
-          <button type="button" class="btn btn-primary" id="modal-mismatch-confirm">
-            Yes, I'm sure.
-          </button>
+
+        <fieldset class="form-group" id="monetizationStatus">
+          <div class="row">
+            <legend class="col-form-label col-sm-4 pt-0">
+              monetization status
+            </legend>
+            <div class="col-sm-8">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="monetizedRadio" id="clicked-monetization-true" value="monetized" required>
+                <label class="form-check-label" for="gridRadios1">
+                  monetized
+                </label>
+                <!-- /.form-check -->
+              </div>
+
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="monetizedRadio" id="clicked-monetization-false" value="demonetized" required>
+                <label class="form-check-label" for="gridRadios2">
+                  not monetized
+                </label>
+                <!-- /.form-check -->
+              </div>
+
+            </div>
+          </div>
+          <!-- /#monetization-status -->
+        </fieldset>
+
+        <div class="form-group row" id="telling-the-truth">
+          <div class="col">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="gridCheck1" required>
+              <label class="form-check-label" for="gridCheck1">
+                cross my heart and kiss my elbow, I swear this information is true.
+              </label>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <div class="form-group row">
+          <div class="col-sm-9">
+            <button type="submit" class="btn btn-primary" id="submit-form-button" data-toggle="modal" data-target="#exampleModalCenter">
+              add data
+            </button>
+          </div>
+        </div>
+      </form>    
+      <!-- /#left-side -->
     </div>
+    <!-- start of #right-side -->
+    <div class="col-lg-4 col-md-8 col-sm-8" id="right-side">
+      <a href="https://twitter.com/haehae/status/891455140162551808">
+        <img src="/static/emojipigeon.png" class="fit-image" id="pigeon">    
+      </a>
+    </div>
+    <!-- /#right-side -->
   </div>
 
-  <div class="modal fade d-none modalInDb" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLongTitle">
-            We already have this video!
-          </h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">
-              &times;
-            </span>
-          </button>
-        </div>
-        <div class="modal-body">
-          This video is already in the YTD database! What would you like to do?
-        </div>
-        <div class="modal-footer">
-          <a href="" type="button" class="btn btn-success" role="button" id="video-in-db-check-it-out">
-            Check it out
-          </a>
-          <button type="button" class="btn btn-primary close" data-dismiss="modal" aria-label="Close">
-            Add another video
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div> -->
+</div>
 
 {% endblock %}
 {% block scripts %}
@@ -152,33 +98,29 @@
 <script type="text/javascript">
 
   let videoId = $('#video-id-input').val();
-  console.log(videoId);
 
   let monetizationStatus = $('#clicked-monetization-true').prop('checked');
-  console.log(monetizationStatus);
-
-  // let monetizationStatus = $('input[name=monetizedRadio]:checked').val();
 
   // 1. Validate videoId (length, legal characters)
   $('#video-id-input').on('blur', validate_video_id_input);
 
   function validate_video_id_input() {
     videoId = $('#video-id-input').val();
-    console.log(videoId);
 
     let charCount = videoId.length;
     if (charCount !== 11) {
       $('#video-id-error-message').html('That is not a valid YouTube video ID, which must be 11 characters long.');
+      $('#video-id-input').attr('border-color', '#ee2761');
     }
 
     let legalChars = /^[\w-]+$/;
     if (!legalChars.test(videoId)) {
       $('#video-id-error-message').html('That is not a valid YouTube video ID, which may only contain alphanumeric characters, underscores, and dashes.');
+      $('#video-id-input').attr('border-color', '#ee2761');
     }
   }
 
   // 2. Check database to determine if it's already in the db
-
   $('#submit-form-button').on('submit', function(evt) {
     $.ajax({
       url: '/check-database.json',
@@ -222,7 +164,6 @@
              'monetizationStatus': monetizationStatus}
     });
   }
-     
 
 </script>
 

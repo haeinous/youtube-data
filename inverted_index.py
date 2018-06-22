@@ -103,6 +103,13 @@ class Posting:
         return self.data[1] * multiplier
 
 
+    def __iter__(self):
+        current = self.head
+        while current is not None:
+            yield current
+            current = current.next
+
+
     def __repr__(self):
         if self.next:
             return '<Posting: data={}>'.format(self.data)
@@ -112,12 +119,12 @@ class Posting:
 
 
 class InvertedIndex(dict):
-    """Inverted index data structure, consisting of a dictionary of all the unique 
-    words pointing to a singly linked list of the documents in which it appears."""
+    """Inverted index data structure, consisting of a dictionary of unique tokens
+    pointing to a list ("postings list") of doc_id/term freq tuples called postings."""
 
-    # Example: {('world'): [(1, 2), (3, 1), (5, 1)],
-    #           ('hello'): [(3, 1), (4, 2)]}
-    # 'world' appears 4 times across 3 docs (doc_id 1, 3, and 5) and twice in doc 1.
+    # Example: {'world': [(1, 2), (3, 1), (5, 1)],
+    #           'hello': [(3, 1), (4, 2)]}
+    # Above, 'world' appears 4 times across 3 docs (docs #1, #3, #5) and twice in doc #1.
 
     def __init__(self):
         self.index = collections.defaultdict(list)
@@ -142,12 +149,11 @@ class InvertedIndex(dict):
         """Given a search term, return a list of documents containing it."""
 
         try:
-            postings_list = self[token].sort(key=lambda x: x.data[1])
+            postings_list = list(self[token]).sort(key=lambda x: x.data[1])
         except KeyError:
             return None
 
         return postings_list
-
 
 
     def __missing__(self, term):
@@ -165,6 +171,16 @@ class InvertedIndex(dict):
 ################################################
 # Generate the inverted index in the beginning.
 ################################################
+
+def something(video_ids):
+    for id in video_ids:
+        i = 1
+        sentences = Video.query.get(id).video_description.split('\n')
+        for sent in sentences:
+            print(i, sent)
+            i += 1
+
+
 
 
 def create_document_id(document_type, document_primary_key):
@@ -219,11 +235,12 @@ def index_document(document_text, document_id, title=None):
 
 
 def generate_inverted_index():
-    """One-time operation after seeding data to generate an inverted index."""
+    """One-time operation after seeding the database. Generates an inverted index
+    that is pickled and stored in memory."""
 
-    inverted_index = InvertedIndex() # instantiate inverted index
+    inverted_index = InvertedIndex()
 
-    # Inner function to add to the inverted index
+#   - - - - - inner function - - - - - -
     def add_data_to_inverted_index(document_data):
         """Assume document_data is a tuple where index[0] is the token string, index[1] 
         is the document ID, and index[2] is how frequently the token appears in the 
@@ -234,40 +251,55 @@ def generate_inverted_index():
                 inverted_index[token_data[0]] = PostingsList((token_data[1], token_data[2]))
             else: # add Posting to the end of the PostingsList
                 inverted_index[token_data[0]].append((token_data[1], token_data[2]))
-    # - - end inner function - -
+#   - - - - - end inner function - - - - - -
 
-    # (1) Create document IDs
-    i = 1
-    for category in VideoCategory.query.all():
-        if i:
-            first_document_id = create_document_id('category', str(category.video_category_id))
-            i = not first_document_id # changes i to False as long as first_document_id does not return None
-            print('first_document_id={}'.format(first_document_id))
-        else:
-            create_document_id('category', str(category.video_category_id))
-    for channel in Channel.query.all():
-        create_document_id('channel_title', channel.channel_id)
-        create_document_id('channel_description', channel.channel_id)
-    for video in Video.query.all():
-        create_document_id('video_title', video.video_id)
-        create_document_id('video_description', video.video_id)
-    # for tags??
-    for country in Country.query.all():
-        create_document_id('country', country.country_code)
+# (1) Create document IDs
+    # i = 1
+    # for category in VideoCategory.query.all():
+    #     if i:
+    #         first_document_id = create_document_id('category', str(category.video_category_id))
+    #         i = not first_document_id # changes i to False as long as first_document_id does not return None
+    #         print('first_document_id={}'.format(first_document_id))
+    #     else:
+    #         create_document_id('category', str(category.video_category_id))
+    # for channel in Channel.query.all():
+    #     create_document_id('channel_title', channel.channel_id)
+    #     create_document_id('channel_description', channel.channel_id)
+    # for video in Video.query.all():
+    #     create_document_id('video_title', video.video_id)
+    #     create_document_id('video_description', video.video_id)
+    # # for tags??
+    # for country in Country.query.all():
+    #     create_document_id('country', country.country_code)
 
-    print('done adding documents!')
+    # print('done adding documents!')
 
-    # (2) Process document text (index_document function) and add to inverted index (inner function)
+# (2) Process document text via index_document() and add tokens to the II through the
+#     inner function above, add_data_to_inverted_index()
 
     deleted_video_ids = set([video.video_id for video in
-                             Video.query.filter(or_(Video.video_status == 'http error',
-                                                    Video.video_status == 'deleted')).all()])
+                             Video.query.filter(Video.video_status == None).all()])
 
-    documents_to_process = Document.query.filter(Document.document_id >= first_document_id
-                                        ).filter(Document.document_primary_key.isnot(None)
-                                        ).filter(Document.document_type.isnot(None)
-                                        ).filter(~Document.document_primary_key.in_(deleted_video_ids)
-                                        ).all() # doc IDs are autogenerated sequentially
+    channel_title_docs = Document.query.filter(Document.document_id >= 30808
+                                      ).filter(Document.document_primary_key.isnot(None)
+                                      ).filter(Document.document_type == 'channel_title'
+                                      ).all()
+
+    video_title_docs = Document.query.filter(Document.document_id >= 30808
+                                      ).filter(Document.document_primary_key.isnot(None)
+                                      ).filter(Document.document_type == 'video_title'
+                                      ).all()
+
+    category_documents = Document.query.filter(Document.document_id >= 30808
+                                      ).filter(Document.document_type == 'category'
+                                      ).all()
+
+    country_documents = Document.query.filter(Document.document_id >= 30808
+                                      ).filter(Document.document_type == 'country'
+                                      ).all()
+
+    documents_to_process = channel_title_docs + video_title_docs + category_documents + country_documents
+
     j = 0
     for document in documents_to_process:
         if j%1000 == 0:
@@ -302,7 +334,7 @@ def generate_inverted_index():
         elif document.document_type == 'category':
             j += 1
             category_name = VideoCategory.query.filter(VideoCategory.video_category_id == 
-                                                       int(document.document_primary_key) # bec document_primary_keys were stored in the db as strings
+                                                       int(document.document_primary_key) # document_PKs stored in db as strings
                                               ).first(
                                               ).category_name
             document_data = index_document(category_name, # supplement with synonyms?
@@ -319,19 +351,16 @@ def generate_inverted_index():
                                            document.document_id)
             add_data_to_inverted_index(document_data)
 
-        # elif tags tk tk tk
-
     print('Done generating inverted index.')
     return inverted_index
 
-
-######################################
+# - - - - - - - - - - - - - - - - - -
 # Functions to improve token quality.
-######################################
+# - - - - - - - - - - - - - - - - - -
 
 def create_custom_stopwords():
-    """Use the NLTK module's english stopwords and combine it with custom YouTube
-    stopwords. Return the stopwords set."""
+    """Add to the NLTK module's english stopwords by enhancing it with custom stopwords
+    tailored to YouTubers. Return the entire stopwords set."""
 
     stopwords = set(nltk.corpus.stopwords.words('english'))
     
@@ -349,10 +378,14 @@ def generate_tokens(document_text):
 
     stemmer = EnglishStemmer() # from NLTK module
 
-    tokens = [additional_pruning(remove_hyphens(stemmer.stem(token.lower())))
-              for token in nltk.word_tokenize(document_text) if len(token) > 2 and token]
-    
+    try:
+        tokens = [additional_pruning(remove_hyphens(stemmer.stem(token.lower()))) 
+                  for token in nltk.word_tokenize(document_text) if len(token) > 2 and token]
+    except Exception as e:
+        print('error: {}\ndocument_text: {}'.format(e, document_text))
+        tokens = []
     good_tokens = []
+    
     for token in tokens:
         good_tokens.extend([unidecode(item) for item in process_url_prefixes(token)])
         good_tokens.extend([custom_youtube_stemmer(item) for item in process_url_prefixes(token) 
@@ -368,6 +401,7 @@ def generate_tokens(document_text):
 
 def process_url_ends(token):
     if len(token) > 3 and (token[-4:] == '.com' or 
+                           token[-4:] == ' com' or 
                            token[-4:] == '.org' or
                            token[-4:] == '.net' or
                            token[-6:] == '.co.uk'):
@@ -436,6 +470,8 @@ def custom_youtube_stemmer(token):
         token = 'livestream'
     elif token == 'itun':
         token = 'itunes'
+    elif token == 'amzn':
+        token = 'amazon'
 
     return token
 
@@ -448,19 +484,17 @@ def remove_hyphens(token):
 def additional_pruning(token):
     """Use regex to adjust tokens beginning/ending in non-alphanumeric characters."""
 
-    token = re.sub(r'[^a-z0-9]', ' ', token) # sub non-alnum characters with a space
-
-    if not token[-1].isalnum():
-        try:
+    try:
+        if not token[-1].isalnum():
             token = re.search(r'[\w-]+(?=[\W]+)', token).group(0)
-        except:
-            pass
+    except:
+        pass
 
-    if not token[0].isalnum():
-        try:
+    try:
+        if not token[0].isalnum():
             token = re.search(r'\w+', token).group(0)
-        except:
-            pass
+    except:
+        pass
 
     return token
 
@@ -496,18 +530,53 @@ def produce_token_variations(tokens, channel=False):
     token_variations = []
 
     for token in tokens:
-        variations = [variation for variation in re.split(r'\W+', token) if variation] # split token on non-alphanumeric chars
-        if len(variations) > 1: # there was actually something to split on
+        variations = [variation for variation in re.split(r'\W+', token) if variation] # split token on non-alnum chars
+        if len(variations) > 1: # if there's actually something to split on
             token_variations.extend(variations) # append, for example, 'kiera' and 'bridget'
-            if channel:
-                token_variations.append(''.join(variations)) #append 'kierabridget' but only for channels
+            # if channel:
+            #     token_variations.append(''.join(variations)) #append 'kierabridget' but only for channels
 
     return token_variations
 
 
-###################################################################
-# Helper functions for dealing with the inverted index.
-###################################################################
+# - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Helper functions for working with the inverted index.
+# - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# def create_token_set_for_channels(inverted_index):
+#     """Given an inverted index, create a dictionary whose key is a channel_id
+#     and which contains another dictionary of unique tokens and frequencies."""
+
+#     channel_tokens = collections.defaultdict(dict)
+
+#     i = 0
+
+#     for token, postings_list in inverted_index.items():
+#         if i%500 == 0:
+#             print('added {} out of {}'.format(i, len(inverted_index)))
+
+#         for posting in postings_list:
+#             document_id, frequency = posting.data
+#             document = Document.query.get(document_id)
+
+#             if len(document.document_primary_key) == 11:
+#                 channel_id = Video.query.filter(Video.video_id == 
+#                                                 document.document_primary_key
+#                                        ).first(
+#                                        ).channel_id
+#             elif len(document.document_primary_key) == 24:
+#                 channel_id = document.document_primary_key
+#             else:
+#                 break
+
+#             if channel_tokens[channel_id]: # if there is a channel_id key already
+#                 channel_tokens[channel_id]['token'] = {'document_id': document_id, 
+#                                                        'frequency': frequency}
+#             else:
+#                 channel_tokens[channel_id] = {'token': {'document_id': document_id, 
+#                                                         'frequency': frequency}}
+
+#     return channel_tokens
 
 
 def append_to_inverted_index(new_document):
@@ -517,31 +586,22 @@ def append_to_inverted_index(new_document):
     pass # can you unpickle an index in append mode?
 
 
-def count_documents(inverted_index):
-    """Return number of documents indexed."""
-
-    unique = set()
-
-    for token, postings_list in inverted_index.items():
-        for posting in postings_list:
-            unique.add(posting.data[0])
-
-    return len(unique)
-
-
 def pickle_inverted_index(inverted_index):
     """Dump the inverted index into a pickle so it doesn't need
     to be regenerated every time."""
 
-    sys.setrecursionlimit(50000) # exceed the default max recursion limit
-    with open('inverted_index_try11.pickle', 'wb') as f:
+    sys.setrecursionlimit(30000) # exceed the default max recursion limit
+    with open('_inverted_index.pickle', 'wb') as f: 
         pickle.dump(inverted_index, f)
+
+    # changed filename so the true inverted index ('inverted_index_real.pickle')
+    # doesn't accidentally get overwritten.
 
 
 def load_inverted_index():
-    """Load the pickled inverted index."""
+    """Load a previously pickled inverted index."""
 
-    with open('inverted_index_try11.pickle', 'rb') as f:
+    with open('inverted_index_real.pickle', 'rb') as f:
 
         return pickle.load(f)
 

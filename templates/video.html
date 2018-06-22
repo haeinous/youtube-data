@@ -42,7 +42,7 @@
 
   <div>
     <h3 class="row">
-      about the video
+      about this video
     </h3>
     <br>
     <br>
@@ -129,7 +129,7 @@
       </table>
     </div>
     <div class="col-lg-7 col-md-6 col-sm-10">
-      <iframe class="" width="472" height="265.5" src="https://www.youtube.com/embed/{{ video.video_id }}?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+      <iframe class="" width="480" height="270" src="https://www.youtube.com/embed/{{ video.video_id }}?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
       </iframe>
     </div>
   </div>
@@ -235,20 +235,20 @@
       </div>     
 
       <div class="col-sm-10 col-lg-7">
-        <div class="collapse" id="video-description-collapse">
+        <div class="video-collapse collapse" id="video-description-collapse">
           <div class="card card-body collapse-card" id="video-description">
             <p class="small-yellow-highlight" id="">
-              <span class="small-yellow-highlight">
+              <span class="small-yellow-highlight highlight">
                 video description
               </span>
             </p>
             {{ video.video_description }}
           </div>
         </div>
-        <div class="collapse" id="video-tags-collapse">
+        <div class="video-collapse collapse" id="video-tags-collapse">
           <div class="card card-body collapse-card" id="all-tags">
               <p id="">
-                <span class="small-yellow-highlight">
+                <span class="small-yellow-highlight highlight">
                   tags
                 </span>
                 <br>

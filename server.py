@@ -6,7 +6,8 @@
 
 """
 
-import datetime, random, collections, re, pickle, sys
+import datetime, random, collections, re, pickle, sys, math
+import numpy as np
 from jinja2 import StrictUndefined
 from flask import Flask, render_template, request, flash, redirect, session, jsonify, Markup
 from flask_debugtoolbar import DebugToolbarExtension
@@ -229,14 +230,10 @@ def calculate_percent_demonetized(channel_id):
     return round(demonetized_videos/all_videos * 100)
 
 
-def calculate_percent_difference(num1, num2):
-    """"""
-    return round((num2-num1)/num1*100, 2)
-
-
 def calculate_weight_by_shared_tags(youtube_id1, youtube_id2):
     """Given two YouTube IDs of the same type (video ID or channel ID), return
     the number of shared tags between videos or channels."""
+
     assert len(youtube_id1) == len(youtube_id2), 'Arguments need to be the same type (either video_id or channel_id).'
     
     if len(youtube_id1) == 11: # video ID
@@ -347,90 +344,284 @@ def generate_video_graph_by_shared_tags():
 
     return jsonify(data)
 
+def get_document_text(document_id):
 
-######################################################################
-# See inverted_index.py for details on the InvertedIndex, PostingsList, and Posting classes.
-######################################################################
+    doc_type, doc_object = get_original_document_object(document_id)
 
-def query_type(q):
-    """Given a search query q (before tokenization), return the type of query
-    it represents so the correct algorithm can be used."""
-
-    if len(q.split()) > 1:
-        return 'full_text_query'
+    if doc_type == 'video':
+        return doc_object.video_title
+    elif doc_type == 'channel':
+        return doc_object.channel_title
+    elif doc_type == 'category':
+        return doc_object.category_name
     else:
-        return 'one_word_query'
+        return None
+
+def get_original_document_object(document_id):
+    """Given a document_id, return an object for the underlying document (i.e.,
+    a Video object if the document were a video description, for example."""
+
+    document_object = db.session.query(Document).get(document_id)
+
+    if len(document_object.document_primary_key) == 11:
+        result_type = 'video'
+        video = Video.query.get(document_object.document_primary_key)
+        return [result_type, video]
+    elif len(document_object.document_primary_key) == 24:
+        result_type = 'channel'
+        channel = Channel.query.get(document_object.document_primary_key)
+        return [result_type, channel]
+    elif document_object.document_type == 'category':
+        result_type = 'category'
+        category = VideoCategory.query.get(document_object.document_primary_key)
+        return [result_type, category]
 
 
-@app.route('/search', methods=['GET', 'POST'])
-def display_search_results():
-    """Display search results."""
+############################################################################################
+# See inverted_index.py for details on the InvertedIndex, PostingsList, and Posting classes.
+############################################################################################
 
-    search_results = {'channels': [],
-                      'videos': [],
-                      'categories': []}
+"""Sincere thanks to Rebecca Weiss and Christian S. Perone for creating easy-to-understand
+and sufficiently advanced online material to teach me enough linear algebra to fully understand the 
+vector operations behind tf-idf. In particular, I found these resources very helpful:
 
-    if request.method == 'GET':
+> blog.christianperone.com/2013/09/machine-learning-cosine-similarity-for-vector-space-models-part-iii
+> stanford.edu/~rjweiss/public_html/IRiSS2013/text2/notebooks/tfidf.html
 
-        # - - - - - - - - - - - - 
-        # (1) process search query
-        # - - - - - - - - - - - - 
-        search_query = request.args.get('q')
+Also, I stumbled upon a computational linguistics class taught by one Chris Callison-Burch at UPenn. 
+Working through the vector space model assignment (week 3) reminded me that I deeply enjoy (and am 
+good at!) math. I'm excited to continue to work through the syllabus.
 
-        # (1.1) type of query
-        query_type = query_type(search_query)
+Another shoutout to Christopher Manning / Prabhakar Raghavan / Hinrich Schütze / Stanford (and maybe
+Cambridge University Press?) for allowing the highly readable "Intro to Information Retrieval" textbook
+to exist online for free."""
 
-        # (1.2) tokenize search query
-        tokens = generate_tokens() # this is a list
+def l2_normalizer(vector):
+    """Normalize vectors to L2 Norm = 1 (euclidian normalized vectors) to compensate
+    for the effect of document length (magnitude)."""
 
-        # (2) unpickle index
-        with open('inverted_index.pickle', 'rb') as f:
-            inverted_index = pickle.load(f)
+    denominator = np.sum([item**2 for item in vector])
 
-        # print(inverted_index)
+    try:
+        normalized_vector = [round(item/math.sqrt(denominator), 3) for item in vector]
+    except ZeroDivisionError: # all items are 0
+        normalized_vector = vector
 
-        # (3) search the inverted_index
+    return normalized_vector
 
-        for token in tokens: # because it's a list with potentially multiple words
 
-            try:
-                postings = [posting for posting in inverted_index[search_query]]
-                print('postings: ')
-                print(postings)
+def generate_relevant_doc_ids(query_tokens):
+    """Given a set of unique tokens, create a list of document IDs that
+    represent documents that should be ranked for relevance to the query vector.""" 
 
-            # (3.1) return 'no results' if nothing is found
-            except:
-                print('no results')
-                postings = [] # search term not found
-                return render_template('search-results.html', search_results=None,
-                                                              search_query=search_query)
+    with open('inverted_index_real.pickle', 'rb') as f:
+        inverted_index = pickle.load(f)
 
-        # (4) sort the inverted index by term frequency
-        if postings: # if it's not empty
-            postings.sort(key=lambda x: -x.data[1])
+    all_document_ids = []
 
-        # (5) populate the search_results dictionary        
+    for token in query_tokens:
+        try:
+            postings_list = inverted_index[token]
+        except:
+            pass
+        else:
+            all_document_ids.extend([posting.data[0] for posting in postings_list])
 
-        for posting in postings:
-            document = Document.query.filter(Document.document_id == posting.data[0]).first()
-            document_primary_key = document.document_primary_key
+    return list(set(all_document_ids))
 
-            if len(document_primary_key) == 11:
-                video = Video.query.filter(Video.video_id == document_primary_key).first()
-                search_results['videos'].append(video)
-            elif len(document_primary_key) == 24:
-                channel = Channel.query.filter(Channel.channel_id == document_primary_key).first()
-                search_results['channels'].append(channel)
+
+def construct_idf_matrix(idf_vector):
+    """Build an idf matrix out of an idf vector in order to normalize all the
+    tf vectors by normalizing / mulitiplying them with the idf matrix."""
+
+    idf_matrix = np.zeros((len(idf_vector), len(idf_vector)))
+    np.fill_diagonal(idf_matrix, idf_vector)
+
+    return idf_matrix
+
+
+# A lot goes on under this function to obviate the need to constantly unpickle
+# the inverted index.
+def construct_tf_idf_matrix(query_tokens, all_document_ids):
+    """Construct a tf-idf matrix with which to normalize idf across the query vector 
+    and relevant documents identified from the inverted index."""
+
+    with open('inverted_index_real.pickle', 'rb') as f:
+        inverted_index = pickle.load(f)
+
+    # - - - - - inner function no.1 - - - - - -
+    def construct_query_vector(query_tokens, ordered_query_tokens):
+        """Treat the query as its own document and normalize it with the other relevant
+        documents in order to calculate cosine similarity to rank documents in terms
+        of relevance."""
+
+        query_vector = []
+
+        for token in ordered_query_tokens:
+            if inverted_index[token]: # if it exists
+                query_vector.append(ordered_query_tokens.count(token))
             else:
-                category = VideoCategory.query.filter(VideoCategory.video_category_id == document_primary_key).first()
-                search_results['categories'].append(category)
+                query_vector.append(0)
 
-        print('search results')
-        print(search_results)
-        return render_template('search.html', search_results=search_results,
+        return query_vector
+    # - - - - - - inner function no.2 - - - - - -
+    def construct_tf_vector(document_id):
+        """Build a term freq vector for a certain document."""
+
+        document_text = get_document_text(document_id)
+
+        tf_vector = []
+
+        document_tokens = generate_tokens(document_text)
+
+        for token in ordered_query_tokens:
+            tf_vector.append(document_tokens.count(token))
+        return tf_vector  
+    # - - - - - - inner function no.3 - - - - - -
+    def calculate_idf(token):
+        """Calculate a token's inverse document frequency."""
+
+        return np.log(len(inverted_index)/(1+len(inverted_index[token]))) # +1 protects against zero division
+
+    # - - - - - - end inner functions - - - - - -
+
+# - - - - - - - - - - - - - - - - - - - - - - - - -
+# 1 Establish a list unique and ordered query tokens
+# - - - - - - - - - - - - - - - - - - - - - - - - -
+    ordered_query_tokens = list(query_tokens)
+
+# - - - - - - - - - - - - - - - - - -
+# 2 Construct L2-normalized tf vectors
+# - - - - - - - - - - - - - - - - - -
+    # 2(a) Construct tf query vector.
+    query_vector = l2_normalizer(construct_query_vector(query_tokens, ordered_query_tokens))
+
+    # 2(b) Construct tf vectors for all other documents
+    all_document_vectors =[]
+
+    for document_id in all_document_ids:
+        all_document_vectors.append(l2_normalizer(construct_tf_vector(document_id)))
+
+    # all_document_vectors, a list, is a tf matrix with row-wise L2 norms of 1
+    # (i.e., term frequencies are normalized within docs).
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 3 Construct an idf vector to normalize tf across docs through idf weighting.
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    idf_vector = [calculate_idf(token) for token in ordered_query_tokens]
+#   > 3(b) Build an idf matrix to maintain vector operations (vs. scalar, which is what 
+#          would happen if we just multiplied two vectors of the same magnitude and direction).
+    idf_matrix = construct_idf_matrix(idf_vector)
+
+#   > 3(c) Normalize term frequencies across documents by multiplying tf vectors by the
+#          idf matrix via dot product. Reapply euclidian normalization to each 
+#          tf vector so L2 norm remains 1.
+    tf_idf_matrix = []
+
+    for tf_vector in all_document_vectors:
+        tf_idf_matrix.append(l2_normalizer(np.dot(tf_vector, idf_matrix)))
+    
+#   > 3(d) Normalize the query vector too!
+    query_vector = l2_normalizer(np.dot(query_vector, idf_matrix))
+
+    return query_vector, tf_idf_matrix
+
+
+def calculate_cosine_similarity(query_vector, other_document_vector):
+    """Calculate cosine similarity between the query vector and document vectors by 
+    taking the dot product. A lower value (smaller angle) indicates higher similarity and
+    greater relevance.
+    cosine  = ( v1 * v2 ) / ||v1|| x ||v2||  """
+
+    return round(np.dot(query_vector, other_document_vector) / (np.linalg.norm(query_vector) * np.linalg.norm(other_document_vector)), 3)
+
+    """
+    n.b.: A lot of this can be done much more easily by going through thescikit-learn 
+    module, which has tools like tf-idf vectorizers and cosine similarity functions.
+    I opted to do it the hard way once (to learn, and to build character).
+
+    >>> from sklearn.feature_extraction.text import TfidfVectorizer
+    >>> from sklearn.metrics.pairwise import cosine_similarity
+    """
+
+def organize_search_results(documents_by_relevance):
+    """Given a list of documents ordered by search result ranking, query the
+    database for additional information to display on the client side."""
+
+    document_data = {'video': [], 'channel': []}
+
+    for document in documents_by_relevance:
+        result_type, db_object = get_original_document_object(document[1]) # document[1] = doc_id        
+        if result_type != 'category':
+            document_data[result_type].append([db_object, document[0]]) # document[0] = cosine_similarity
+
+    return document_data
+
+
+@app.route('/search', methods=['GET'])
+def display_search_results():
+    """Display search results; do linear algebra."""
+
+# - - - - - - - - - - - - - -
+# 1 Process the search query:
+# - - - - - - - - - - - - - - 
+#   > 1(a) Get query from client
+    search_query = request.args.get('q')
+    print('search_query: ' + search_query)
+
+#   > 1(b) Tokenize it
+    query_tokens = set(generate_tokens(search_query))
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# 2 Look through the inverted_index for relevant documents, if any.
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#   > 2(a) Unpickle the inverted index
+    with open('inverted_index_real.pickle', 'rb') as f:
+        inverted_index = pickle.load(f)
+
+#   > 2(b) Gather relevant document IDs (if any)
+    all_document_ids = generate_relevant_doc_ids(query_tokens)
+
+#   > 2(c) Make sure it's not an empty list (if so return None)
+    if not all_document_ids:
+        return render_template('search.html', search_results=None,
                                               search_query=search_query)
     else:
-        pass
+# - - - - - - - - - - - - - - - - - - - - - - -
+# 3 Create tf vectors and matrices.
+# - - - - - - - - - - - - - - - - - - - - - - -
+#    > 3(a) Build normalized tf vectors for all docs (including the query) and
+#           a tf-idf matrix to determine the most relevant documents based on 
+#           cosine similarity.
+        query_vector, tf_idf_matrix = construct_tf_idf_matrix(query_tokens, all_document_ids)
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# 4 Compare the normalized query vector with all other normalized tf-idf vectors.
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    document_vectors_and_ids = list(zip(tf_idf_matrix, all_document_ids))
+
+    docs_by_cosine_similarity = []
+    for document_item in document_vectors_and_ids:
+        cosine_similarity = round(calculate_cosine_similarity(query_vector, document_item[0]), 3)
+        docs_by_cosine_similarity.append([cosine_similarity, document_item[1]]) # tuple: (cosine_similarity, doc_id)
+
+    docs_by_cosine_similarity.sort()
+    print('docs_by_cosine_similarity={}'.format(docs_by_cosine_similarity))
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# 5 Gather additional info from the database to feed to the search results page.
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    try:
+        document_data = organize_search_results(docs_by_cosine_similarity[:20])
+    except KeyError: # if fewer than 20 results
+        document_data = organize_search_results(docs_by_cosine_similarity)
+
+    search_results = document_data
+
+    print(search_results)
+    return render_template('search.html', search_results=search_results,
+                                          search_query=search_query)
 
 
 ##### Helper functions
@@ -592,6 +783,9 @@ def explore_page():
 def show_channels_page():
     """Show a random selection of YouTube channels."""
 
+    videos_in_db = make_integer(db.session.query(func.count(Video.video_id)
+                                         ).first())
+
     channels = RandomBag()
     for channel in Channel.query.all(): # create RandomBag of channels
         channels.insert(channel)
@@ -608,6 +802,7 @@ def show_channels_page():
     random_channels = list(zip(random_channels, channel_videos))
 
     return render_template('channels.html',
+                            videos_in_db=videos_in_db,
                             random_channels=random_channels)
 
 
@@ -617,7 +812,9 @@ def show_specific_channel_page(channel_id):
 
     # get channel data
     channel = Channel.query.get(channel_id)
-
+    channel_country = Country.query.filter(Country.country_code 
+                                           == channel.country_code
+                                  ).first().country_name
     try:
         add_channel_stats_data(parse_channel_data(get_info_by_youtube_id(channel_id), channel_in_db=True))    
     except:
@@ -626,7 +823,6 @@ def show_specific_channel_page(channel_id):
     channel_stats = ChannelStat.query.filter(ChannelStat.channel_id == channel_id
                                     ).order_by(ChannelStat.retrieved_at.desc()
                                     ).first()
-
     # get video data
     videos = Video.query.filter(Video.channel_id == channel_id
                        ).order_by(Video.published_at.desc()).all()
@@ -636,22 +832,28 @@ def show_specific_channel_page(channel_id):
                                    ).order_by(Video.published_at.desc()
                                    ).all()
 
-    if len(demonetized_videos) > 3:
-        demonetized_videos = demonetized_videos[:4]
-
-    try:
-        demonetization_percentage = len(demonetized_videos)/len(videos)
-    except ZeroDivisionError:
+    if len(demonetized_videos) == 0:
         demonetization_percentage = 0
     else:
-        if demonetization_percentage > 0 and demonetization_percentage < .01:
-            demonetization_percentage = 1
+        if len(demonetized_videos) > 3:
+            demonetized_videos = demonetized_videos[:4]
         else:
-            demonetization_percentage = round(demonetization_percentage * 100)
+            demonetized_videos = demonetized_videos
+
+        try:
+            demonetization_percentage = len(demonetized_videos)/len(videos)
+        except ZeroDivisionError:
+            demonetization_percentage = 0
+        else:
+            if demonetization_percentage > 0 and demonetization_percentage < .01:
+                demonetization_percentage = 1
+            else:
+                demonetization_percentage = round(demonetization_percentage * 100)
 
     return render_template('channel.html',
                             channel=channel,
                             channel_stats=channel_stats,
+                            channel_country=channel_country,
                             videos=videos,
                             demonetized_videos=demonetized_videos,
                             videos_in_db=len(videos),
@@ -662,12 +864,19 @@ def show_specific_channel_page(channel_id):
 def show_videos_page():
     """Show a random selection of YouTube videos."""
 
+    videos_in_db = make_integer(db.session.query(func.count(Video.video_id)
+                                         ).first())
+
     monetized_videos = RandomBag()
     demonetized_videos = RandomBag()
 
-    for video in Video.query.filter(Video.is_monetized == True).all():
+    for video in Video.query.filter(Video.is_monetized == True
+                           ).filter(Video.video_status == None
+                           ).all():
         monetized_videos.insert(video)
-    for video in Video.query.filter(Video.is_monetized == False).all():
+    for video in Video.query.filter(Video.is_monetized == False
+                           ).filter(Video.video_status == None
+                           ).all():
         demonetized_videos.insert(video)
     
     random_monetized_videos = monetized_videos.get_random_elements(8) 
@@ -678,6 +887,7 @@ def show_videos_page():
                      random_demonetized_videos[4:])
 
     return render_template('videos.html',
+                            videos_in_db=videos_in_db,
                             random_videos=random_videos)
 
 
@@ -825,6 +1035,19 @@ def show_tags_page():
     random_tags = tags.get_random_elements(80)
 
     return render_template('tags.html',
+                            tags=random_tags)
+
+@app.route('/explore/tags2/')
+def show_tags_page2():
+
+    tags = RandomBag()
+
+    for tag in Tag.query.all():
+        tags.insert(tag)
+    
+    random_tags = tags.get_random_elements(80)
+
+    return render_template('tags2.html',
                             tags=random_tags)
 
 
@@ -1136,54 +1359,12 @@ def construct_tag_trie():
     return [tag_trie_dict, complete_tag_trie_dict, not_added]
 
 
-
-
 @app.route('/autocomplete-trie.json')
 def return_tag_trie():
     """Return a jsonified dictionary representation of a trie for all qualified
     tags in the database."""
-
-    # with open('tag_trie_dict.pickle', 'rb') as f:
-    #     tag_trie_dict = pickle.load(f)
-
-    tag_trie_dict = {'':{'children': {'b': {'children': {'a': {'children': {'r': {'children': {'b': {'children': {'i': {'children': {'e': {'children': {},
-              'freq': 6}},
-            'freq': 0}},
-          'freq': 0}},
-        'freq': 0}},
-      'freq': 0}},
-    'freq': 0},
-   'c': {'children': {'h': {'children': {'e': {'children': {'a': {'children': {'t': {'children': {'i': {'children': {'n': {'children': {'g': {'children': {},
-                  'freq': 8}},
-                'freq': 0}},
-              'freq': 0}},
-            'freq': 0}},
-          'freq': 0}},
-        'freq': 0}},
-      'freq': 0}},
-    'freq': 0},
-   'g': {'children': {'a': {'children': {'y': {'children': {}, 'freq': 3}},
-      'freq': 0}},
-    'freq': 0},
-   'l': {'children': {'e': {'children': {'s': {'children': {'b': {'children': {'i': {'children': {'a': {'children': {'n': {'children': {},
-                'freq': 7}},
-              'freq': 0}},
-            'freq': 0}},
-          'freq': 0}},
-        'freq': 0}},
-      'freq': 0},
-     'g': {'children': {'b': {'children': {'t': {'children': {'q': {'children': {},
-            'freq': 5}},
-          'freq': 4}},
-        'freq': 0}},
-      'freq': 0}},
-    'freq': 0},
-   's': {'children': {'e': {'children': {'x': {'children': {'y': {'children': {},
-          'freq': 4}},
-        'freq': 3}},
-      'freq': 0}},
-    'freq': 0}},
-  'freq': 0}}
+    with open('tag_trie_dict2.pickle', 'rb') as f:
+        tag_trie_dict = pickle.load(f)
 
     return jsonify(tag_trie_dict)
 
@@ -1351,7 +1532,7 @@ def check_user_submission():
 
     data = {'status': 
             database_status} # 0 if new video, 1 if existing + same monetization status, 2 if existing and different monetization status
-    print(data)
+
     return jsonify(data)
 
 
@@ -1457,5 +1638,5 @@ if __name__ == '__main__':
     app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
     app.jinja_env.auto_reload = app.debug
     connect_to_db(app)
-    DebugToolbarExtension(app)
+    # DebugToolbarExtension(app)
     app.run(host='0.0.0.0')

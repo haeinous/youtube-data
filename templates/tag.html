@@ -1,26 +1,38 @@
 {% extends 'base.html' %}
-"
-{% block title %}tag profile: &ldquo;{{ tag.tag }}&rdquo; | ytdc{% endblock %}
+
+{% block title %}
+  {{ tag.tag }} | tag profile | ytdc
+{% endblock %}
 
 {% block content %}
 
 <div class="container">
+
   <div class="row" id="tag-row1">
     <h1>
       &ldquo;{{ tag.tag }}&rdquo;
     </h1>
   </div>
+
   <div class="row" id="tag-row2">
     {% if videos_in_db == 1 %}
-      there is only one video tagged with &ldquo;{{ tag.tag }}&rdquo; in the ytdc database.
+      <div class="col">
+        <p>
+          there is only one video with this tag in the ytdc database.
+        </p>
+      </div>
     {% else %}
-      there are {{ '{:,}'.format(videos_in_db) }} videos tagged with &ldquo;{{ tag.tag }}&rdquo; in the ytdc database.
-    {% endif %}
+      <div class="col">
+        <p>
+          there are {{ '{:,}'.format(videos_in_db) }} videos with this tag in the ytdc database.
+        </p>
+      </div>
+    {% endif %} 
   </div>
 
   <div class="row" id="tag-row4">
     <div class="col-9" id="tag-row4-col1">
-      <canvas id="single-tag-demonetization" style="height: 110px;"></canvas>      
+      <canvas id="single-tag-demonetization"></canvas>      
     </div>
   </div>
   
@@ -28,48 +40,42 @@
     <h2>
       {% if videos_in_db == 1 %}
         the only video that uses this tag
-        <br>
-        <span style="font-size: 12px;">
-          (in our database at least)
-        </span>
       {% else %}
-        some random videos that use this tag
+        a few videos that use this tag
       {% endif %}
     </h2>
   </div>
 
-  <div class="row" id="tag-row6">
+  <div class="card-deck row" id="tag-row6">
+    {% for video in random_videos %}
+      <div class="card col-sm-6 col-md-4 col-lg-3">
+        <a href="/explore/videos/{{ video.video_id }}">
+          <img class="card-img-top" src="{{ video.thumbnail_url }}" alt="">
+        </a>
 
-    <div class="card-group">
-      {% for video in random_videos %}
-          <div class="card col-sm-6 col-md-4 col-lg-3">
-            <a href="/explore/videos/{{ video.video_id }}">
-              <img class="card-img-top" src="{{ video.thumbnail_url }}" alt="">
-            </a>
-            <div class="card-body">
-              <p class="card-text">
-                <span>                
-                  <a href="/explore/videos/{{ video.video_id }}">
-                    {{ video.video_title.lower() }}
-                  </a>
-                  <span class="badge">
-                    {% if video.is_monetized == False %}
-                      <span class="badge badge-danger">
-                        demonetized
-                      </span>
-                    {% else %}
-                      <span class="badge badge-success">
-                        monetized
-                      </span>
-                    {% endif %}
+        <div class="card-body">
+          <p class="card-text">
+            <span>                
+              <a href="/explore/videos/{{ video.video_id }}">
+                {{ video.video_title.lower() }}
+              </a>
+              <span class="badge">
+                {% if video.is_monetized == False %}
+                  <span class="badge badge-danger">
+                    demonetized
                   </span>
-                </span>
-              </p>
-            </div>
-            <!-- /.card -->
-        </div>     
-      {% endfor %}
-    </div>
+                {% else %}
+                  <span class="badge badge-success">
+                    monetized
+                  </span>
+                {% endif %}
+              </span>
+            </span>
+          </p>
+        </div>
+        <!-- /.card -->
+      </div>     
+    {% endfor %}
 
   </div>  
 
@@ -100,23 +106,22 @@
   let options = {responsive: true,
                  animation: false,
                  legend: {display: true,
-                          borderColor: 'rgba(255, 255, 255, 1)',
+                          border: null,
                           labels: {fontColor: 'rgba(40, 37, 98, 1)',
                                    fontFamily: 'Lato',
                                    fontSize: 14}},
                  title: {display: false}, 
                  maintainAspectRatio: false,
-                 tooltips: {mode: 'index',
-                            intersect: true},
+                 tooltips: {enabled: false},
                  elements: {point: {pointStyle: 'circle'}},
                  scales: {xAxes: [{stacked: true,
                                    ticks: {fontFamily: 'Lato',
                                            fontColor: 'rgba(40, 37, 98, 1)',
                                            fontSize: 14,
-                                           stepSize: 20}
+                                           stepSize: 20,
+                                           beginAtZero: true}
                                   }],
-                          yAxes: [{stacked: true,
-                                   display: false}]
+                          yAxes: [{display: false}]
                  }}
 
   tag = $('h1').text().trim().slice(1, -1);
@@ -140,9 +145,6 @@
     })
   }
 
-
-
 </script>
-
 
 {% endblock %}

@@ -1,96 +1,128 @@
 {% extends 'base.html' %}
 
-{% block title %}search results: {{ search_term }} | ytdc{% endblock %}
+{% block title %}search results | ytdc{% endblock %}
 
 {% block content %}
 
 <div class="container">
-  <div class="row" id="">
-    <h1 class="underlined">
-      search results for &ldquo;{{ search_term.lower() }}&rdquo;
-    </h1>
-  </div>
-
-  {% if search_results['channels'] %}
-    <div>
-      <h2>
-        channels
-      </h2>
-      <div class="row" id="">
-        {% for result in search_results['channels'] %}
-          <div class="col-sm-12 col-md-8">
-            <li>
-              <ul>
-                <span>
-                  <a href="/explore/channels/{{ result.channel_id }}">
-                    {{ result.channel_title }}
-                  </a>
-                </span>
-              </ul>
-            </li>
-          </div>
-        {% endfor %}
+  {% if search_results == None %}
+    <div class="row" id="">
+      <div class="col">
+        <h1 class="underlined">
+          &nbsp;sad / sorry:
+        </h1>        
       </div>
     </div>
-  {% endif %}
 
-  {% if search_results['videos'] %}
-    <div>
-      <h2>
-        videos
-      </h2>
-      <div class="row" id="">
-        {% for result in search_results['videos'] %}
-          <div class="col-sm-12 col-md-8">
-            <li>
-              <ul>
-                <span>
-                  <a href="/explore/videos/{{ result.video_id }}">
-                    {{ result.video_title }}
-                  </a>
-                </span>
-              </ul>
-            </li>
-          </div>
-        {% endfor %}
+    <div class="row" id="no-results-row">
+      <div class="col" id="no-results">
+        <h3>
+          we couldn&rsquo;t find any results for the search query &ldquo;{{ search_query.lower() }}&rdquo;
+        </h3>
+      </div>    
+    </div>
+    <div class="row" id="kiwi-container" aria-hidden="true">
+      <div class="col" id="kiwi-icon">
+        <i class="fas fa-duo fa-kiwi-bird fa-8x"></i>
       </div>
     </div>
-  {% endif %}
 
-  {% if search_results['categories'] %}
-    <div>
-      <h2>
-        categories
-      </h2>
-      <div class="row" id="">
-        {% for result in search_results['categories'] %}
-          <div class="col-sm-12 col-md-8">
-            <li>
-              <ul>
-                <span>
-                  <a href="/explore/categories/{{ result.video_category_id }}">
-                    {{ result.category_name }}
-                  </a>
-                </span>
-              </ul>
-            </li>
-          </div>
-        {% endfor %}
+  <!-- if there are search results -->
+  {% else %}
+
+    <div class="row" id="search-results-successful">
+      <div class="col">
+        <h1 class="underlined">
+          &nbsp;search results for &ldquo;{{ search_query.lower() }}&rdquo;
+        </h1>        
       </div>
     </div>
-  {% endif %}
 
-  {% if not search_results %}
     <div>
-      <h2>
-        no results found!
-      </h2>
-    </div>
+      <!-- video results -->
+      {% if search_results['video'] %}
+        <div class="row">
+          <div class="col" id="video-results-column">
+            <h2>
+              videos
+            </h2>
+          </div>
+
+          <div class="row">
+
+            {% for video in search_results['video'] %}
+              <div class="col-sm-6 col-md-4 col-lg-3">
+              <!-- card -->
+                <div class="card search-result">
+                  <img class="card-img-top" src="{{ video[0].thumbnail_url }}" alt="YouTube video: {{ video[0].video_title.lower() }}">
+
+                  <div class="card-body">
+                    <h6 class="card-title" style="text-align: left">
+                      <a href="/explore/videos/{{ video[0].video_id }}">
+                        {{ video[0].video_title.lower() }}
+                      </a>
+                        <span class="badge">
+                          {% if video[0].is_monetized == False %}
+                            <span class="badge badge-danger">
+                              demonetized
+                            </span>
+                          {% else %}
+                            <span class="badge badge-success">
+                              monetized
+                            </span>
+                          {% endif %}
+                        </span>
+                        <!-- /.badge -->
+                    </h6>
+                  </div>
+
+                </div>            
+                <!-- /.card -->
+
+              </div>
+            {% endfor %}
+
+          </div>
+        </div>
+        <!-- end video results -->
+
+        {% elif search_results['channel'] %}
+
+          <!-- channel results -->
+          <div class="row"> 
+            {% for channel in search_results['channel'] %}
+              <!-- card -->
+              <div class="col">
+                <div class="card search-result">
+                  <div class="card-header text-truncate">
+                    <a href="/explore/channels/{{ channel[0].channel_id }}">
+                      {{ channel[0].channel_title }}
+                    </a>
+                  </div>
+
+                  <div class="card-body">
+                    <h6 class="card-title text-truncate">
+                      <span>                
+                        <a href="/explore/videos/{{ channel[0].channel_id }}">
+                          {{ channel[0].channel_title }}
+                        </a>
+                      </span>
+                    </h6>
+                  </div>
+                </div>
+              </div>            
+              <!-- /.card -->
+            {% endfor %}
+          <!-- end channel results -->
+
+          </div>
+        {% endif %}
+      
+      </div>
+    
+    <!-- end search results -->
   {% endif %}
-
-
-
-
+  <!-- /.container -->
 </div>
 
 {% endblock %}
@@ -99,7 +131,6 @@
 
 <script type="text/javascript">
   
-
 
 </script>
 

@@ -7,26 +7,21 @@
 <div class="container">
   <div class="row" id="category-row1">
     <h1>
-      category: {{ category.category_name.lower() }}
+      {{ category.category_name.lower() }}
     </h1>
   </div>
-
-  <div class="row" id="category-row2">
-    total videos: {{ '{:,}'.format(videos_in_db) }}
-  </div>
-
-<!--   <div class="row justify-content-center" id="chart-row">
-    <div>
-      <h2>
-       some category insights
-      </h2>
-    </div>
-    
-    <div class="canvas-container col-9" style="background-color: #d9f7fa;">
-      <canvas class="col" id="tag-chart"></canvas>
+  <div class="row">
+    <div class="big-numbers">
+      <ul>
+        <li>
+          <span class="thick-bullet">&raquo;</span> there are <span class="highlight">
+            {{ '{:,}'.format(videos_in_db) }}
+          </span> {{ category.category_name.lower() }} videos on ytdc
+        </li>
+      </ul>
     </div>
   </div>
- -->  
+
   <div class="row" id="category-row5">
     <h2>
       videos in this category

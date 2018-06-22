@@ -126,7 +126,7 @@ def parse_image_data(image_urls):
         general_response = app.models.get('general-v1.3').predict(initialized_ClImages)
     except ApiError as e:
         error = json.loads(e.response.content)
-        pprint(error)
+        pprint('error: {}'.format(error))
 
     else:
         for item in general_response['outputs']:
@@ -146,7 +146,7 @@ def parse_image_data(image_urls):
         nsfw_response = app.models.get('nsfw-v1.0').predict(initialized_ClImages)
     except ApiError as e:
         error = json.loads(e.response.content)
-        pprint(error)
+        pprint('error: {}'.format(error))
 
     else:
         for item in nsfw_response['outputs']: #nsfw_r['outputs'] is a list
@@ -156,23 +156,23 @@ def parse_image_data(image_urls):
 
 
     # Obtain color data
-    try:
-        color_response = app.models.get('color').predict(initialized_ClImages)
-    except ApiError as e:
-        error = json.loads(e.response.content)
-        pprint(error)
+    # try:
+    #     color_response = app.models.get('color').predict(initialized_ClImages)
+    # except ApiError as e:
+    #     error = json.loads(e.response.content)
+    #     pprint('error: {}'.format(error[-100:]))
 
-    else:
-        for item in color_response['outputs']:
-            video_id = item['input']['data']['image']['url'][23:34]
-            color_tags = {}
-            for color in item['data']['colors']: # item['data']['colors'] is a list
-                if color['value'] > .2:
-                    color_hex = color['w3c']['hex'].rstrip().lower()
-                    color_name = color['w3c']['name'].rstrip().lower()
-                    if not Color.query.filter(Color.hex_code == color_hex).first():
-                        add_color_data(color_hex, color_name)
-                image_info[video_id]['colors'] = color_tags
+    # else:
+    #     for item in color_response['outputs']:
+    #         video_id = item['input']['data']['image']['url'][23:34]
+    #         color_tags = {}
+    #         for color in item['data']['colors']: # item['data']['colors'] is a list
+    #             if color['value'] > .2:
+    #                 color_hex = color['w3c']['hex'].rstrip().lower()
+    #                 color_name = color['w3c']['name'].rstrip().lower()
+    #                 if not Color.query.filter(Color.hex_code == color_hex).first():
+    #                     add_color_data(color_hex, color_name)
+    #             image_info[video_id]['colors'] = color_tags
 
     return image_info
 
@@ -183,11 +183,12 @@ def add_to_database(image_info):
 
     for video_id in image_info:
         info = image_info[video_id]
+        print(info)
         add_nsfw_image_data(video_id, info)        
         image_analysis_id = ImageAnalysis.query.filter(ImageAnalysis.video_id == video_id).first().image_analysis_id
 
         add_tag_image_data(video_id, info, image_analysis_id)
-        add_color_image_data(video_id, info, image_analysis_id)
+        # add_color_image_data(video_id, info, image_analysis_id)
 
 
 if __name__ == '__main__':

@@ -19,7 +19,7 @@
       </h2>
     </div>
 
-    <div class="canvas-container col-9" style="background-color: #d9f7fa;">
+    <div class="canvas-container col-9">
       <canvas class="col" id="category-chart"></canvas>
     </div>
 
@@ -34,8 +34,8 @@
   <div class="row" id="categories-row2">
     {% for category in categories %}
       <div class="col-sm-6 col-md-4 col-lg-3 text-center">
-        <button type="button" class="btn btn-outline-primary btn-lg text-center m-3">
-          <a href="/explore/categories/{{ category.video_category_id }}">
+        <button type="button" class="btn pink-outline-button text-center" id="category-buttons">
+          <a id="pink-button-link" href="/explore/categories/{{ category.video_category_id }}">
             {{ category.category_name.lower() }}
           </a>
         </button>
@@ -70,13 +70,18 @@
       data: response,
       options: {responsive: true,
                 animation: false,
-                legend: {display: false,
-                         position: 'right'},
+                legend: {display: false},
                 elements: {rectangle: {borderWidth: 0}},
                 title: {display: false},
                 scales: {xAxes: [{ticks: {min: 0,
-                                          callback: (label, index, labels) => {return label + '%'}}
-                      }]
+                                          callback: (label, index, labels) => {return label + '%'},
+                                          fontFamily: 'Lato',
+                                          fontColor: 'rgba(40, 37, 98, 1)',
+                                          fontSize: 14}
+                      }],
+                        yAxes: [{ticks: {fontFamily: 'Lato',
+                                         fontColor: 'rgba(40, 37, 98, 1)',
+                                         fontSize: 14}}]
               }
       }
     })
