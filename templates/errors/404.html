@@ -4,30 +4,66 @@
 
 {% block content %}
 
-<div class="container-fluid">
+<div class="container" id="container-404">
   <div class="row">
-    <div class="col-md-12">
-      <div class="error-template">
-        <h1>
-          404 not found
-        </h1>
-        <div class="error-details">
-          hmm, it looks like the page you requested doesn't exist. here, have a random graph:
-        </div>
-        <div id="404-error-graph">
-          tk insert random graph here
-        </div>
-
-        <div class="error-actions">
-          <a href="/" class="btn btn-primary btn-lg"><!-- <span class="glyphicon glyphicon-home"></span> -->
-              take me home </a>
-          <a href="/explore" class="btn btn-default btn-lg"><!-- <span class="glyphicon glyphicon-envelope"></span> --> explore more data </a>
-        </div>
-        
-      </div>
+    <div class="col">
+      <h1>
+        404 not found
+      </h1>      
     </div>
   </div>
+
+  <div class="row" id="error-details">
+    <div class="col-7">
+      <br>
+      <h4>
+        hmm, it looks like the page you requested doesn't exist?
+        <br>
+        <br>
+        check out some other things instead!
+      </h4>
+      <div class="row">
+        <div class="col">
+          <h2>
+            <a href="../channels.html">
+              channels
+            </a>
+          </h2>
+        </div>
+        <div class="col">
+          <h2>
+            <a href="../videos.html">
+              videos
+            </a>
+          </h2>
+        </div>
+        <div class="col">
+          <h2>
+            <a href="../tags.html">
+              tags
+            </a>
+          </h2>
+        </div>
+        <div class="col">
+          <h2>
+            <a href="../categories.html">
+              categories
+            </a>
+          </h2>
+        </div>
+      </div>
+    </div>
+    <div class="col-5 scalable-image">
+      <img alt="A gif of a color-changing tree" src="https://media.giphy.com/media/3ov9k0kiuiL4L8LUTC/giphy.gif">
+    </div>
+  </div>
+
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+
 
 {% endblock %}
 
