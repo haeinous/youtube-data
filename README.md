@@ -17,7 +17,7 @@ I wanted users to be able to compare demonetization percentages by video tag. Th
 
 Henry, a Hackbright instructor, encouraged me to implement autocomplete by looking into tries (pronounced like "try" with an s; I only say this because two MIT computer science grads pronounced it incorrectly—one thought it was "tree" and the other thought it was "tree-ay").
 
-![alt text](https://lh4.googleusercontent.com/_1H2MKoNUGkDN87ydTvIbbIJAvgs6tu7RCp7ypXYUUjxc3U2Yo3dkZiRXG4eJTtCLYl9n5Qxapu4qg=w1440-h780 "Autocomplete functionality")
+![alt text](https://raw.githubusercontent.com/haeinous/youtube-data/master/static/autocomplete.gif "Autocomplete functionality")
 
 #### Here's how I implemented it:
 1. Create classes for the `Trie` object with an `add_words` method  and a `TrieNode` object with an `add_child` method and a `frequency` attribute for how many videos have used a particular tag. A particular sequence of characters constitutes a word (or tag) if its `frequency` is not 0 (the higher the frequency, the more common it is).
@@ -28,11 +28,12 @@ Henry, a Hackbright instructor, encouraged me to implement autocomplete by looki
 
 ### 3. Using a multiset to return random videos in O(1) time
 
+![alt text](https://github.com/haeinous/youtube-data/blob/master/static/multiset.gif "Sixteen random videos are returned in O(1) time out of more than 30,000 videos.")
 
 
-### 4. The data model with lots of referential integrity
+### 4. A complex data model
 
-![alt text](https://lh5.googleusercontent.com/VYNjJFxSbd6nYEsn3SIuvJRAeTvoiVfGIbCv3kUdbDdERJBzZjLjIeeU8WOfwmii7cQUbHiJfcCfOQ=w1417-h780-rw "Data model for the YouTube Data Collective project")
+![alt text](https://raw.githubusercontent.com/haeinous/youtube-data/master/static/ytdc%20-%20data_model.png "Data model for the YouTube Data Collective project")
 
 
 ## Things I learned:
