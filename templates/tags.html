@@ -371,8 +371,11 @@
     let newTag = Object.entries(response)[1][1][0];
     let newTagData = Object.entries(response)[0][1][0].data[0]
     currentTags.push([newTag, newTagData]);
-    addTagToChart(newTag, newTagData, rgbColors[currentTags.length-1]);
     populateTagDisplay();
+    $('#demonetization-by-tag-chart').remove();
+    tagChart.destroy();
+    $('#chart-row').append('<canvas id="demonetization-by-tag-chart" class="chartjs-render-monitor"></canvas>');
+    reloadChart();
   }
 
   function addTagToChart(newLabel, newData, newColor) {
@@ -381,7 +384,6 @@
     tagChart.data.datasets[0].backgroundColor.push(newColor);
     tagChart.update();
   }
-
 
   function reloadChart() {
     let dataTemplateCopy = dataTemplate;
@@ -396,6 +398,51 @@
       options: options
     })
   }
+
+
+  // // (4.1) Upon clicking a tag, add it to the chart
+
+  // $('#suggested-tag-dropdown').on('click', 'li', addTag);
+
+  // function addTag() {
+  //   let newTag = $(this).text().trim();
+  //   $.ajax({
+  //     url: '/get-individual-tag-data.json',
+  //     data: {newTag: newTag}
+  //   })
+  //   .done(function(response) {
+  //     addTagToCurrentTags(response);
+  //   })
+  // }
+
+  // function addTagToCurrentTags(response) {
+  //   let newTag = Object.entries(response)[1][1][0];
+  //   let newTagData = Object.entries(response)[0][1][0].data[0]
+  //   currentTags.push([newTag, newTagData]);
+  //   addTagToChart(newTag, newTagData, rgbColors[currentTags.length-1]);
+  //   populateTagDisplay();
+  // }
+
+  // function addTagToChart(newLabel, newData, newColor) {
+  //   tagChart.data.labels.push(newLabel);
+  //   tagChart.data.datasets[0].data.push(newData);
+  //   tagChart.data.datasets[0].backgroundColor.push(newColor);
+  //   tagChart.update();
+  // }
+
+  // function reloadChart() {
+  //   let dataTemplateCopy = dataTemplate;
+  //   dataTemplateCopy.datasets[0].backgroundColor = rgbColors.slice(0, currentTags.length);
+  //   for (let tagInfo of currentTags) {
+  //     dataTemplateCopy.labels.push(tagInfo[0]);
+  //     dataTemplateCopy.datasets[0].data.push(tagInfo[1]);
+  //   }
+  //   tagChart = new Chart(ctxTagChart, {
+  //     type: 'bar',
+  //     data: dataTemplateCopy,
+  //     options: options
+  //   })
+  // }
 
 
   // (5) Remove tags.
