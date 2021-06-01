@@ -31,7 +31,7 @@ SQLAlchemy==1.2.7
 SQLAlchemy-Utils==0.33.3
 Unidecode==1.0.22
 uritemplate==3.0.0
-urllib3==1.22
+urllib3==1.26.5
 user-agent==0.1.9
 validators==0.12.1
 Werkzeug==0.14.1
